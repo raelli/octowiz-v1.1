@@ -13,7 +13,7 @@ A skill-backed memory stack for coding agents.
   <img src="https://img.shields.io/badge/skills-routed,_not_vendored-f97316.svg" alt="skills routed, not vendored">
 </p>
 
-octowiz is a curated memory collection for [LiteLLM Proxy](https://docs.litellm.ai/) `/v1/memory`, not LiteLLM-exclusive though, it works with pretty much any memory system that supports keyed retrieval. It holds AI-coding operating doctrine — how to plan, how to write tests, how to review, how to ship — outside the system prompt, so agents can fetch just the parts that match their current role and phase.
+octowiz is a curated memory collection for [LiteLLM Proxy](https://docs.litellm.ai/) `/v1/memory`, not LiteLLM-exclusive though, it works with pretty much any memory system that supports keyed retrieval. It holds AI-coding operating doctrine — how to plan, how to write tests, how to review, how to ship — outside the system prompt, so agents can fetch just the parts that match their current `(role, phase)` at runtime, rather than baked into every agent's system prompt. One source of truth, updates propagate the moment they hit the store, and each call's context window only carries what's actually relevant to the step the agent is on — not the entire rulebook.
 
 ## Architecture
 
