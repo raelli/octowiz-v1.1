@@ -13,7 +13,7 @@ A skill-backed memory stack for coding agents.
   <img src="https://img.shields.io/badge/skills-routed,_not_vendored-f97316.svg" alt="skills routed, not vendored">
 </p>
 
-octowiz is a memory pack for [LiteLLM Proxy](https://docs.litellm.ai/) `/v1/memory`. It holds AI-coding operating doctrine — how to plan, how to write tests, how to review, how to ship — outside the system prompt, so agents can fetch just the parts that match their current role and phase.
+octowiz is a curated memory collection for [LiteLLM Proxy](https://docs.litellm.ai/) `/v1/memory`, not LiteLLM-exclusive though, it works with pretty much any memory system that supports keyed retrieval. It holds AI-coding operating doctrine — how to plan, how to write tests, how to review, how to ship — outside the system prompt, so agents can fetch just the parts that match their current role and phase.
 
 ## Architecture
 
@@ -133,7 +133,7 @@ octowiz points at two upstream skill libraries instead of vendoring them. Each g
 
 **[obra/superpowers](https://github.com/obra/superpowers)** — brainstorming before code, written plans, git worktrees, subagent-driven development, systematic debugging, code review, verification before completion, finishing branches. Best fit when you want a strict end-to-end methodology.
 
-Neither is vendored. Forks should keep the routing entries pointing at the real upstream so attribution and updates stay intact.
+Neither is bundled. Forks should keep the routing entries pointing at the real upstream so attribution and updates stay intact.
 
 ## Verify
 
