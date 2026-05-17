@@ -28,7 +28,7 @@ octowiz is a memory stack and coordinator skill for AI-assisted development in C
         │ ──────────────────────────────────── │
         │  reads project state + git status    │
         │  fetches retrieval contract          │
-        │  routes A / B / C / D               │
+        │  routes A / B / C / D                │
         └─────────────────┬────────────────────┘
                           │
                           │  GET /v1/memory
@@ -150,7 +150,7 @@ LITELLM_API_KEY=sk-your-key
 
 ## Using /octowiz
 
-After importing memories and installing the marketplace, invoke the coordinator from any repo:
+After importing memories and installing the marketplace and all three skills (octowiz,mattpo-skills,superpowers are mandatory the rest is optional), invoke the coordinator from any repo:
 
 ```
 /octowiz
