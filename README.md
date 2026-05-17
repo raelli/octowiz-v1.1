@@ -150,7 +150,7 @@ LITELLM_API_KEY=sk-your-integrahub-key
 
 ## Using /octowiz
 
-After importing memories and installing the marketplace, invoke the coordinator from any repo:
+After importing memories and installing the marketplace and all three skills (octowiz,mattpo-skills,superpowers are mandatory the rest is optional), invoke the coordinator from any repo:
 
 ```
 /octowiz
