@@ -9,7 +9,7 @@ A skill-backed memory stack for coding agents.
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-eab308.svg" alt="license: MIT"></a>
   <img src="https://img.shields.io/badge/python-3.8%2B-3776AB.svg?logo=python&logoColor=white" alt="python 3.8+">
   <img src="https://img.shields.io/badge/LiteLLM_Proxy-compatible-7C3AED.svg" alt="LiteLLM Proxy compatible">
-  <img src="https://img.shields.io/badge/memories-24-22c55e.svg" alt="24 memories">
+  <img src="https://img.shields.io/badge/memories-26-22c55e.svg" alt="26 memories">
   <img src="https://img.shields.io/badge/skills-routed,_not_vendored-f97316.svg" alt="skills routed, not vendored">
 </p>
 
@@ -113,6 +113,55 @@ Want just a subset? Prefix-filter the import:
 python import_litellm_memories.py litellm_agent_memories_matt_pocock_ai_coding.json \
   --key-prefix "team:allspark:skills:"
 ```
+
+## Claude Code setup
+
+Install the integrahub marketplace once — no per-repo setup needed.
+
+Add to `~/.claude/settings.json`:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "litellm": {
+      "source": "url",
+      "url": "https://llm.integrahub.de/claude-code/marketplace.json"
+    }
+  },
+  "env": {
+    "LITELLM_BASE_URL": "https://llm.integrahub.de",
+    "LITELLM_API_KEY": "sk-..."
+  }
+}
+```
+
+Get your API key from [llm.integrahub.de](https://llm.integrahub.de). Skills are public — the key is only needed for memory retrieval and AI model access.
+
+**Per-repo alternative:** add a `.env` file (gitignored) if you prefer project-scoped keys:
+
+```bash
+# .env
+LITELLM_API_KEY=sk-your-integrahub-key
+```
+
+## Using /octowiz
+
+After importing memories and installing the marketplace, invoke the coordinator from any repo:
+
+```
+/octowiz
+```
+
+The coordinator reads your project setup, fetches the relevant memories from LiteLLM, and asks where you are in the workflow:
+
+| Option | Starting point | Entry skill |
+|---|---|---|
+| A | Fresh idea | `brainstorming` |
+| B | Have a plan to stress-test | `grill-me` |
+| C | Ready to implement | `using-git-worktrees` + TDD |
+| D | Code done, need review | `zoom-out` + `requesting-code-review` |
+
+Run `/mattpocock-skills:setup-matt-pocock-skills` once per repo before first use — it wires up your issue tracker and domain docs so `to-prd`, `to-issues`, `triage`, and `diagnose` work correctly.
 
 ## Retrieval per role
 
