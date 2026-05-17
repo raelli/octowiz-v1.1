@@ -36,8 +36,8 @@ octowiz is a memory stack and coordinator skill for AI-assisted development in C
         ┌──────────────────────────────────────┐
         │     LiteLLM Proxy · /v1/memory       │
         │ ──────────────────────────────────── │
-        │     playbook:*           16 entries  │
-        │     skills:*              4 entries  │
+        │     playbook:*           17 entries  │
+        │     skills:*              3 entries  │
         │     agent:{role}:*        4 entries  │
         │     config:*              2 entries  │
         └─────────────────┬────────────────────┘
@@ -53,6 +53,15 @@ octowiz is a memory stack and coordinator skill for AI-assisted development in C
 ```
 
 Three layers. The coordinator reads the project and fetches the relevant doctrine slice; LiteLLM holds the doctrine; installed skills do the work — referenced, never copied.
+
+### Memory namespace breakdown
+
+| Prefix | Count | What it contains |
+|---|---|---|
+| `playbook:*` | 17 | Workflow doctrine: how to plan, slice, implement, review, and ship. Derived from the transcript of Matt Pocock's [AI Engineer workshop](https://www.youtube.com/watch?v=-QFHIoCo-Ko). Covers context management, alignment interviews, PRD structure, tracer-bullet slicing, HITL vs AFK, TDD, fresh-context review, deep modules, frontend prototypes, parallel agents, and more. |
+| `skills:*` | 3 | Routing summaries for the two upstream skill libraries (mattpocock/skills, obra/superpowers) and the marketplace skills hub. Tells agents which library handles which kind of task. |
+| `agent:{role}:*` | 4 | Role-specific memory slices for `planner`, `implementer`, `reviewer`, and `qa`. Each agent pulls only its own slice to keep context tight. |
+| `config:*` | 2 | Import guidance and the retrieval contract the coordinator reads on startup. |
 
 ## Contents
 
@@ -139,6 +148,22 @@ Add to `~/.claude/settings.json`:
 ```
 
 Point `LITELLM_BASE_URL` at your own LiteLLM proxy. Skills are public — the key is only needed for memory retrieval and AI model access.
+
+**Install the required plugins.** Adding the marketplace to `settings.json` only registers it as a known source — plugins are not installed automatically. Open Claude Code and run:
+
+```
+/plugins
+```
+
+Install these three plugins from the marketplace:
+
+| Plugin | Provides |
+|---|---|
+| `octowiz` | The `/octowiz` coordinator skill (this repo) |
+| `mattpocock-skills` | Alignment, PRD, TDD, diagnosis, architecture, handoff skills |
+| `superpowers` | Brainstorming, plans, worktrees, subagents, review, verification skills |
+
+All three are required. `/octowiz` routes to skills from the other two — if either is missing the coordinator will fail mid-flow.
 
 **Per-repo alternative:** add a `.env` file (gitignored) if you prefer project-scoped keys:
 
