@@ -28,7 +28,7 @@ octowiz is a memory stack and coordinator skill for AI-assisted development in C
         │ ──────────────────────────────────── │
         │  reads project state + git status    │
         │  fetches retrieval contract          │
-        │  routes A / B / C / D               │
+        │  routes A / B / C / D                │
         └─────────────────┬────────────────────┘
                           │
                           │  GET /v1/memory
