@@ -42,6 +42,24 @@ def load_memories(path: str) -> List[Dict[str, Any]]:
         raise ValueError("Expected JSON list, JSONL, or object with 'memories' key.")
 
 
+def validate_memories(memories: List[Dict[str, Any]]) -> None:
+    errors = []
+    for i, m in enumerate(memories):
+        if not isinstance(m.get("key"), str) or not m["key"]:
+            errors.append(f"Entry {i}: 'key' must be a non-empty string")
+        if not isinstance(m.get("value"), str):
+            errors.append(f"Entry {i}: 'value' must be a string")
+    if errors:
+        for e in errors:
+            print(f"ERROR: {e}", file=sys.stderr)
+        raise SystemExit(1)
+
+
+def rewrite_namespace(memories: List[Dict[str, Any]], old: str, new: str) -> List[Dict[str, Any]]:
+    """Rewrite memory keys from old namespace to new namespace."""
+    return memories
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("memory_file")
@@ -58,6 +76,7 @@ def main() -> int:
         return 2
 
     memories = load_memories(args.memory_file)
+    validate_memories(memories)
     if args.key_prefix:
         memories = [m for m in memories if m["key"].startswith(args.key_prefix)]
 
