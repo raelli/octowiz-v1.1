@@ -1,12 +1,16 @@
+import httpx
+import importlib
 import json
 import os
 import sys
 import tempfile
 import unittest
+import urllib.parse
 from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from import_litellm_memories import load_memories, validate_memories, rewrite_namespace
+import import_litellm_memories as _importer_module
+from import_litellm_memories import load_memories, main, validate_memories, rewrite_namespace
 
 
 class TestValidateMemories(unittest.TestCase):
@@ -108,24 +112,56 @@ class TestLoadMemories(unittest.TestCase):
 
 class TestPrefixFilter(unittest.TestCase):
     def test_prefix_filter_excludes_non_matching(self):
-        memories = [
+        data = [
             {"key": "team:allspark:playbook:overview", "value": "v1"},
             {"key": "team:allspark:skills:mattpocock", "value": "v2"},
             {"key": "agent:planner:memory:workflow", "value": "v3"},
         ]
-        filtered = [m for m in memories if m["key"].startswith("team:allspark:skills:")]
-        self.assertEqual(len(filtered), 1)
-        self.assertEqual(filtered[0]["key"], "team:allspark:skills:mattpocock")
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(data, f)
+            path = f.name
+        try:
+            mock_response = MagicMock()
+            mock_response.raise_for_status.return_value = None
+            mock_client_instance = MagicMock()
+            mock_client_instance.__enter__ = MagicMock(return_value=mock_client_instance)
+            mock_client_instance.__exit__ = MagicMock(return_value=False)
+            mock_client_instance.put.return_value = mock_response
+            with patch("httpx.Client", return_value=mock_client_instance):
+                with patch.dict(os.environ, {"LITELLM_API_KEY": "sk-test", "LITELLM_BASE_URL": "http://localhost:4000"}):
+                    with patch("sys.argv", ["import_litellm_memories.py", path, "--key-prefix", "team:allspark:skills:"]):
+                        importlib.reload(_importer_module)
+                        result = _importer_module.main()
+            self.assertEqual(result, 0)
+            self.assertEqual(mock_client_instance.put.call_count, 1)
+            self.assertIn("team%3Aallspark%3Askills%3Amattpocock", mock_client_instance.put.call_args[0][0])
+        finally:
+            os.unlink(path)
 
 
 class TestUrlEncoding(unittest.TestCase):
     def test_colons_encoded_correctly(self):
-        import urllib.parse
-        key = "team:allspark:playbook:overview"
-        self.assertEqual(
-            urllib.parse.quote(key, safe=""),
-            "team%3Aallspark%3Aplaybook%3Aoverview",
-        )
+        data = [{"key": "team:allspark:playbook:overview", "value": "v1"}]
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(data, f)
+            path = f.name
+        try:
+            mock_response = MagicMock()
+            mock_response.raise_for_status.return_value = None
+            mock_client_instance = MagicMock()
+            mock_client_instance.__enter__ = MagicMock(return_value=mock_client_instance)
+            mock_client_instance.__exit__ = MagicMock(return_value=False)
+            mock_client_instance.put.return_value = mock_response
+            with patch("httpx.Client", return_value=mock_client_instance):
+                with patch.dict(os.environ, {"LITELLM_API_KEY": "sk-test", "LITELLM_BASE_URL": "http://localhost:4000"}):
+                    with patch("sys.argv", ["import_litellm_memories.py", path]):
+                        importlib.reload(_importer_module)
+                        result = _importer_module.main()
+            call_url = mock_client_instance.put.call_args[0][0]
+            self.assertIn("%3A", call_url)
+            self.assertEqual(result, 0)
+        finally:
+            os.unlink(path)
 
 
 class TestDryRun(unittest.TestCase):
@@ -137,10 +173,7 @@ class TestDryRun(unittest.TestCase):
         try:
             with patch("httpx.Client") as mock_client:
                 with patch("sys.argv", ["import_litellm_memories.py", path, "--dry-run"]):
-                    import importlib
-                    import import_litellm_memories as _importer_module
-                    importlib.reload(_importer_module)
-                    result = _importer_module.main()
+                    result = main()
                 mock_client.assert_not_called()
                 self.assertEqual(result, 0)
         finally:
@@ -149,7 +182,6 @@ class TestDryRun(unittest.TestCase):
 
 class TestBadHttpResponse(unittest.TestCase):
     def test_failed_http_response_exits_1(self):
-        import httpx
         data = [{"key": "k1", "value": "v1"}]
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(data, f)
@@ -169,10 +201,7 @@ class TestBadHttpResponse(unittest.TestCase):
             with patch("httpx.Client", return_value=mock_client_instance):
                 with patch.dict(os.environ, {"LITELLM_API_KEY": "sk-test", "LITELLM_BASE_URL": "http://localhost:4000"}):
                     with patch("sys.argv", ["import_litellm_memories.py", path]):
-                        import importlib
-                        import import_litellm_memories as _importer_module
-                        importlib.reload(_importer_module)
-                        result = _importer_module.main()
+                        result = main()
             self.assertEqual(result, 1)
         finally:
             os.unlink(path)
