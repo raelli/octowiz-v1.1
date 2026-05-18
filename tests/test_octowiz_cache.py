@@ -375,9 +375,9 @@ class TestManifestReadWrite(unittest.TestCase):
             }
             _module._write_manifest(ns_dir, manifest)
             result = _module._read_manifest(ns_dir)
-        self.assertEqual(result["namespace"], "allspark")
-        self.assertIn("planner", result["roles"])
-        self.assertEqual(result["roles"]["planner"]["bundle_hash"], "abc123")
+            self.assertEqual(result["namespace"], "allspark")
+            self.assertIn("planner", result["roles"])
+            self.assertEqual(result["roles"]["planner"]["bundle_hash"], "abc123")
 
     def test_read_missing_manifest_returns_none(self):
         with tempfile.TemporaryDirectory() as tmpdir:
