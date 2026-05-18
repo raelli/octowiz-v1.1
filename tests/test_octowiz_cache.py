@@ -179,6 +179,11 @@ class TestGetLitellmClient(unittest.TestCase):
             with patch("httpx.Client") as mock_client_cls:
                 get_litellm_client()
                 mock_client_cls.assert_called_once()
+                call_kwargs = mock_client_cls.call_args.kwargs
+                self.assertEqual(
+                    call_kwargs["headers"]["Authorization"],
+                    "Bearer sk-admin-123",
+                )
 
     def test_api_key_fallback_when_no_admin_key(self):
         env = {
@@ -189,6 +194,11 @@ class TestGetLitellmClient(unittest.TestCase):
             with patch("httpx.Client") as mock_client_cls:
                 get_litellm_client()
                 mock_client_cls.assert_called_once()
+                call_kwargs = mock_client_cls.call_args.kwargs
+                self.assertEqual(
+                    call_kwargs["headers"]["Authorization"],
+                    "Bearer sk-fallback",
+                )
 
 
 # ---------------------------------------------------------------------------

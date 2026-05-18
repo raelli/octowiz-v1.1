@@ -101,7 +101,7 @@ def render_bundle(role: str, memories: List[Dict[str, Any]]) -> str:
         key = mem.get("key", "")
         value = mem.get("value", "")
         lines.append(f"## {key}\n\n{value}\n\n---\n")
-    return "\n".join(lines) + "\n"
+    return "\n".join(lines).strip() + "\n"
 
 
 # ---------------------------------------------------------------------------
@@ -270,9 +270,9 @@ def get_bundle(
     # Step 1: serve from cache if fresh and not forced refresh
     if not refresh:
         manifest = _read_manifest(ns_dir)
-        if manifest is not None and manifest_is_fresh(manifest, ttl_seconds):
+        if manifest is not None:
             role_entry = manifest.get("roles", {}).get(role)
-            if role_entry:
+            if role_entry and manifest_is_fresh(role_entry, ttl_seconds):
                 bundle_hash = role_entry.get("bundle_hash", "")
                 cached_content = _read_bundle(ns_dir, role, bundle_hash)
                 if cached_content is not None:
@@ -322,6 +322,7 @@ def get_bundle(
         "bundle_hash": bundle_hash,
         "bundle_path": str(bundle_path.relative_to(ns_dir)),
         "memory_hashes": memory_hashes,
+        "updated_at": time.time(),
     }
     _write_manifest(ns_dir, manifest)
 
