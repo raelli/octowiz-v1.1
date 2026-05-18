@@ -351,5 +351,60 @@ class TestGetBundle(unittest.TestCase):
             self.assertIn("Octowiz Doctrine Bundle", result)
 
 
+# ---------------------------------------------------------------------------
+# manifest read/write and bundle atomic write
+# ---------------------------------------------------------------------------
+
+
+class TestManifestReadWrite(unittest.TestCase):
+    def test_write_and_read_manifest_roundtrip(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ns_dir = Path(tmpdir) / "namespaces" / "allspark"
+            manifest = {
+                "namespace": "allspark",
+                "updated_at": 1760000000.0,
+                "ttl_seconds": 3600,
+                "roles": {
+                    "planner": {
+                        "bundle_hash": "abc123",
+                        "bundle_path": "bundles/planner/abc123.md",
+                        "updated_at": 1760000000.0,
+                        "memory_hashes": {"team:allspark:playbook:overview": "def456"},
+                    }
+                },
+            }
+            _module._write_manifest(ns_dir, manifest)
+            result = _module._read_manifest(ns_dir)
+        self.assertEqual(result["namespace"], "allspark")
+        self.assertIn("planner", result["roles"])
+        self.assertEqual(result["roles"]["planner"]["bundle_hash"], "abc123")
+
+    def test_read_missing_manifest_returns_none(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ns_dir = Path(tmpdir) / "namespaces" / "allspark"
+            result = _module._read_manifest(ns_dir)
+        self.assertIsNone(result)
+
+    def test_write_bundle_creates_file(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ns_dir = Path(tmpdir) / "namespaces" / "allspark"
+            path = _module._write_bundle(ns_dir, "planner", "abc123", "# Doctrine\n")
+            self.assertTrue(path.exists())
+            self.assertEqual(path.read_text(encoding="utf-8"), "# Doctrine\n")
+
+    def test_write_bundle_atomic_no_tmp_left_behind(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ns_dir = Path(tmpdir) / "namespaces" / "allspark"
+            _module._write_bundle(ns_dir, "planner", "abc123", "# Doctrine\n")
+            tmp_files = list((ns_dir / "bundles" / "planner").glob("*.tmp"))
+        self.assertEqual(tmp_files, [], "No .tmp files should remain after atomic write")
+
+    def test_read_bundle_returns_none_when_missing(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ns_dir = Path(tmpdir) / "namespaces" / "allspark"
+            result = _module._read_bundle(ns_dir, "planner", "nonexistent_hash")
+        self.assertIsNone(result)
+
+
 if __name__ == "__main__":
     unittest.main()
