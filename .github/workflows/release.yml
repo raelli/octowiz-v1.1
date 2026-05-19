@@ -40,11 +40,13 @@ jobs:
 
           # Update .claude-plugin/plugin.json
           python3 -c "
-          import json
-          with open('.claude-plugin/plugin.json') as f: d = json.load(f)
-          d['version'] = '$NEW'
-          with open('.claude-plugin/plugin.json', 'w') as f: json.dump(d, f, indent=2)
-          f.write('\n')
+import json
+with open('.claude-plugin/plugin.json') as f:
+    d = json.load(f)
+d['version'] = '$NEW'
+with open('.claude-plugin/plugin.json', 'w') as f:
+    json.dump(d, f, indent=2)
+    f.write('\n')
           "
 
           # Update pyproject.toml
