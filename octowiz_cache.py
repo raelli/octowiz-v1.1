@@ -59,6 +59,7 @@ ROLE_MEMORY_KEYS: Dict[str, List[str]] = {
 
 DEFAULT_CACHE_DIR = Path.home() / ".cache" / "octowiz"
 DEFAULT_TTL_SECONDS = 3600
+CACHE_SCHEMA_VERSION = 1
 
 
 # ---------------------------------------------------------------------------
@@ -111,8 +112,8 @@ def render_bundle(role: str, memories: List[Dict[str, Any]]) -> str:
 
 def manifest_is_fresh(manifest: Dict[str, Any], ttl_seconds: int) -> bool:
     """Return True if time.time() - manifest['updated_at'] < ttl_seconds."""
-    age = time.time() - manifest["updated_at"]
-    return age < ttl_seconds
+    updated_at = manifest.get("updated_at") or 0
+    return time.time() - updated_at < ttl_seconds
 
 
 # ---------------------------------------------------------------------------
@@ -215,11 +216,13 @@ def _read_manifest(ns_dir: Path) -> Optional[Dict[str, Any]]:
 
 def _write_manifest(ns_dir: Path, manifest: Dict[str, Any]) -> None:
     """Write manifest atomically using os.replace()."""
-    manifest_path = ns_dir / "manifest.json"
-    tmp_path = manifest_path.with_suffix(".json.tmp")
+    manifest["schema_version"] = CACHE_SCHEMA_VERSION
     ns_dir.mkdir(parents=True, exist_ok=True)
-    tmp_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-    os.replace(str(tmp_path), str(manifest_path))
+    target = ns_dir / "manifest.json"
+    tmp = target.with_suffix(".json.tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2)
+    os.replace(tmp, target)
 
 
 def _read_bundle(ns_dir: Path, role: str, bundle_hash: str) -> Optional[str]:
@@ -278,6 +281,8 @@ def get_bundle(
     # Step 1: serve from cache if fresh and not forced refresh
     if not refresh:
         manifest = _read_manifest(ns_dir)
+        if manifest and manifest.get("schema_version") != CACHE_SCHEMA_VERSION:
+            manifest = None  # force rebuild — schema changed
         if manifest is not None:
             role_entry = manifest.get("roles", {}).get(role)
             if role_entry and manifest_is_fresh(role_entry, ttl_seconds):
