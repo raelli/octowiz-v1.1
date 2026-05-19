@@ -1,0 +1,23 @@
+{
+  "name": "octowiz",
+  "description": "A skill-backed memory stack for coding agents.",
+  "version": "0.0.2",
+  "author": {
+    "name": "IntegraHub",
+    "email": "support@integrahub.de"
+  },
+  "homepage": "https://github.com/raelli/octowiz",
+  "repository": "https://github.com/raelli/octowiz",
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "mattpocock",
+    "superpowers",
+    "litellm",
+    "memory",
+    "workflow"
+  ],
+  "skills": [
+    "./skills/octowiz-workflow"
+  ]
+}

@@ -1,0 +1,59 @@
+name: release
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  bump-and-tag:
+    runs-on: ubuntu-latest
+    # Skip if the commit itself is a version bump (prevents loops)
+    if: "!contains(github.event.head_commit.message, 'chore: bump version')"
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Read current version
+        id: current
+        run: |
+          VERSION=$(python3 -c "import json; print(json.load(open('.claude-plugin/plugin.json'))['version'])")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Bump patch version
+        id: bump
+        run: |
+          OLD="${{ steps.current.outputs.version }}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$OLD"
+          NEW="$MAJOR.$MINOR.$((PATCH + 1))"
+          echo "new_version=$NEW" >> $GITHUB_OUTPUT
+
+          # Update .claude-plugin/plugin.json
+          python3 -c "
+          import json
+          with open('.claude-plugin/plugin.json') as f: d = json.load(f)
+          d['version'] = '$NEW'
+          with open('.claude-plugin/plugin.json', 'w') as f: json.dump(d, f, indent=2)
+          f.write('\n')
+          "
+
+          # Update pyproject.toml
+          sed -i "s/^version = \"$OLD\"/version = \"$NEW\"/" pyproject.toml
+
+      - name: Commit and tag
+        run: |
+          NEW="${{ steps.bump.outputs.new_version }}"
+          git add .claude-plugin/plugin.json pyproject.toml
+          git commit -m "chore: bump version to $NEW"
+          git tag "v$NEW"
+          git push origin main --tags
