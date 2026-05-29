@@ -1072,5 +1072,74 @@ class TestCacheStoreSeed(unittest.TestCase):
             self.assertEqual(store.get_best_available("planner", "allspark"), "# planner\n")
 
 
+# ---------------------------------------------------------------------------
+# get_bundle() source injection (Candidate 1)
+# ---------------------------------------------------------------------------
+
+
+class TestGetBundleSourceInjection(unittest.TestCase):
+    """source: MemorySource | None = None parameter on get_bundle()."""
+
+    def _make_source(self, role="routing", namespace="allspark"):
+        keys = octowiz_cache.ROLE_REGISTRY.get_keys(role, namespace)
+        data = {k: {"key": k, "value": f"injected:{k}", "metadata": {}} for k in keys}
+        return DictMemorySource(data)
+
+    def test_injected_source_used_instead_of_litellm(self):
+        """When source is provided, get_bundle must use it and never call get_litellm_client."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = self._make_source()
+            with patch("octowiz_cache.get_litellm_client") as mock_client_factory:
+                result = octowiz_cache.get_bundle(
+                    "routing", "allspark", cache_dir=tmpdir, source=source
+                )
+            mock_client_factory.assert_not_called()
+            self.assertIn("Octowiz Doctrine Bundle", result)
+
+    def test_injected_source_content_appears_in_bundle(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = self._make_source()
+            result = octowiz_cache.get_bundle(
+                "routing", "allspark", cache_dir=tmpdir, source=source
+            )
+            self.assertIn("injected:", result)
+
+    def test_cache_hit_skips_source_on_second_call(self):
+        """A fresh cache entry must be served without calling source.fetch at all."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = self._make_source()
+            # Populate cache
+            octowiz_cache.get_bundle("routing", "allspark", cache_dir=tmpdir, source=source)
+            # Second call: cache is fresh, source.fetch must NOT be called
+            from unittest.mock import MagicMock
+            spy_source = MagicMock()
+            spy_source.fetch.side_effect = AssertionError("source.fetch called on cache hit")
+            octowiz_cache.get_bundle("routing", "allspark", cache_dir=tmpdir, source=spy_source)
+
+    def test_stale_cache_with_source_fetches_fresh(self):
+        """If cache is expired, source must be called even when source is injected."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            store = octowiz_cache.CacheStore(Path(tmpdir))
+            store.seed("routing", "allspark", "# old cached\n", expired=True)
+            source = self._make_source()
+            result = octowiz_cache.get_bundle(
+                "routing", "allspark", cache_dir=tmpdir, ttl_seconds=3600,
+                source=source, refresh=False,
+            )
+            # Fresh fetch from source should overwrite the stale seed
+            self.assertIn("injected:", result)
+
+    def test_none_source_falls_back_to_litellm(self):
+        """Omitting source (None) must still call get_litellm_client as before."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            mock_client = MagicMock()
+            keys = octowiz_cache.ROLE_REGISTRY.get_keys("routing", "allspark")
+            memories = [{"key": k, "value": "v", "metadata": {}} for k in keys]
+            with patch("octowiz_cache.get_litellm_client", return_value=mock_client):
+                with patch("octowiz_cache.fetch_role_memories", return_value=memories):
+                    octowiz_cache.get_bundle("routing", "allspark", cache_dir=tmpdir)
+            mock_client.close.assert_called()
+
+
 if __name__ == "__main__":
     unittest.main()

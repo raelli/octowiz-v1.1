@@ -446,14 +446,20 @@ def get_bundle(
     cache_dir: Any = None,  # Path | str | None
     ttl_seconds: int = DEFAULT_TTL_SECONDS,
     refresh: bool = False,
+    source: Optional[MemorySource] = None,
 ) -> str:
     """
     Return the doctrine bundle (Markdown string) for *role* and *namespace*.
 
     Cache flow:
       1. If not refresh: check manifest freshness + bundle file on disk → serve if valid.
-      2. Fetch from LiteLLM; if LiteLLM fails and stale cache exists: warn stderr + serve stale.
+      2. Fetch from source (or construct LiteLLMMemorySource if source is None); on failure
+         and stale cache exists: warn stderr + serve stale.
       3. Build bundle, write atomically, update manifest, return content.
+
+    source: optional MemorySource adapter. When None, constructs LiteLLMMemorySource
+    from get_litellm_client(). Pass a DictMemorySource (or any MemorySource) in tests
+    to avoid network calls.
     """
     if not ROLE_REGISTRY.has_role(role):
         raise ValueError(
@@ -475,11 +481,12 @@ def get_bundle(
         if cached is not None:
             return cached
 
-    # Step 2: Fetch from LiteLLM; fall back to stale cache on failure
+    # Step 2: Fetch via injected source or construct default LiteLLM source
     client = None
     try:
-        client = get_litellm_client()
-        source = LiteLLMMemorySource(client)
+        if source is None:
+            client = get_litellm_client()
+            source = LiteLLMMemorySource(client)
         memories = fetch_role_memories(source, role, namespace)
     except Exception as exc:
         stale = store.get_best_available(
