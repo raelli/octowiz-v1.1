@@ -746,71 +746,56 @@ class TestCacheStorePut(unittest.TestCase):
 
 
 class TestGetBundleWithDictMemorySource(unittest.TestCase):
-    def _make_dict_source_for_role(self, role, namespace="allspark"):
+    def _make_source(self, role="routing", namespace="allspark"):
         keys = octowiz_cache.ROLE_REGISTRY.get_keys(role, namespace)
         data = {k: {"key": k, "value": f"value for {k}", "metadata": {}} for k in keys}
         return DictMemorySource(data)
 
-    def _patch_with_dict_source(self, role, namespace="allspark"):
-        """
-        Return a context manager pair: patches get_litellm_client and
-        fetch_role_memories so get_bundle uses DictMemorySource internally.
-        """
-        source = self._make_dict_source_for_role(role, namespace)
-        keys = octowiz_cache.ROLE_REGISTRY.get_keys(role, namespace)
-        memories = [source.fetch(k) for k in keys]
-        # We patch fetch_role_memories directly (it's already tested separately)
-        return memories
-
     def test_get_bundle_end_to_end_with_dict_source(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            role, namespace = "routing", "allspark"
-            memories = self._patch_with_dict_source(role, namespace)
-            with patch("octowiz_cache.get_litellm_client", return_value=MagicMock()):
-                with patch("octowiz_cache.fetch_role_memories", return_value=memories):
-                    result = octowiz_cache.get_bundle(role, namespace, cache_dir=tmpdir)
+            source = self._make_source()
+            result = octowiz_cache.get_bundle("routing", "allspark", cache_dir=tmpdir, source=source)
             self.assertIsInstance(result, str)
             self.assertIn("Octowiz Doctrine Bundle", result)
 
     def test_cache_hit_on_second_call(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            role, namespace = "routing", "allspark"
-            memories = self._patch_with_dict_source(role, namespace)
-            mock_fetch = MagicMock(return_value=memories)
-            with patch("octowiz_cache.get_litellm_client", return_value=MagicMock()):
-                with patch("octowiz_cache.fetch_role_memories", mock_fetch):
-                    octowiz_cache.get_bundle(role, namespace, cache_dir=tmpdir)
-                    # Second call — should hit cache, not call fetch_role_memories again
-                    octowiz_cache.get_bundle(role, namespace, cache_dir=tmpdir)
-            self.assertEqual(mock_fetch.call_count, 1, "fetch_role_memories should only be called once")
+            source = self._make_source()
+            octowiz_cache.get_bundle("routing", "allspark", cache_dir=tmpdir, source=source)
+            # Second call — should hit cache, source.fetch must NOT be called
+            spy = MagicMock()
+            spy.fetch.side_effect = AssertionError("source.fetch called on cache hit")
+            octowiz_cache.get_bundle("routing", "allspark", cache_dir=tmpdir, source=spy)
 
     def test_refresh_forces_fetch_with_dict_source(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            role, namespace = "routing", "allspark"
-            memories = self._patch_with_dict_source(role, namespace)
-            mock_fetch = MagicMock(return_value=memories)
-            with patch("octowiz_cache.get_litellm_client", return_value=MagicMock()):
-                with patch("octowiz_cache.fetch_role_memories", mock_fetch):
-                    octowiz_cache.get_bundle(role, namespace, cache_dir=tmpdir)
-                    octowiz_cache.get_bundle(role, namespace, cache_dir=tmpdir, refresh=True)
-            self.assertEqual(mock_fetch.call_count, 2, "refresh=True must call fetch_role_memories again")
+            source = self._make_source()
+            octowiz_cache.get_bundle("routing", "allspark", cache_dir=tmpdir, source=source)
+            # refresh=True must re-fetch even with a warm cache
+            call_count = [0]
+            original_fetch = source.fetch
+            def counting_fetch(key):
+                call_count[0] += 1
+                return original_fetch(key)
+            source.fetch = counting_fetch
+            octowiz_cache.get_bundle("routing", "allspark", cache_dir=tmpdir,
+                                     source=source, refresh=True)
+            self.assertGreater(call_count[0], 0, "refresh=True must call source.fetch")
 
     def test_stale_fallback_with_dict_source(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            role, namespace = "routing", "allspark"
-            memories = self._patch_with_dict_source(role, namespace)
-            # First: populate cache
-            with patch("octowiz_cache.get_litellm_client", return_value=MagicMock()):
-                with patch("octowiz_cache.fetch_role_memories", return_value=memories):
-                    first_result = octowiz_cache.get_bundle(role, namespace, cache_dir=tmpdir)
-
-            # Now: LiteLLM is down, TTL=0 (expired), expect stale fallback
+            source = self._make_source()
+            first_result = octowiz_cache.get_bundle(
+                "routing", "allspark", cache_dir=tmpdir, source=source
+            )
+            # Now: source raises, TTL=0 (expired) → expect stale fallback
             import io
-            with patch("octowiz_cache.get_litellm_client", side_effect=RuntimeError("LiteLLM down")):
-                with patch("sys.stderr", new_callable=io.StringIO) as mock_stderr:
-                    result = octowiz_cache.get_bundle(
-                        role, namespace, cache_dir=tmpdir, ttl_seconds=0, refresh=True
-                    )
+            broken_source = DictMemorySource({})  # KeyError on any fetch
+            with patch("sys.stderr", new_callable=io.StringIO) as mock_stderr:
+                result = octowiz_cache.get_bundle(
+                    "routing", "allspark", cache_dir=tmpdir,
+                    ttl_seconds=0, refresh=True, source=broken_source,
+                )
             self.assertEqual(result, first_result)
             self.assertIn("WARNING", mock_stderr.getvalue())
 
