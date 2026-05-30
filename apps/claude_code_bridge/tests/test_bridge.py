@@ -94,6 +94,11 @@ class TestBuildEvent(unittest.TestCase):
         data = {"hook_event_name": "Notification", "session_id": "x", "cwd": "/"}
         self.assertIsNone(_build_event(data))
 
+    def test_notebook_edit_uses_notebook_path(self):
+        event = self._build(tool="NotebookEdit", tool_input={"notebook_path": "analysis.ipynb"})
+        self.assertEqual(event["type"], "file-edit")
+        self.assertIn("analysis.ipynb", event["live_modified_files"])
+
 
 class TestPostEvent(unittest.TestCase):
     def _make_response(self, artifact_text):
