@@ -31,3 +31,6 @@ jobs:
 
       - name: Run A2A agent tests
         run: python -m pytest apps/a2a-agent/tests/ -v
+
+      - name: Run hook bridge tests
+        run: python -m pytest hooks/tests/ -v
