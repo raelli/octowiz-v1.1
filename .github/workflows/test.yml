@@ -31,4 +31,3 @@ jobs:
 
       - name: Run A2A agent tests
         run: python -m pytest apps/a2a-agent/tests/ -v
-        working-directory: apps/a2a-agent
