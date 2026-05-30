@@ -45,12 +45,9 @@ def _run_main(hook_data: dict, env: dict = None):
 
 class TestNoUrl(unittest.TestCase):
     def test_no_octowiz_a2a_url_makes_no_http_call(self):
-        env = {k: v for k, v in os.environ.items() if k != "OCTOWIZ_A2A_URL"}
-        env.pop("OCTOWIZ_A2A_URL", None)
-        with unittest.mock.patch.dict(os.environ, {}, clear=True):
-            os.environ.pop("OCTOWIZ_A2A_URL", None)
-            with unittest.mock.patch("bridge._post_event") as mock_post:
-                code, out = _run_main(_hook_data())
+        with unittest.mock.patch.dict(os.environ, {}, clear=True), \
+             unittest.mock.patch("bridge._post_event") as mock_post:
+            code, out = _run_main(_hook_data())
         mock_post.assert_not_called()
         self.assertEqual(code, 0)
         self.assertEqual(out.strip(), "")
@@ -70,6 +67,11 @@ class TestBuildEvent(unittest.TestCase):
         event = self._build(tool="Edit", tool_input={"file_path": "src/models.py"})
         self.assertEqual(event["type"], "file-edit")
         self.assertIn("src/models.py", event["live_modified_files"])
+
+    def test_notebook_edit_uses_notebook_path(self):
+        event = self._build(tool="NotebookEdit", tool_input={"notebook_path": "analysis.ipynb"})
+        self.assertEqual(event["type"], "file-edit")
+        self.assertIn("analysis.ipynb", event["live_modified_files"])
 
     def test_bash_tool_produces_tool_used_event(self):
         event = self._build(tool="Bash", tool_input={"command": "pytest"})
