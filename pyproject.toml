@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "octowiz"
-version = "0.1.1"
+version = "0.1.2"
 description = "Octowiz Engineering Agent — Claude Code adapter, A2A bridge, and execution coordinator"
 readme = "README.md"
 license = { text = "MIT" }
