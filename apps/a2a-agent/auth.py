@@ -15,7 +15,10 @@ async def auth_middleware(request: Request, call_next):
 
     secret = os.environ.get("OCTOWIZ_INBOUND_SECRET")
     if not secret:
-        return JSONResponse(status_code=401, content={"error": "OCTOWIZ_INBOUND_SECRET not configured"})
+        return JSONResponse(
+            status_code=401,
+            content={"error": "OCTOWIZ_INBOUND_SECRET not configured"},
+        )
 
     inbound = request.headers.get("x-octowiz-secret", "")
     try:

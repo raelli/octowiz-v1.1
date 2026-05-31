@@ -10,14 +10,16 @@ sys.path.insert(0, _ROOT_DIR)
 import unittest
 from fastapi.testclient import TestClient
 
-_TEST_SECRET = "test-secret"
+_SECRET = "test-secret"
 
 
 def _fresh_client():
-    os.environ["OCTOWIZ_INBOUND_SECRET"] = _TEST_SECRET
+    os.environ["OCTOWIZ_INBOUND_SECRET"] = _SECRET
     import importlib
     import packages.advisor.state as _state_mod
     importlib.reload(_state_mod)
+    import packages.advisor.policy as _policy_mod
+    importlib.reload(_policy_mod)
     import capabilities.advise as _adv_mod
     importlib.reload(_adv_mod)
     import main as m
@@ -31,7 +33,7 @@ def _post_advise(client, event):
         "id": 1,
         "params": {"message": {"parts": [{"text": json.dumps({**event, "capability": "octowiz.advise"})}]}},
     }
-    resp = client.post("/a2a/octowiz", json=body, headers={"x-octowiz-secret": _TEST_SECRET})
+    resp = client.post("/a2a/octowiz", json=body, headers={"x-octowiz-secret": _SECRET})
     text = resp.json()["result"]["artifacts"][0]["parts"][0]["text"]
     return json.loads(text)
 
@@ -96,6 +98,7 @@ class TestFileConflictRule(unittest.TestCase):
         self.assertEqual(result["type"], "file-conflict")
         self.assertEqual(result.get("level"), "intervene")
         self.assertIn("src/payment.py", result["files"])
+        self.assertEqual(result["level"], "intervene")
 
 
 class TestBranchDriftRule(unittest.TestCase):
@@ -154,3 +157,66 @@ class TestSpecDeviationRule(unittest.TestCase):
         self.assertEqual(result.get("level"), "advise")
         self.assertIn("payment.py", result["files"])
         self.assertNotIn("auth.py", result["files"])
+        self.assertEqual(result["level"], "advise")
+
+
+class TestInvocationPolicy(unittest.TestCase):
+    def setUp(self):
+        self.client = _fresh_client()
+
+    def test_no_rule_fires_returns_empty_artifact(self):
+        result = _post_advise(self.client, {
+            "type": "prompt", "sessionId": "sess-clean",
+            "branch": "main", "repoRoot": "/repo",
+            "live_modified_files": ["auth.py"],
+            "prompt_summary": "update auth.py",
+        })
+        self.assertIsNone(result.get("type"))
+        self.assertIsNone(result.get("level"))
+
+    def test_two_rules_escalate(self):
+        # Trigger both branch-drift (20 file writes) AND spec-deviation (file not in summary)
+        sid = "sess-escalate"
+        for i in range(20):
+            _post_advise(self.client, {
+                "type": "file-write", "sessionId": sid, "branch": "feat/x",
+                "repoRoot": "/repo", "live_modified_files": [f"file{i}.py"],
+                "prompt_summary": "",
+            })
+        # prompt that also triggers spec-deviation: live_modified_files not in summary
+        result = _post_advise(self.client, {
+            "type": "prompt", "sessionId": sid, "branch": "feat/x",
+            "repoRoot": "/repo",
+            "live_modified_files": ["payment.py"],
+            "prompt_summary": "fix login bug",  # payment.py not mentioned
+        })
+        self.assertEqual(result["level"], "escalate")
+        self.assertIn("reason", result)
+        self.assertIn("question", result)
+
+    def test_file_conflict_maps_to_intervene(self):
+        _post_advise(self.client, {
+            "type": "prompt", "sessionId": "s-alpha", "branch": "feat/a",
+            "repoRoot": "/repo", "live_modified_files": ["core.py"],
+            "prompt_summary": "core.py",
+        })
+        result = _post_advise(self.client, {
+            "type": "prompt", "sessionId": "s-beta", "branch": "feat/b",
+            "repoRoot": "/repo", "live_modified_files": ["core.py"],
+            "prompt_summary": "core.py",
+        })
+        self.assertEqual(result["level"], "intervene")
+
+    def test_branch_drift_maps_to_advise(self):
+        sid = "sess-drift2"
+        for i in range(20):
+            _post_advise(self.client, {
+                "type": "file-write", "sessionId": sid, "branch": "feat/big",
+                "repoRoot": "/repo", "live_modified_files": [f"f{i}.py"],
+                "prompt_summary": "",
+            })
+        result = _post_advise(self.client, {
+            "type": "prompt", "sessionId": sid, "branch": "feat/big",
+            "repoRoot": "/repo", "live_modified_files": [], "prompt_summary": "ok",
+        })
+        self.assertEqual(result["level"], "advise")

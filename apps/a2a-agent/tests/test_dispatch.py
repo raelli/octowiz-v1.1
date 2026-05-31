@@ -8,7 +8,7 @@ import unittest
 from fastapi.testclient import TestClient
 from main import app
 
-_TEST_SECRET = "test-secret"
+_SECRET = "test-secret"
 
 
 def _post_event(client, event, path="/a2a/octowiz"):
@@ -17,12 +17,12 @@ def _post_event(client, event, path="/a2a/octowiz"):
         "id": 1,
         "params": {"message": {"parts": [{"text": json.dumps(event)}]}},
     }
-    return client.post(path, json=body, headers={"x-octowiz-secret": _TEST_SECRET})
+    return client.post(path, json=body, headers={"x-octowiz-secret": _SECRET})
 
 
 class TestDispatch(unittest.TestCase):
     def setUp(self):
-        os.environ["OCTOWIZ_INBOUND_SECRET"] = _TEST_SECRET
+        os.environ["OCTOWIZ_INBOUND_SECRET"] = _SECRET
         self.client = TestClient(app)
 
     def tearDown(self):

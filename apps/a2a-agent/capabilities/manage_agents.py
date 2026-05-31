@@ -5,6 +5,8 @@ import re
 import subprocess
 from typing import Callable, Dict, List, Optional, Tuple
 
+import session_owners
+
 
 Runner = Callable[[List[str]], Tuple[int, str, str]]
 
@@ -83,6 +85,9 @@ def _handle_control(op: str, event: Dict, runner: Runner) -> Dict:
     session_id = event.get("sessionId", "")
     if not session_id or not _SESSION_ID_RE.match(session_id):
         return {"status": "error", "message": f"invalid sessionId: {session_id!r}"}
+    principal = event.get("_principal", "")
+    if not session_owners.check(session_id, principal):
+        return {"status": "error", "message": f"session {session_id!r} is not owned by this caller"}
     try:
         rc, stdout, stderr = runner(["claude", op, "--", session_id])
     except Exception as exc:
