@@ -165,7 +165,7 @@ describe("post", () => {
     const [url, init] = global.fetch.mock.calls[0];
     expect(url).toBe("http://localhost:4000/a2a/aelli-dev-advisor/message/send");
     expect(init.method).toBe("POST");
-    expect(init.headers["x-aelli-secret"]).toBe("test-bearer");
+    expect(init.headers["Authorization"]).toBe("Bearer test-bearer");
   });
 
   it("fire-and-forget: embeds eventType inside the JSON-RPC payload", async () => {

@@ -33,8 +33,8 @@ describe("hooks/scripts/start.js", () => {
     );
   });
 
-  it("does not throw on missing AELLI_LITELLM_BASE, appends to log instead", async () => {
-    delete process.env.AELLI_LITELLM_BASE;
+  it("does not throw on missing AELLI_AUTH_TOKEN, appends warning to log", async () => {
+    delete process.env.AELLI_AUTH_TOKEN;
     const fs = require("fs");
     const spy = jest.spyOn(fs, "appendFileSync").mockImplementation(() => {});
     jest.spyOn(fs, "mkdirSync").mockImplementation(() => {});
@@ -42,7 +42,7 @@ describe("hooks/scripts/start.js", () => {
     await expect(handleStart({ session_id: "s1", cwd: "/repo" })).resolves.not.toThrow();
     expect(spy).toHaveBeenCalledWith(
       expect.stringContaining("aelli-cc.log"),
-      expect.stringContaining("AELLI_LITELLM_BASE")
+      expect.stringContaining("AELLI_AUTH_TOKEN")
     );
   });
 
