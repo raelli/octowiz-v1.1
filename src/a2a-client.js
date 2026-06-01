@@ -49,7 +49,10 @@ function appendLog(msg) {
 }
 
 function makeAuthHeaders() {
-  return AUTH_TOKEN ? { "x-aelli-secret": AUTH_TOKEN } : {};
+  if (!AUTH_TOKEN) return {};
+  return LITELLM_BASE
+    ? { "Authorization": `Bearer ${AUTH_TOKEN}` }
+    : { "x-aelli-secret": AUTH_TOKEN };
 }
 
 // Pure SSE framing parser. Takes the accumulated buffer string, returns
@@ -216,6 +219,8 @@ async function post(eventType, data, { sync = false, timeoutMs = 2000 } = {}) {
     method: "message/send",
     params: {
       message: {
+        role: "user",
+        messageId: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         parts: [{ kind: "text", text: JSON.stringify({ type: eventType, ...data }) }],
       },
     },

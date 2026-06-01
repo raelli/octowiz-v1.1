@@ -116,12 +116,23 @@ def _post_event(url: str, event: Dict) -> Optional[Dict]:
         "jsonrpc": "2.0",
         "method": "message/send",
         "id": str(uuid.uuid4()),
-        "params": {"message": {"parts": [{"kind": "text", "text": json.dumps(event)}]}},
+        "params": {
+            "message": {
+                "role": "user",
+                "messageId": str(uuid.uuid4()),
+                "parts": [{"kind": "text", "text": json.dumps(event)}],
+            }
+        },
     }
     headers = {}
     token = os.environ.get("AELLI_AUTH_TOKEN", "")
     if token:
-        headers["x-aelli-secret"] = token
+        # Route through LiteLLM gateway → use LiteLLM virtual key auth
+        # Route directly to AELLI → use AELLI inbound secret
+        if os.environ.get("AELLI_LITELLM_BASE", ""):
+            headers["Authorization"] = f"Bearer {token}"
+        else:
+            headers["x-aelli-secret"] = token
     try:
         import httpx
         resp = httpx.post(url, json=body, headers=headers, timeout=5)
