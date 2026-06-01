@@ -119,6 +119,26 @@ describe("subscribeToQueue", () => {
   });
 });
 
+describe("env var resolution", () => {
+  it("uses AELLI_BASE_URL when set", () => {
+    jest.resetModules();
+    process.env.AELLI_BASE_URL = "http://base-url-test:3456/api";
+    delete process.env.AELLI_API_BASE;
+    const client = require("../src/a2a-client");
+    expect(client).toBeDefined();
+    delete process.env.AELLI_BASE_URL;
+  });
+
+  it("falls back to AELLI_API_BASE when AELLI_BASE_URL absent", () => {
+    jest.resetModules();
+    delete process.env.AELLI_BASE_URL;
+    process.env.AELLI_API_BASE = "http://api-base-test:3001/api";
+    const client = require("../src/a2a-client");
+    expect(client).toBeDefined();
+    delete process.env.AELLI_API_BASE;
+  });
+});
+
 describe("post", () => {
   let post;
 
@@ -214,5 +234,21 @@ describe("post", () => {
     const [url] = global.fetch.mock.calls[0];
     expect(url).toBe("http://localhost:3456/a2a/dev-advisor");
     delete process.env.AELLI_DEV_ADVISOR_URL;
+  });
+
+  it("fire-and-forget post() appends to log on fetch failure", async () => {
+    jest.resetModules();
+    const fs = require("fs");
+    const appendSpy = jest.spyOn(fs, "appendFileSync").mockImplementation(() => {});
+    global.fetch = jest.fn().mockRejectedValue(new Error("network down"));
+    const { post } = require("../src/a2a-client");
+    await post("session-start", { sessionId: "s1" }, { sync: false });
+    await new Promise((r) => setImmediate(r));
+    expect(appendSpy).toHaveBeenCalledWith(
+      expect.stringContaining("aelli-cc.log"),
+      expect.stringContaining("session-start")
+    );
+    appendSpy.mockRestore();
+    delete global.fetch;
   });
 });
