@@ -116,6 +116,23 @@ def main() -> int:
     if not url:
         return 0
 
+    # Warn on cleartext HTTP to non-local endpoints — secret sent in plaintext.
+    # Parse the URL to get the exact hostname; string prefix checks are bypassed by
+    # hosts like localhost.evil.com or 127.0.0.1.attacker.com (issue #53).
+    # Warning goes to stderr to avoid corrupting the stdout JSON channel.
+    try:
+        from urllib.parse import urlparse as _urlparse
+        _parsed = _urlparse(url)
+        _local_hosts = {"localhost", "127.0.0.1", "::1", "[::1]"}
+        if _parsed.scheme == "http" and _parsed.hostname not in _local_hosts:
+            print(
+                "[octowiz] WARNING: OCTOWIZ_A2A_URL uses plain HTTP; "
+                "the inbound secret will be sent in cleartext. Use HTTPS for non-local deployments.",
+                file=sys.stderr,
+            )
+    except Exception:
+        pass
+
     try:
         data = json.load(sys.stdin)
     except Exception:
