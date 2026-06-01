@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import re
 import subprocess
+import time
 from typing import List, Optional
 
 from .parser import parse_sessions
@@ -32,6 +33,34 @@ def _validate_run_id(run_id: str) -> None:
         raise ValueError(f"Invalid run_id format: {run_id!r}")
 
 
+def _resolve_full_session_id(
+    short_id: str,
+    provider: "ClaudeAgentViewProvider",
+    retries: int = 5,
+    delay: float = 0.5,
+) -> str:
+    """Resolve a banner short-prefix to the full session UUID.
+
+    The claude --bg banner emits only the UUID prefix (e.g. 'e5694b8e') while
+    claude agents --json returns the full UUID. We retry briefly to bridge the
+    gap between session start and it appearing in the agent list.
+
+    Exact match is checked before prefix match so that a session whose ID merely
+    starts with short_id (e.g. 'bg-xyz-old') is not returned ahead of an exact
+    match ('bg-xyz') that appears later in the list.
+    """
+    for _ in range(retries):
+        sessions = provider.list_sessions()
+        for s in sessions:
+            if s.id == short_id:
+                return s.id
+        for s in sessions:
+            if s.id.startswith(short_id):
+                return s.id
+        time.sleep(delay)
+    return short_id  # fall back; get_status exact-then-prefix will still work
+
+
 class ClaudeAgentViewProvider:
     """Execution provider backed by Claude Code Agent View (claude agents CLI)."""
 
@@ -44,7 +73,7 @@ class ClaudeAgentViewProvider:
             return []
 
     def dispatch(self, task: str, repo: str) -> str:
-        """Start a new background session for task in repo. Returns the session id."""
+        """Start a new background session for task in repo. Returns the full session id."""
         if repo.startswith("-"):
             raise ValueError(f"Invalid repo path: {repo!r}")
         if task.startswith("-"):
@@ -52,12 +81,21 @@ class ClaudeAgentViewProvider:
         output = _run_claude(["--bg", "--", task], cwd=repo)
         clean = _ANSI_RE.sub("", output)
         m = _SESSION_RE.search(clean)
-        return m.group(1) if m else ""
+        if not m:
+            return ""
+        # Resolve banner short-prefix to the full UUID in claude agents --json.
+        return _resolve_full_session_id(m.group(1), self)
 
     def get_status(self, run_id: str) -> Optional[AgentSession]:
         """Return the session for run_id, or None if not found."""
-        for s in self.list_sessions():
+        sessions = self.list_sessions()
+        # Exact match first — avoids returning a prefix-collision session.
+        for s in sessions:
             if s.id == run_id:
+                return s
+        # Prefix fallback for short IDs that weren't resolved at dispatch time.
+        for s in sessions:
+            if s.id.startswith(run_id):
                 return s
         return None
 
