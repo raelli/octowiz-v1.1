@@ -145,14 +145,16 @@ function checkProcesses() {
       "Not running — start: node ~/Documents/octowiz/index.js");
   }
 
-  // AELLI Node
-  const aelliLines = psLines("aelli/index.js");
+  // AELLI Node — may be local or remote (Docker on integra42).
+  // Match on cwd path; process shows as "node index.js" without full path in ps.
+  const aelliLines = psLines("aelli/index.js").concat(psLines("Documents/aelli"));
   if (aelliLines.length) {
     const pid = aelliLines[0].trim().split(/\s+/)[1];
-    addCheck("process", `AELLI Node.js (:${NODE_PORT})`, PASS, `PID ${pid}`);
+    addCheck("process", `AELLI Node.js (:${NODE_PORT})`, PASS, `PID ${pid} (local)`);
   } else {
-    addCheck("process", `AELLI Node.js (:${NODE_PORT})`, FAIL,
-      "Not running — start: node ~/Documents/aelli/index.js");
+    // AELLI may be running remotely (Docker on integra42) — endpoint check is authoritative.
+    addCheck("process", `AELLI Node.js (:${NODE_PORT})`, WARN,
+      "Local process not found — AELLI may be remote (Docker). See endpoint check.");
   }
 
   // AELLI Python A2A
