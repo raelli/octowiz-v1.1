@@ -189,7 +189,7 @@ The Octowiz daemon runs as a singleton service per machine. It connects the Clau
 **Start the daemon:**
 
 ```bash
-make start
+pnpm start
 # or
 node index.js
 ```
