@@ -1,7 +1,7 @@
 {
   "name": "octowiz",
   "description": "Octowiz Engineering Agent \u2014 Claude Code adapter, A2A bridge, and execution coordinator.",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "author": {
     "name": "IntegraHub",
     "email": "support@integrahub.de"
@@ -29,6 +29,6 @@
   ],
   "dependencies": [
     "superpowers",
-    "mattpo-skills"
+    "mattpocock-skills"
   ]
 }
