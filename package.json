@@ -25,5 +25,9 @@
     "a2a",
     "daemon"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "packageManager": "pnpm@10.27.0",
+  "engines": {
+    "node": ">=22.13"
+  }
 }
