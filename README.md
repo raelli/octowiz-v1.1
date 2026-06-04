@@ -31,9 +31,11 @@ The result is a context window that stays small and focused. A planner gets plan
           │  A2A  /a2a/octowiz
           ▼
         ┌──────────────────────────────────────┐
-        │     Octowiz A2A Agent  (server)      │  ← Phase 2 (in design)
+        │     Octowiz A2A Agent  (server)      │  ← deployed at /a2a/octowiz
         │ ──────────────────────────────────── │
-        │  octowiz.plan / review / advise      │
+        │  plan · review · observe · handoff   │
+        │  context · dispatch · run_sandboxed  │
+        │  manage_agents · marketplace_info    │
         │  reads Memory + Knowledge + Diary    │
         │  escalates strategic decisions       │
         └─────────────────┬────────────────────┘
@@ -202,16 +204,7 @@ All three are required. `/octowiz` routes to skills from the other two — if ei
 
 ## Daemon setup
 
-The octowiz daemon handles agent capabilities (dispatch, advise, manage-agents). It runs as a singleton service — start it once per machine, not per Claude Code session.
-
-**Required env vars:**
-
-| Var | Purpose |
-|-----|---------|
-| `AELLI_BASE_URL` | AELLI server URL (e.g. `http://localhost:3456`) |
-| `AELLI_LITELLM_BASE` | LiteLLM base URL for event forwarding hooks |
-| `AELLI_AUTH_TOKEN` | Shared auth token (daemon + hooks) |
-| `OCTOWIZ_ALLOWED_ROOTS` | Comma-separated allowed cwd roots (e.g. `/Users/you/projects`) |
+The Octowiz daemon runs as a singleton service per machine. It connects the Claude Code hooks to the AELLI A2A network, handles capability dispatch, and exposes the task queue for pull-based background execution.
 
 **Start the daemon:**
 
@@ -221,9 +214,28 @@ make start
 node index.js
 ```
 
-The Claude Code hooks (SessionStart, PostToolUse, UserPromptSubmit, Stop) run automatically when the plugin is installed. They do not start or stop the daemon.
+The Claude Code hooks (SessionStart, PostToolUse, UserPromptSubmit, Stop) fire automatically when the plugin is installed. They do not manage the daemon lifecycle.
 
-**Per-repo alternative:** add a `.env` file (gitignored) if you prefer project-scoped keys:
+**Required env vars:**
+
+| Var | Purpose |
+|-----|---------|
+| `AELLI_LITELLM_BASE` | LiteLLM base URL for hook event forwarding (e.g. `https://llm.integrahub.de`) |
+| `AELLI_AUTH_TOKEN` | Shared auth token used by both hooks and daemon |
+| `OCTOWIZ_ALLOWED_ROOTS` | Comma-separated allowed cwd roots (e.g. `/Users/you/projects`) |
+
+**Optional env vars:**
+
+| Var | Default | Purpose |
+|-----|---------|---------|
+| `AELLI_BASE_URL` | derived from `AELLI_LITELLM_BASE` | Direct AELLI server URL override |
+| `AELLI_ROUTER_URL` | derived from `AELLI_LITELLM_BASE` | Router endpoint for routing decisions |
+| `OCTOWIZ_NAMESPACE` | `allspark` | Memory namespace |
+| `OCTOWIZ_CACHE_DIR` | `~/.cache/octowiz` | Doctrine cache root |
+| `OCTOWIZ_CACHE_TTL_SECONDS` | `3600` | Bundle revalidation interval |
+| `OCTOWIZ_CACHE_BYPASS` | — | Set to `1` to skip cache entirely |
+
+**Per-repo alternative:** add a `.env` file (gitignored) for project-scoped keys:
 
 ```bash
 # .env
@@ -231,9 +243,68 @@ LITELLM_BASE_URL=https://your-proxy.example.com
 LITELLM_API_KEY=sk-your-key
 ```
 
+## A2A capabilities
+
+When AELLI dispatches a task to Octowiz via `/a2a/octowiz`, the daemon routes it to the matching capability handler. All capabilities are pull-based — the daemon polls the task queue and executes locally inside the developer's Claude Code session.
+
+| Capability | Description |
+|---|---|
+| `octowiz.plan` | Generate an implementation plan for a given task description |
+| `octowiz.review` | Review a diff or file set and return structured findings |
+| `octowiz.observe` | Observe and annotate an in-progress session without interrupting it |
+| `octowiz.handoff` | Package current session context for handoff to the next agent or session |
+| `octowiz.context` | Build a context package (files + git state + memory) for an incoming task |
+| `octowiz.dispatch` | Dispatch a Claude Code background session for an autonomous task |
+| `octowiz.run_sandboxed` | Execute a task inside an isolated Sandcastle container |
+| `router.validation-request` | Handle an inbound validation request from AELLI's high-risk workflow gate |
+| `octowiz.manage_agents` | List, start, stop, and inspect active Claude Code agents |
+| `marketplace_info` | Query the IntegraHub Marketplace for available skills, plugins, and agents |
+
+## Sandcastle — sandboxed execution
+
+`octowiz.run_sandboxed` runs tasks inside a Docker/Podman container built from the official Octowiz sandbox image. The container has `node 22`, `git`, and the `claude` CLI pre-installed. No credentials are baked into the image — secrets are forwarded via name-only `--env` flags at runtime so they never appear in `argv` or `ps` output.
+
+**Container image:** `ghcr.io/raelli/octowiz-sandbox:latest`
+
+Built on `node:22-bookworm-slim`. Automatically rebuilt on every push to `containers/sandcastle/**` via GitHub Actions and tagged with both the commit SHA and `latest`.
+
+**Build locally:**
+
+```bash
+make build-sandbox-image
+# custom registry or tag:
+SANDBOX_IMAGE=my-registry/octowiz-sandbox:dev make build-sandbox-image
+```
+
+**Env vars forwarded to the container at runtime:**
+
+| Var | Purpose |
+|---|---|
+| `ANTHROPIC_API_KEY` | Required for `claude` CLI inside the container |
+| `ANTHROPIC_BASE_URL` | Optional — override the Anthropic API endpoint |
+| `AELLI_AUTH_TOKEN` | Forward-looking — for future hooks inside the container |
+
+The sandbox provider reads these from the host process at container start time. If a var is unset on the host, Docker/Podman silently skips it — no error, no crash.
+
+## Marketplace integration
+
+Octowiz publishes itself to the IntegraHub Marketplace and can query it for available skills, plugins, and agents via the `marketplace_info` capability.
+
+The `packages/marketplace_client` library handles resolution:
+
+```bash
+# List all marketplace items
+python -m packages.marketplace_client.cli list
+
+# Resolve a specific item by name
+python -m packages.marketplace_client.cli resolve octowiz
+```
+
+`octowiz-marketplace-manifest.json` is Octowiz's self-description in the marketplace. Keep it in sync with `package.json` version and the capability list when shipping a new release.
+
 ## Using /octowiz
 
-After importing memories and installing the marketplace and all three skills (octowiz, mattpo-skills, superpowers are mandatory; the rest is optional), invoke the coordinator from any repo:
+After importing memories and installing the three required plugins, invoke the coordinator from any repo:
 
 ```
 /octowiz
@@ -248,28 +319,28 @@ The coordinator reads your project setup, fetches the relevant memories from Lit
 | C | Ready to implement | `using-git-worktrees` + TDD |
 | D | Code done, need review | `zoom-out` + `requesting-code-review` |
 
-### Skills included in this plugin
+### Skills in this plugin
 
 | Slash command | Purpose |
 |---|---|
 | `/octowiz` | Coordinator — reads project state, loads doctrine, routes A/B/C/D |
 | `/octowiz:setup` | Environment setup wizard — detects gaps (plugins, LiteLLM, memory), fixes them interactively |
-| `/octowiz:octowiz-doctowiz` | Doctor — diagnoses the full octowiz + AELLI integration stack, monitors live activity, guides setup and upgrades |
+| `/octowiz:octowiz-doctowiz` | Doctor — full multi-mode diagnostic for the octowiz + AELLI integration stack; monitors live activity, guides setup and upgrades |
 
-Run `/mattpocock-skills:setup-matt-pocock-skills` once per repo before first use — it wires up your issue tracker and domain docs so `to-prd`, `to-issues`, `triage`, and `diagnose` work correctly.
+Run `/mattpocock-skills:setup-matt-pocock-skills` once per repo before first use — it wires your issue tracker and domain docs so `to-prd`, `to-issues`, `triage`, and `diagnose` work correctly.
 
 ## What happens when you run /octowiz?
 
 1. **Project state is read** — CLAUDE.md, README, open issues, current branch, git log.
-2. **Routing doctrine is loaded** — `octowiz-cache get --role routing` fetches the cached retrieval contract. If the cache is cold, it pulls from LiteLLM. If LiteLLM is unreachable and the cache is stale, it serves the stale bundle with a warning.
-3. **You choose a starting point** — A (fresh idea), B (stress-test a plan), C (implement), or D (review). The coordinator suggests a default based on project state.
-4. **A role bundle is prepended to context** — planner doctrine for A/B, implementer for C, reviewer for D. This lands early in the context window so stable rules outweigh ephemeral noise.
-5. **Fresh project context is appended** — git status, open issues, your request. These change every run and are never cached.
-6. **The first skill in the chosen path is invoked** — brainstorming, grill-me, using-git-worktrees, or zoom-out, depending on your choice.
+2. **Routing doctrine is loaded** — `octowiz-cache get --role routing` fetches the cached retrieval contract. If the cache is cold it pulls from LiteLLM. If LiteLLM is unreachable and the cache is stale, it serves the stale bundle with a warning.
+3. **You choose a starting point** — A, B, C, or D. The coordinator suggests a default based on project state (open issues + active branch → C; no plan → A).
+4. **A role bundle is prepended to context** — planner doctrine for A/B, implementer for C, reviewer for D. Stable rules land early in the context window.
+5. **Fresh project context is appended** — git status, open issues, your request. Never cached.
+6. **The first skill in the chosen path is invoked** — brainstorming, grill-me, using-git-worktrees, or zoom-out.
 
 ## Retrieval per role
 
-Each role only needs a slice of the pack. Suggested mapping:
+Each role pulls only its slice of the doctrine pack:
 
 | Role | Memories to pull |
 |---|---|
@@ -280,24 +351,40 @@ Each role only needs a slice of the pack. Suggested mapping:
 
 ## Skill routing
 
-octowiz points at two upstream skill libraries instead of vendoring them. Each gets a short routing summary so agents know which to reach for.
+octowiz routes to two upstream skill libraries rather than vendoring them. Each gets a compact routing summary so agents know which to reach for without loading both.
 
-**[mattpocock/skills](https://github.com/mattpocock/skills)** — alignment, PRD generation, vertical slicing, TDD, diagnosis and debugging, architecture work, prototyping, handoff. Best fit when a task starts loose and needs structure.
+**[mattpocock/skills](https://github.com/mattpocock/skills)** — alignment interviews, PRD generation, vertical slicing, TDD, debugging, architecture improvement, prototyping, handoff. Best fit when a task starts loose and needs structure.
 
 **[obra/superpowers](https://github.com/obra/superpowers)** — brainstorming before code, written plans, git worktrees, subagent-driven development, systematic debugging, code review, verification before completion, finishing branches. Best fit when you want a strict end-to-end methodology.
 
 Neither is bundled. Forks should keep the routing entries pointing at the real upstream so attribution and updates stay intact.
 
+## Diagnostics
+
+Run the Doctowiz skill for a full integration health check at any time:
+
+```
+/octowiz:octowiz-doctowiz
+```
+
+Doctowiz probes each layer in sequence: Claude Code plugin version, env vars, hook pipeline, LiteLLM connectivity, AELLI reachability, daemon status, and memory bundles. It reports a pass/fail table per check and suggests targeted fixes for anything red. It also includes an update helper (Mode 4) for upgrades from older versions.
+
+Run the underlying script directly for a quick terminal check:
+
+```bash
+node "$CLAUDE_PLUGIN_ROOT/apps/doctowiz/index.js"
+```
+
 ## Verify
 
-Pull one memory just to confirm it landed:
+Pull one memory to confirm the import landed:
 
 ```bash
 curl "$LITELLM_BASE_URL/v1/memory/team%3Aallspark%3Askills%3Amatt-pocock%3Aai-engineering" \
   -H "Authorization: Bearer $LITELLM_ADMIN_API_KEY"
 ```
 
-Or fetch a whole prefix, if your proxy supports listing:
+Or fetch a whole prefix:
 
 ```bash
 curl "$LITELLM_BASE_URL/v1/memory?key_prefix=team:allspark:playbook:ai-coding-workflow:" \
@@ -308,7 +395,7 @@ A clean import upserts 26/26. The three external skill-source entries have been 
 
 ## Memory caching
 
-Octowiz caches stable doctrine bundles locally so repeated `/octowiz` runs load instantly without hitting LiteLLM every time.
+Octowiz caches stable doctrine bundles locally so repeated `/octowiz` runs load instantly without hitting LiteLLM on every invoke.
 
 ```
 LiteLLM /v1/memory
@@ -330,14 +417,16 @@ octowiz-cache (hash + manifest)
 ### Commands
 
 ```bash
-octowiz-cache build --all          # warm all role bundles
-octowiz-cache status               # check freshness at a glance
-octowiz-cache refresh --all        # force-rebuild from LiteLLM
-octowiz-cache get --role planner   # print planner bundle to stdout
-octowiz-cache clear                # delete cache for current namespace
+octowiz-cache build --all             # warm all role bundles
+octowiz-cache status                  # check freshness at a glance
+octowiz-cache refresh --all           # force-rebuild from LiteLLM
+octowiz-cache get --role planner      # print planner bundle to stdout
+octowiz-cache clear                   # delete cache for current namespace
 octowiz-cache clear --all-namespaces  # wipe entire cache
-octowiz-cache seed                 # seed project namespace into LiteLLM Memory (idempotent)
-octowiz-cache seed --project slug  # seed with explicit project ID
+octowiz-cache seed                    # seed project namespace into LiteLLM Memory (idempotent)
+octowiz-cache seed --project slug     # seed with explicit project ID
+octowiz-cache check                   # environment health check (hard + advisory gaps)
+octowiz-cache init                    # bootstrap missing state files
 ```
 
 ### Environment variables
@@ -370,12 +459,8 @@ reviewer        ✓ fresh (0m ago)
 qa              ✓ fresh (0m ago)
 routing         ✓ fresh (0m ago)
 
-$ octowiz-cache build --all   # run again — memories unchanged, same hashes, no fetch
-[octowiz-cache] built: planner
-[octowiz-cache] built: implementer
-[octowiz-cache] built: reviewer
-[octowiz-cache] built: qa
-[octowiz-cache] built: routing
+$ octowiz-cache check
+{"status": "clean", "hard_gaps": [], "advisory_gaps": []}
 
 $ # Now with LiteLLM unreachable:
 $ LITELLM_BASE_URL=http://127.0.0.1:1 octowiz-cache get --role routing
@@ -386,7 +471,10 @@ $ LITELLM_BASE_URL=http://127.0.0.1:1 octowiz-cache get --role routing
 
 ## Security
 
-- `LITELLM_ADMIN_API_KEY` is only needed when memory writes require elevated scope.
+- `LITELLM_ADMIN_API_KEY` is only needed when memory writes require elevated scope; read operations work with a standard `LITELLM_API_KEY`.
+- The sandbox container image contains no credentials. Secrets are forwarded at container start time via name-only `--env VAR` flags — the value is read from the host environment by Docker/Podman and never enters `argv` or logs.
+- `AELLI_AUTH_TOKEN` is a Bearer token shared by both the hooks and the daemon. Rotate it in `~/.claude/settings.json` and on the AELLI server simultaneously.
+- The daemon validates `OCTOWIZ_ALLOWED_ROOTS` on every incoming task to prevent path-traversal dispatches outside the declared project roots.
 
 ## Attribution
 
