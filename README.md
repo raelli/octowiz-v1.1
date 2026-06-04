@@ -24,8 +24,6 @@
 
 Most AI coding tools give agents either a giant system prompt or nothing. Octowiz takes a third path: doctrine lives in a memory store, agents fetch only what is relevant to their current phase, and the coordinator skill routes to purpose-built skill libraries rather than trying to be everything itself.
 
-> **Small context. No prompt soup.**
-
 ---
 
 ## Architecture
@@ -36,11 +34,21 @@ Most AI coding tools give agents either a giant system prompt or nothing. Octowi
 
 | Name | What it is |
 |---|---|
-| **ÆLLI** | The orchestration brain. Delegates coding work to Octowiz via A2A. Makes strategic decisions Octowiz escalates up. |
-| **Octowiz Agent** | The A2A server (`/a2a/octowiz`). Handles reasoning, advisor rules, diary writing, and escalation to ÆLLI. Built separately — not in this repo. |
-| **Octowiz Bridge** | This repo. The Claude Code plugin. Hooks into developer sessions, routes to skills, seeds project memory. Install name: `octowiz`. |
-| **Octowiz Advisor** | Capability inside the Agent. Detects spec drift, file conflicts, and branch deviations. |
-| **LiteLLM** | Platform layer. Hosts the A2A Gateway, Memory API, and IntegraHub Marketplace. |
+| **ÆLLI** | The orchestration brain ([raelli/aelli](https://github.com/raelli/aelli)). Hosts all A2A agents listed below. Makes strategic decisions and delegates coding work via A2A. |
+| **Octowiz Bridge** | This repo. The Claude Code plugin. Connects developer sessions to ÆLLI, routes to skills, seeds project memory. Install name: `octowiz`. |
+| **LiteLLM** | Platform layer. A2A gateway, Memory API, and IntegraHub Marketplace. |
+
+### A2A agents
+
+All agents live in [raelli/aelli](https://github.com/raelli/aelli) and are registered in LiteLLM as the gateway layer.
+
+| LiteLLM name | AELLI endpoint | Description |
+|---|---|---|
+| `aelli-orchestrator` | `/a2a/aelli` | Routes natural language requests to specialist agents via tool_use |
+| `aelli-router` | `/a2a/aelli-router` | Multi-router dispatch — coding vs Nemotron; runs generate/review/revise workflows |
+| `aelli-octowiz` | `/a2a/octowiz` | Context packager for `octowiz.plan` and `octowiz.review`, scaled to model tier |
+| `aelli-engineering` | `/a2a/engineering` | Answers questions from indexed GitHub, Confluence, and Jira content |
+| `aelli-dev-advisor` | `/a2a/dev-advisor` | Monitors cross-session file conflicts, branch drift, and spec deviations |
 
 ### Memory namespaces
 
@@ -60,7 +68,7 @@ agent:{role}:memory:ai-coding-workflow        role-specific
 project:allspark:config:*                     import / namespacing
 ```
 
-`allspark` is the example namespace. Swap it for your own when forking — nobody wants to debug under someone else's project name.
+`allspark` is the example namespace. Replace it with your own project slug when forking.
 
 ---
 
