@@ -289,7 +289,7 @@ All checks should be green. If any remain red, use the targeted fix commands bel
 
 ---
 
-## Mode 4 — Update helper _(temporary — remove once all users are on 0.8.x+)_
+## Mode 4 — Update helper _(temporary — remove once all users are on 0.9.x+)_
 
 When the user is on an older version (especially 0.5.x) and needs to upgrade.
 This mode auto-detects what's stale, explains each breaking change, and walks
@@ -305,7 +305,7 @@ node -e "try{const p=require('$CLAUDE_PLUGIN_ROOT/package.json'); console.log(p.
 ls -1 ~/.claude/plugins/cache/integrahub/octowiz/ 2>/dev/null | sort -V | tail -1
 ```
 
-If both are `0.8.3` (or higher) and the user just updated: proceed through the
+If both are `0.9.0` (or higher) and the user just updated: proceed through the
 post-upgrade checklist below. If the cache still shows `0.5.x`, the plugin hasn't
 been reinstalled yet — do that first:
 
@@ -324,7 +324,7 @@ echo "Old (0.5.x) — should be EMPTY now:"
 echo "  OCTOWIZ_A2A_URL:       ${OCTOWIZ_A2A_URL:-(not set — good)}"
 echo "  OCTOWIZ_INBOUND_SECRET: ${OCTOWIZ_INBOUND_SECRET:-(not set — good)}"
 echo ""
-echo "New (0.8.x) — must be set:"
+echo "New (0.9.x) — must be set:"
 echo "  AELLI_AUTH_TOKEN:    ${AELLI_AUTH_TOKEN:-(NOT SET — fix required)}"
 echo "  AELLI_LITELLM_BASE:  ${AELLI_LITELLM_BASE:-${LITELLM_BASE_URL:-(NOT SET — fix required)}}"
 ```
@@ -396,6 +396,7 @@ All five check phases should now be green. Pay special attention to:
 | 0.8.0 | Bridge routing and auth header hardened | None (vars already renamed in 0.6.0) |
 | 0.8.1 | `octowiz.observe` capability handler added | None |
 | 0.8.3 | Session-subscriber idle fix; doctowiz skill added | `pkill -f session-subscriber.js` |
+| 0.9.0 | Full A2A suite (gaps 1–5), Sandcastle runner + container image, Marketplace integration, AELLI router client, doctowiz full diagnostic | Run `/plugin update` in Claude Code |
 
 ---
 
