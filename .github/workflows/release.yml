@@ -55,7 +55,7 @@ jobs:
           LITELLM_MASTER_KEY: ${{ secrets.LITELLM_MASTER_KEY }}
         run: |
           VERSION="${{ steps.bump.outputs.new_version }}"
-          curl -sf -X POST "https://llm.integrahub.de/claude-code/plugins" \
+          curl -s -X POST "https://llm.integrahub.de/claude-code/plugins" \
             -H "Authorization: Bearer $LITELLM_MASTER_KEY" \
             -H "Content-Type: application/json" \
             -d "{
@@ -68,7 +68,7 @@ jobs:
             }" | tee /tmp/result.json
           STATUS=$(jq -r '.status // empty' /tmp/result.json)
           if [ "$STATUS" != "success" ]; then
-            echo "Marketplace upsert failed" >&2
+            echo "Marketplace upsert failed: $(cat /tmp/result.json)" >&2
             exit 1
           fi
           echo "Marketplace updated: octowiz $VERSION"
