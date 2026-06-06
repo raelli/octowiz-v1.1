@@ -23,18 +23,17 @@ afterEach(() => {
 // ── start() ───────────────────────────────────────────────────────────────
 
 describe("start()", () => {
-  it("returns a context object without spawning a child process", () => {
+  it("returns a context object and does not write a PID file", () => {
     const dir = makeTmpDir();
     const { start } = loadSession(dir);
 
-    const spawnSpy = jest.spyOn(require("child_process"), "spawn");
     const ctx = start("sess-start-1", dir);
 
     // Context must be returned (captureContext populates at minimum repoRoot)
     expect(ctx).toBeTruthy();
-    // The launchd daemon owns the queue subscriber — start() must not spawn index.js
-    expect(spawnSpy).not.toHaveBeenCalled();
-    spawnSpy.mockRestore();
+    // The old start() wrote aelli-cc.<sessionId>.pid for the spawned child.
+    // The launchd daemon owns the queue subscriber — no PID file should exist.
+    expect(fs.existsSync(path.join(dir, "aelli-cc.sess-start-1.pid"))).toBe(false);
   });
 });
 

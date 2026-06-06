@@ -272,7 +272,7 @@ def main() -> int:
             "content": event.get("prompt_summary", ""),
             "fileCount": len(event.get("live_modified_files", [])),
         })
-        if routing:
+        if isinstance(routing, dict):
             event["routingDecision"] = routing
 
     advice = _post_event(url, event)
