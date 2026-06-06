@@ -26,7 +26,7 @@ const CACHE_DIR =
   process.env.AELLI_CACHE_DIR ||
   path.join(os.homedir(), ".cache", "aelli-cc");
 const LOG_FILE = path.join(CACHE_DIR, "aelli-cc.log");
-const DAEMON_LOG = "/private/tmp/octowiz-daemon.log";
+const DAEMON_LOG = path.join(CACHE_DIR, "octowiz-daemon.log");
 
 const NODE_PORT = 3456;
 const A2A_PORT = parseInt(process.env.OCTOWIZ_A2A_PORT || "8765", 10);
@@ -210,12 +210,32 @@ function checkConfig() {
 // ── Phase 3: Endpoints ────────────────────────────────────────────────────────
 
 async function checkEndpoints() {
-  // Node port
-  const nodeUp = await isPortOpen(NODE_PORT);
-  addCheck("endpoint", `AELLI Node :${NODE_PORT}`,
-    nodeUp ? PASS : FAIL,
-    nodeUp ? "TCP connection accepted" : "Connection refused"
-  );
+  // AELLI Node — remote when AELLI_BASE_URL is set (integra42 Docker), local otherwise.
+  const aeBaseUrl = (process.env.AELLI_BASE_URL || "").replace(/\/$/, "");
+  if (aeBaseUrl) {
+    const healthUrl = `${aeBaseUrl}/health`;
+    const token = process.env.AELLI_AUTH_TOKEN || "";
+    const r = await httpRequest(healthUrl, {
+      method: "GET",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (r.status === 200) {
+      addCheck("endpoint", "AELLI Node (remote)", PASS,
+        `${aeBaseUrl}/health → HTTP 200`);
+    } else if (r.status === 401 || r.status === 403) {
+      addCheck("endpoint", "AELLI Node (remote)", WARN,
+        `${aeBaseUrl}/health → HTTP ${r.status} — reachable but auth token may be wrong`);
+    } else {
+      addCheck("endpoint", "AELLI Node (remote)", FAIL,
+        `${aeBaseUrl}/health → HTTP ${r.status}`);
+    }
+  } else {
+    const nodeUp = await isPortOpen(NODE_PORT);
+    addCheck("endpoint", `AELLI Node :${NODE_PORT}`,
+      nodeUp ? PASS : FAIL,
+      nodeUp ? "TCP connection accepted" : "Connection refused — set AELLI_BASE_URL for remote AELLI"
+    );
+  }
 
   // Python A2A — probe the actual agent-card route, not /
   const pyUp = await isPortOpen(A2A_PORT);
