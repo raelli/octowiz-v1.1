@@ -447,6 +447,15 @@ node "$CLAUDE_PLUGIN_ROOT/apps/doctowiz/index.js"
 | 0.9.2 | pnpm migration; Dockerfile + husky pre-commit gate | Use `pnpm` instead of `npm` |
 | 0.9.3 | Architecture improvements: deep modules, dead-code removal, seam documentation; rename dependency `mattpo-skills` → `mattpocock-skills` | `claude plugins install mattpocock-skills` if missing |
 | 0.9.4 | `OCTOWIZ_ALLOWED_ROOTS` required; daemon runs as launchd service; service pre-flight in octowiz-workflow skill | Add `OCTOWIZ_ALLOWED_ROOTS` to settings + plist; `launchctl load` the service |
+| 0.9.5 | Doctowiz: WARN (not FAIL) when AELLI is remote; service pre-flight added to octowiz-workflow skill | None |
+| 0.9.6 | README restructure + SVG architecture diagrams | None |
+| 0.9.7–0.9.9 | Purple badge logger (`--*`) on all octowiz output; AELLI advisory styled with `[æ]` badge in terminal | None |
+| 0.9.10 | AELLI advisory badge refinements | None |
+| 0.9.11 | CI auto-syncs plugin to IntegraHub marketplace on tag push; DEPLOYING.md added | None |
+| 0.9.12 | Arch refactor: path guard alignment, dead-code removal, SSE backoff, retry matrix tests | Run `/plugin update` |
+| 0.9.13 | Badge format unified; advisory type validation against allowlist; SSE preamble skip fix | Run `/plugin update` |
+| 0.9.14 | Doctowiz: fix 2 false-positive diagnostic checks (AELLI process + routing bundle) | Run `/plugin update` |
+| 0.9.15 | Bridge: iterate all SSE `data:` lines in `_route_event` (fixes routing response parse); arch deviations resolved | Run `/plugin update` |
 
 ---
 
@@ -466,6 +475,7 @@ When the user describes a specific symptom, map it to the likely cause and fix:
 | "Too many session-subscriber processes" | Pre-PR-#73 sessions | `session_subscribers` |
 | "spec-deviation on every edit" | Normal in octowiz dev repo | No fix — expected |
 | "Was on 0.5.x, just updated, still broken" | Env vars not migrated | Switch to Mode 4 (Update helper) |
+| "LiteLLM shows workflow runs all 'failed' with 'server restarted'" | AELLI restarting during in-flight workflows (auto-deploy) | `workflow_runs_failing` |
 
 Run the diagnostic after each fix to confirm the check turns green.
 
@@ -550,6 +560,26 @@ pkill -f session-subscriber.js
 Rebuild the LiteLLM memory bundles:
 ```bash
 octowiz-cache build --all --namespace "${OCTOWIZ_NAMESPACE:-allspark}"
+```
+
+### `workflow_runs_failing`
+Workflow runs show `{"error": "server restarted"}` because AELLI was redeployed
+while they were in-flight. The `cleanupStalledRuns()` on startup marks all
+`status=running` runs as failed.
+
+**Fix:** Upgrade AELLI to v1.2.7+ which adds a SIGTERM drain (30s) and sets
+`stop_grace_period: 35s` in docker-compose. Workflows that complete within the
+drain window will land their terminal PATCH before the process exits.
+
+Verify the fix is active:
+```bash
+ssh integra42 "docker inspect aelli --format '{{.Config.StopTimeout}}'"
+# Should print: 35
+```
+
+If still on an older version, deploy the latest:
+```bash
+ssh integra42 "cd /opt/integrahub/aelli && git pull && docker compose up -d --build aelli"
 ```
 
 ---

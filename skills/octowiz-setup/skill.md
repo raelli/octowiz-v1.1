@@ -68,17 +68,17 @@ claude plugins install superpowers
 
 Verify: `ls ~/.claude/plugins/cache/*/superpowers/ 2>/dev/null | head -1`
 
-### mattpo-skills
+### mattpocock-skills
 
 Provides domain documentation and issue management skills — grill-with-docs, to-prd, to-issues, triage, diagnose, prototype.
 
-Note: install ID is `mattpo-skills`; slash-command namespace is `/mattpocock-skills:` — these are different.
+Note: install ID is `mattpocock-skills`; slash-command namespace is `/mattpocock-skills:` — these match.
 
 ```bash
-claude plugins install mattpo-skills
+claude plugins install mattpocock-skills
 ```
 
-Verify: `ls ~/.claude/plugins/cache/*/mattpo-skills/ 2>/dev/null | head -1`
+Verify: `ls ~/.claude/plugins/cache/*/mattpocock-skills/ 2>/dev/null | head -1`
 
 ### antfu-skills
 
@@ -97,7 +97,7 @@ python3 -c "
 import sys; sys.path.insert(0, '$(which octowiz-cache | xargs dirname 2>/dev/null || echo .)')
 from packages.memory_client.env import init_machine_state, save_machine_state, MACHINE_STATE_PATH
 state = init_machine_state()
-for pid in ['superpowers', 'mattpo-skills', 'antfu-skills']:
+for pid in ['superpowers', 'mattpocock-skills', 'antfu-skills']:
     state.plugins[pid] = 'verified'
 save_machine_state(state)
 print('machine-state.json updated')
