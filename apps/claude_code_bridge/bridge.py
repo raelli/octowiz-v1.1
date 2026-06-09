@@ -107,8 +107,15 @@ def _build_event(data: Dict) -> Optional[Dict]:
     return None
 
 
+_PLUGIN_DIR_PREFIXES = (".superpowers/", ".octowiz/", ".claude/")
+
+
 def _git_modified_files(cwd: str) -> list:
-    """Return list of modified file paths from git status --porcelain."""
+    """Return list of modified file paths from git status --porcelain.
+
+    Plugin-system directories (.superpowers/, .octowiz/, .claude/) are excluded
+    — they're written by Claude Code itself and are never a spec deviation.
+    """
     try:
         r = subprocess.run(
             ["git", "status", "--porcelain"],
@@ -119,7 +126,9 @@ def _git_modified_files(cwd: str) -> list:
         files = []
         for line in r.stdout.splitlines():
             if len(line) > 3:
-                files.append(line[3:].strip())
+                f = line[3:].strip()
+                if not any(f.startswith(p) for p in _PLUGIN_DIR_PREFIXES):
+                    files.append(f)
         return files
     except Exception:
         return []
