@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from bridge import _build_event, _post_event, _resolve_router_url, _route_event, main
+from bridge import _build_event, _git_modified_files, _post_event, _resolve_router_url, _route_event, main
 
 
 def _hook_data(hook="PostToolUse", tool="Write", tool_input=None, **extra):
@@ -147,7 +147,7 @@ class TestDefaultUrl(unittest.TestCase):
             captured_headers.update(headers or {})
             return mock_resp
 
-        with unittest.mock.patch.dict(os.environ, {"AELLI_AUTH_TOKEN": "my-token"}, clear=False), \
+        with unittest.mock.patch.dict(os.environ, {"AELLI_AUTH_TOKEN": "my-token", "AELLI_LITELLM_BASE": ""}, clear=False), \
              unittest.mock.patch("httpx.post", side_effect=fake_httpx_post):
             _post_event("http://localhost:3456/a2a/dev-advisor", {"type": "prompt"})
 
@@ -569,6 +569,46 @@ class TestRouteEvent(unittest.TestCase):
         self.assertEqual(len(captured_events), 1)
         self.assertIn("routingDecision", captured_events[0])
         self.assertEqual(captured_events[0]["routingDecision"], {"router": "aelli", "tier": "fast"})
+
+class TestGitModifiedFiles(unittest.TestCase):
+    def _run(self, porcelain_output: str) -> list:
+        mock_result = unittest.mock.MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = porcelain_output
+        with unittest.mock.patch("subprocess.run", return_value=mock_result):
+            return _git_modified_files("/repo")
+
+    def test_regular_files_are_included(self):
+        result = self._run(" M src/app.py\n M tests/test_app.py\n")
+        self.assertIn("src/app.py", result)
+        self.assertIn("tests/test_app.py", result)
+
+    def test_superpowers_dir_is_excluded(self):
+        result = self._run("?? .superpowers/some-skill.md\n M src/app.py\n")
+        self.assertNotIn(".superpowers/some-skill.md", result)
+        self.assertIn("src/app.py", result)
+
+    def test_octowiz_dir_is_excluded(self):
+        result = self._run("?? .octowiz/state.json\n M src/app.py\n")
+        self.assertNotIn(".octowiz/state.json", result)
+        self.assertIn("src/app.py", result)
+
+    def test_claude_dir_is_excluded(self):
+        result = self._run(" M .claude/settings.json\n M src/app.py\n")
+        self.assertNotIn(".claude/settings.json", result)
+        self.assertIn("src/app.py", result)
+
+    def test_all_plugin_dirs_excluded_leaves_empty_list(self):
+        result = self._run("?? .superpowers/x\n?? .octowiz/y\n M .claude/z\n")
+        self.assertEqual(result, [])
+
+    def test_non_zero_exit_returns_empty_list(self):
+        mock_result = unittest.mock.MagicMock()
+        mock_result.returncode = 128
+        mock_result.stdout = ""
+        with unittest.mock.patch("subprocess.run", return_value=mock_result):
+            self.assertEqual(_git_modified_files("/repo"), [])
+
 
     def test_routing_decision_not_attached_when_route_returns_none(self):
         """main() does NOT attach routingDecision when _route_event returns None (fail-open)."""
