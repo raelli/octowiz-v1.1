@@ -11,8 +11,9 @@ from enum import Enum
 from typing import Any, Dict, Optional
 
 import session_owners
+from a2a import err, require
 from path_guard import validate_cwd
-from providers.claude_agent_view.status import is_terminal, is_error
+from providers.protocol import is_error, is_terminal
 
 _DEFAULT_POLL_INTERVAL = float(os.environ.get("OCTOWIZ_DISPATCH_POLL_INTERVAL", "5"))
 _DEFAULT_TIMEOUT = float(os.environ.get("OCTOWIZ_DISPATCH_TIMEOUT", "300"))
@@ -135,15 +136,15 @@ class DispatchSession:
         """
         _loop = asyncio.get_running_loop()
 
-        # Fetch status.
-        session = await _loop.run_in_executor(
-            None, self._provider.get_status, self.session_id
+        # Fetch canonical run state through the provider protocol.
+        run_state = await _loop.run_in_executor(
+            None, self._provider.poll_run, self.session_id
         )
-        if session is None:
+        if run_state is None:
             # Session not yet visible in the supervisor — stay RUNNING.
             return DispatchSessionState.RUNNING
 
-        # Mark that we have successfully observed a real session object at least once.
+        # Mark that we have successfully observed a real run state at least once.
         self._ever_observed = True
 
         # Fetch output exactly once per poll tick.
@@ -154,16 +155,16 @@ class DispatchSession:
         except Exception:
             self._output = ""
 
-        if session.needs_input:
+        if run_state.needs_input:
             self.state = DispatchSessionState.NEEDS_INPUT
             return self.state
 
-        if is_error(session.status):
+        if is_error(run_state.status):
             self._is_session_error = True
             self.state = DispatchSessionState.DONE
             return self.state
 
-        if is_terminal(session.status):
+        if is_terminal(run_state.status):
             self.state = DispatchSessionState.DONE
             return self.state
 
@@ -203,11 +204,7 @@ class DispatchSession:
                             output={"session_id": self.session_id, "output": self._output},
                         )
                     # Retain ownership — caller may still retrieve logs via manage_agents.
-                    return {
-                        "status": "error",
-                        "session_id": self.session_id,
-                        "output": self._output,
-                    }
+                    return err(session_id=self.session_id, output=self._output)
                 if self._workflow_client and self._wf_run_id:
                     await self._workflow_client.complete(
                         self._wf_run_id,
@@ -244,11 +241,10 @@ class DispatchSession:
                 "timeout",
                 data={"reason": f"timeout after {self._timeout}s"},
             )
-        return {
-            "status": "error",
-            "session_id": self.session_id,
-            "message": f"timeout after {self._timeout}s waiting for session to complete",
-        }
+        return err(
+            f"timeout after {self._timeout}s waiting for session to complete",
+            session_id=self.session_id,
+        )
 
     def mark_orphaned(self) -> Dict:
         """Transition to ORPHANED state and return the error artifact.
@@ -264,7 +260,7 @@ class DispatchSession:
         )
         if self.session_id:
             session_owners.deregister(self.session_id)
-        return {"status": "error", "session_id": self.session_id, "message": "dispatch timed out (orphaned)"}
+        return err("dispatch timed out (orphaned)", session_id=self.session_id)
 
 
 async def handle_dispatch(
@@ -285,18 +281,17 @@ async def handle_dispatch(
     task = event.get("task", "")
     cwd = event.get("cwd", "")
 
-    if not task:
-        return {"status": "error", "message": "task is required"}
-    if not cwd:
-        return {"status": "error", "message": "cwd is required"}
+    missing = require(event, "task", "cwd")
+    if missing:
+        return missing
     if task.startswith("-"):
-        return {"status": "error", "message": "task must not start with '-'"}
+        return err("task must not start with '-'")
 
     # P1: validate cwd against OCTOWIZ_ALLOWED_ROOTS before dispatching.
     try:
         cwd = validate_cwd(cwd)
     except ValueError as exc:
-        return {"status": "error", "message": str(exc)}
+        return err(str(exc))
 
     if provider is None:
         provider = _make_provider()
@@ -325,7 +320,7 @@ async def handle_dispatch(
         try:
             await session.start()
         except Exception as exc:
-            return {"status": "error", "message": f"failed to start session: {exc}"}
+            return err(f"failed to start session: {exc}")
         return await session.run()
     finally:
         if workflow_client:

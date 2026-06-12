@@ -8,8 +8,9 @@ import shutil
 import time
 from typing import Any, Dict, Optional
 
+from a2a import err, require
 from path_guard import validate_cwd
-from providers.sandcastle.status import is_error, is_terminal
+from providers.protocol import is_error, is_terminal
 
 _DEFAULT_POLL_INTERVAL = float(os.environ.get("OCTOWIZ_DISPATCH_POLL_INTERVAL", "5"))
 _DEFAULT_TIMEOUT = float(os.environ.get("OCTOWIZ_DISPATCH_TIMEOUT", "300"))
@@ -42,26 +43,25 @@ async def handle_run_sandboxed(
     container_provider = event.get("container_provider", "docker")
     wait = event.get("wait", True)
 
-    if not task:
-        return {"status": "error", "message": "task is required"}
-    if not cwd:
-        return {"status": "error", "message": "cwd is required"}
+    missing = require(event, "task", "cwd")
+    if missing:
+        return missing
     if task.startswith("-"):
-        return {"status": "error", "message": "task must not start with '-'"}
+        return err("task must not start with '-'")
     if container_provider not in _VALID_CONTAINER_PROVIDERS:
-        return {"status": "error", "message": f"unsupported container_provider: {container_provider!r}"}
+        return err(f"unsupported container_provider: {container_provider!r}")
     if not shutil.which(container_provider):
-        return {"status": "error", "message": f"{container_provider} not available"}
+        return err(f"{container_provider} not available")
     if branch is not None:
         if branch.startswith("-"):
-            return {"status": "error", "message": "branch must not start with '-'"}
+            return err("branch must not start with '-'")
         if not _BRANCH_RE.fullmatch(branch):
-            return {"status": "error", "message": f"invalid branch name: {branch!r}"}
+            return err(f"invalid branch name: {branch!r}")
 
     try:
         cwd = validate_cwd(cwd)
     except ValueError as exc:
-        return {"status": "error", "message": str(exc)}
+        return err(str(exc))
 
     if provider is None:
         provider = _get_provider()
@@ -73,7 +73,7 @@ async def handle_run_sandboxed(
     try:
         run_id = provider.dispatch(task, cwd, branch=branch, container_provider=container_provider)
     except Exception as exc:
-        return {"status": "error", "message": f"failed to start container: {exc}"}
+        return err(f"failed to start container: {exc}")
 
     if not wait:
         # Spawn a background watchdog to enforce SANDCASTLE_TIMEOUT on this unsupervised run.
@@ -92,12 +92,14 @@ async def handle_run_sandboxed(
 
     while time.monotonic() < deadline:
         await asyncio.sleep(poll_interval)
-        status = await _loop.run_in_executor(None, provider.get_status, run_id)
-        if is_terminal(status):
+        run_state = await _loop.run_in_executor(None, provider.poll_run, run_id)
+        if run_state is not None and is_terminal(run_state.status):
             logs = await _loop.run_in_executor(None, provider.get_logs, run_id)
-            top_status = "error" if is_error(status) else "ok"
-            return {"status": top_status, "run_id": run_id, "exit_status": status, "logs": logs}
+            top_status = "error" if is_error(run_state.status) else "ok"
+            # exit_status keeps the provider-native status (e.g. timed_out)
+            # so artifacts stay byte-identical to the pre-protocol shape.
+            return {"status": top_status, "run_id": run_id, "exit_status": run_state.raw_status, "logs": logs}
 
     # Stop the container before returning — don't orphan it.
     await _loop.run_in_executor(None, provider.stop, run_id)
-    return {"status": "error", "run_id": run_id, "message": f"timeout after {timeout}s"}
+    return err(f"timeout after {timeout}s", run_id=run_id)
