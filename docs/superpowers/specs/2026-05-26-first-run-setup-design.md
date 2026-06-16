@@ -266,8 +266,8 @@ Dismissed checks are per-machine and never committed.
 
 - `octowiz_cache.py` — add offline doctrine bundle fallback (for pre-LiteLLM use)
 - `octowiz_cache_cli.py` — new subcommand for live environment check (plugin dir scan, env var read)
-- `skills/octowiz-workflow/skill.md` — add live-check + auto-intercept preamble
-- New: `skills/octowiz-setup/skill.md` (orchestrator)
+- `skills/octowiz-workflow/SKILL.md` — add live-check + auto-intercept preamble
+- New: `skills/octowiz-setup/SKILL.md` (orchestrator)
 - New: `skills/octowiz-setup-plugins/skill.md`
 - New: `skills/octowiz-setup-cache/skill.md`
 - New: `skills/octowiz-setup-repo/skill.md`

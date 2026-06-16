@@ -848,7 +848,7 @@ class TestRoleRegistry(unittest.TestCase):
 
 class TestRoleRegistryDriftDetection(unittest.TestCase):
     def test_all_skill_roles_exist_in_registry(self):
-        skill_path = Path(__file__).parent.parent.parent.parent / "skills" / "octowiz-workflow" / "skill.md"
+        skill_path = Path(__file__).parent.parent.parent.parent / "skills" / "octowiz-workflow" / "SKILL.md"
         text = skill_path.read_text(encoding="utf-8")
         # Find --role <name> patterns in the skill
         mentioned = set(re.findall(r"--role\s+(\w+)", text))
@@ -856,7 +856,7 @@ class TestRoleRegistryDriftDetection(unittest.TestCase):
             self.assertIn(
                 role,
                 octowiz_cache.ROLE_REGISTRY,
-                f"Role {role!r} mentioned in skill.md but not in ROLE_REGISTRY",
+                f"Role {role!r} mentioned in SKILL.md but not in ROLE_REGISTRY",
             )
 
 

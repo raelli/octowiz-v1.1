@@ -32,7 +32,7 @@ Developer in Claude Code
   │
   │  /octowiz
   ▼
-skills/octowiz-workflow/skill.md        ← NEW coordinator skill
+skills/octowiz-workflow/SKILL.md        ← NEW coordinator skill
   ├── reads CLAUDE.md, README, git state
   ├── fetches memories via GET /v1/memory (LITELLM_BASE_URL + LITELLM_API_KEY)
   ├── uses retrieval contract (memory entry #25) to filter by phase
@@ -74,7 +74,7 @@ LITELLM_API_KEY=sk-your-integrahub-key
 
 ## Coordinator Skill — `/octowiz`
 
-File: `skills/octowiz-workflow/skill.md`
+File: `skills/octowiz-workflow/SKILL.md`
 
 ### Entry point
 

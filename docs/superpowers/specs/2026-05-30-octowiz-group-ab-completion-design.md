@@ -198,7 +198,7 @@ consumer was missed.
 
 ### Skills update
 
-`skills/octowiz-setup/skill.md` inline `python3 -c "..."` snippets updated:
+`skills/octowiz-setup/SKILL.md` inline `python3 -c "..."` snippets updated:
 - All `from octowiz_env import` → `from packages.memory_client.env import`
 
 ### hooks/hooks.json
