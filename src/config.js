@@ -38,6 +38,16 @@ function trimTrailingSlash(url) {
   return url.replace(/\/+$/, '')
 }
 
+function isValidHttpUrl(value) {
+  try {
+    const u = new URL(value)
+    return u.protocol === 'http:' || u.protocol === 'https:'
+  }
+  catch {
+    return false
+  }
+}
+
 // ---------------------------------------------------------------- AELLI ----
 
 function apiBase() {
@@ -77,6 +87,7 @@ function devAdvisorUrl() {
   return env('AELLI_DEV_ADVISOR_URL') || DEFAULTS.AELLI_DEV_ADVISOR_URL
 }
 
+// Returns nullable string: explicit URL, gateway-derived URL, or null when disabled.
 function routerUrl() {
   const explicit = env('AELLI_ROUTER_URL')
   if (explicit)
@@ -179,6 +190,23 @@ function configWarnings() {
       + 'All A2A calls through the LiteLLM gateway will get 401 Unauthorized. '
       + 'Set AELLI_AUTH_TOKEN to a valid LiteLLM API key.',
     )
+  }
+
+  const explicitUrls = [
+    ['AELLI_API_BASE', env('AELLI_API_BASE')],
+    ['AELLI_BASE_URL', env('AELLI_BASE_URL')],
+    ['AELLI_LITELLM_BASE', env('AELLI_LITELLM_BASE')],
+    ['AELLI_DEV_ADVISOR_URL', env('AELLI_DEV_ADVISOR_URL')],
+    ['AELLI_ROUTER_URL', env('AELLI_ROUTER_URL')],
+    ['OCTOWIZ_A2A_URL', env('OCTOWIZ_A2A_URL')],
+  ]
+
+  for (const [name, value] of explicitUrls) {
+    if (value && !isValidHttpUrl(value)) {
+      warnings.push(
+        `[AELLI A2A] ${name} is set but is not a valid absolute http(s) URL: "${value}".`,
+      )
+    }
   }
 
   if (token) {
