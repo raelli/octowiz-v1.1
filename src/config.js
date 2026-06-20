@@ -164,10 +164,17 @@ function aelliAuthHeaders() {
     : { 'x-aelli-secret': token }
 }
 
-// The task queue (claim/result/subscribe) always uses x-aelli-secret when set.
+// The task queue (claim/result/subscribe) uses Bearer when the queue host
+// is the LiteLLM gateway (AELLI_BASE_URL === AELLI_LITELLM_BASE), and
+// x-aelli-secret when targeting direct AELLI.
 function queueAuthHeaders() {
   const secret = aelliSecret()
-  return secret ? { 'x-aelli-secret': secret } : {}
+  if (!secret)
+    return {}
+  const gateway = litellmBase()
+  return gateway && aelliBase() === gateway
+    ? { Authorization: `Bearer ${secret}` }
+    : { 'x-aelli-secret': secret }
 }
 
 // The Python A2A server authenticates via x-octowiz-secret when set.
