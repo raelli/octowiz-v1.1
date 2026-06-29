@@ -64,6 +64,8 @@ function contextPath(sessionId) {
 }
 
 // Handles git's C-style quoted paths (e.g. paths with spaces or special chars).
+// Non-ASCII filenames are encoded by git as octal byte sequences (\NNN per byte),
+// so we accumulate raw bytes and decode as UTF-8 at the end.
 function unquoteGitPath(p) {
   if (typeof p !== 'string')
     return ''
@@ -72,11 +74,11 @@ function unquoteGitPath(p) {
   if (s.length < 2 || s[0] !== '"' || s[s.length - 1] !== '"')
     return s
 
-  let out = ''
+  const bytes = []
   for (let i = 1; i < s.length - 1; i++) {
     const ch = s[i]
     if (ch !== '\\') {
-      out += ch
+      bytes.push(ch.charCodeAt(0))
       continue
     }
 
@@ -86,19 +88,31 @@ function unquoteGitPath(p) {
 
     const esc = s[i]
     switch (esc) {
-      case '"': out += '"'; break
-      case '\\': out += '\\'; break
-      case 'n': out += '\n'; break
-      case 't': out += '\t'; break
-      case 'r': out += '\r'; break
-      case 'b': out += '\b'; break
-      case 'f': out += '\f'; break
-      case 'v': out += '\v'; break
-      default: out += esc; break
+      case '"':  bytes.push(0x22); break
+      case '\\': bytes.push(0x5C); break
+      case 'a':  bytes.push(0x07); break
+      case 'b':  bytes.push(0x08); break
+      case 't':  bytes.push(0x09); break
+      case 'n':  bytes.push(0x0A); break
+      case 'v':  bytes.push(0x0B); break
+      case 'f':  bytes.push(0x0C); break
+      case 'r':  bytes.push(0x0D); break
+      default:
+        if (esc >= '0' && esc <= '7') {
+          // Octal \NNN: consume up to 2 more octal digits, then push the byte value.
+          let octal = esc
+          for (let j = 0; j < 2 && i + 1 < s.length - 1 && s[i + 1] >= '0' && s[i + 1] <= '7'; j++)
+            octal += s[++i]
+          bytes.push(parseInt(octal, 8))
+        }
+        else {
+          bytes.push(esc.charCodeAt(0))
+        }
+        break
     }
   }
 
-  return out
+  return Buffer.from(bytes).toString('utf8')
 }
 
 // Pure parser for `git status --porcelain=v1` output.
