@@ -68,7 +68,7 @@ function validateJavaScriptSyntax(draft) {
   }
 
   try {
-    new vm.Script(draft)
+    void new vm.Script(draft)
     return { passed: true }
   }
   catch (err) {
