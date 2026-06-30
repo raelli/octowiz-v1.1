@@ -18,6 +18,7 @@
  * @property {string|null} branch        - Current git branch, or null when detached HEAD / unavailable.
  * @property {string[]}    modifiedFiles - Tracked files with staged or unstaged changes
  *                                         (untracked `??` files are intentionally excluded).
+ *                                         For renames/copies, the destination path (new side) is reported.
  *                                         Order is normalized (sorted) for deterministic output.
  *
  * LiveContext fields are **live**: they are read fresh from git on every call and
@@ -122,6 +123,27 @@ function unquoteGitPath(p) {
   return Buffer.from(bytes).toString('utf8')
 }
 
+// Split "old -> new" in a rename/copy rawPath while respecting quoted segments.
+// Returns null when no unquoted delimiter is found.
+function splitRenamePath(rawPath) {
+  let inQuotes = false
+  for (let i = 0; i <= rawPath.length - 4; i++) {
+    const ch = rawPath[i]
+    if (ch === '"') {
+      // A quote is escaped only when preceded by an ODD run of backslashes;
+      // an even run (e.g. "old\\") is an escaped backslash + a real quote.
+      let backslashes = 0
+      for (let j = i - 1; j >= 0 && rawPath[j] === '\\'; j--)
+        backslashes++
+      if (backslashes % 2 === 0)
+        inQuotes = !inQuotes
+    }
+    if (!inQuotes && rawPath.slice(i, i + 4) === ' -> ')
+      return [rawPath.slice(0, i), rawPath.slice(i + 4)]
+  }
+  return null
+}
+
 // Pure parser for `git status --porcelain=v1` output.
 // Exported so it can be unit-tested without touching the filesystem or git.
 function parseGitStatus(output) {
@@ -133,18 +155,26 @@ function parseGitStatus(output) {
   const seen = new Set()
 
   for (const line of lines) {
-    if (!line)
-      continue
-    if (line.startsWith('??'))
+    if (!line || line.length < 3)
       continue
 
-    const rawPath = line.length >= 4 ? line.slice(3).trim() : ''
+    const x = line[0]
+    const y = line[1]
+
+    if (x === '?' && y === '?')
+      continue
+
+    const rawPath = line.slice(3).trim()
     if (!rawPath)
       continue
 
-    const delim = ' -> '
-    const idx = rawPath.indexOf(delim)
-    const candidate = idx >= 0 ? rawPath.slice(idx + delim.length) : rawPath
+    let candidate = rawPath
+    if (x === 'R' || y === 'R' || x === 'C' || y === 'C') {
+      const split = splitRenamePath(rawPath)
+      if (split && split[1])
+        candidate = split[1].trim()
+    }
+
     const normalizedPath = unquoteGitPath(candidate)
 
     if (!normalizedPath || seen.has(normalizedPath))
@@ -239,7 +269,7 @@ function getStableContext(sessionId) {
 // Requires that captureContext() was called first so the repoRoot is cached.
 function getLiveContext(sessionId) {
   const cached = getStableContext(sessionId)
-  if (!cached)
+  if (!cached || !cached.repoRoot)
     return null
 
   const { repoRoot } = cached
@@ -257,10 +287,18 @@ function getContext(sessionId) {
   if (!stable)
     return null
 
+  if (!stable.repoRoot) {
+    return {
+      ...stable,
+      branch: null,
+      modifiedFiles: [],
+    }
+  }
+
   const { repoRoot } = stable
   return {
     ...stable,
-    branch: readBranch(repoRoot),
+    branch: readBranch(repoRoot) ?? null,
     modifiedFiles: readModifiedFiles(repoRoot),
   }
 }
