@@ -31,4 +31,14 @@ describe('parseGitStatus', () => {
     const out = ' M src/a.js\nA  src/b.js\nD  src/c.js\n?? ignored.js'
     expect(parseGitStatus(out)).toEqual(['src/a.js', 'src/b.js', 'src/c.js'])
   })
+
+  it('preserves raw UTF-8 chars in quoted paths (core.quotePath=false)', () => {
+    // git quotes the path because of the embedded tab, but leaves "é" as a raw
+    // multi-byte UTF-8 sequence. Both the raw char and the \t escape must survive.
+    expect(parseGitStatus(' M "é\\t.js"')).toEqual(['é\t.js'])
+  })
+
+  it('preserves astral (4-byte UTF-8) chars in quoted paths', () => {
+    expect(parseGitStatus(' M "🚀\\t.js"')).toEqual(['🚀\t.js'])
+  })
 })
