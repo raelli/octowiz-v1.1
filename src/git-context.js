@@ -78,7 +78,14 @@ function unquoteGitPath(p) {
   for (let i = 1; i < s.length - 1; i++) {
     const ch = s[i]
     if (ch !== '\\') {
-      bytes.push(ch.charCodeAt(0))
+      // Raw (unescaped) chars are left verbatim by git when core.quotePath=false,
+      // so a non-ASCII filename can be multi-byte UTF-8. Encode the full code
+      // point — charCodeAt(0) would emit one byte and corrupt anything ≥ U+0080.
+      const cp = s.codePointAt(i)
+      for (const b of Buffer.from(String.fromCodePoint(cp), 'utf8'))
+        bytes.push(b)
+      if (cp > 0xFFFF)
+        i++ // skip the low surrogate of an astral code point
       continue
     }
 
