@@ -86,9 +86,13 @@ function isValidHttpUrl(value) {
   }
 }
 
-function normalizedOrigin(urlStr) {
+// Canonical comparison key for a base URL: lowercase origin (scheme/host are
+// case-insensitive) but keep the path (case-sensitive, and the thing that
+// distinguishes a reverse-proxy's /aelli from /litellm). Trailing slash trimmed.
+function normalizedBase(urlStr) {
   try {
-    return new URL(urlStr).origin.toLowerCase()
+    const u = new URL(urlStr)
+    return u.origin.toLowerCase() + trimTrailingSlash(u.pathname)
   }
   catch {
     return ''
@@ -217,8 +221,8 @@ function queueAuthHeaders() {
     return {}
   const gateway = litellmBase()
   const useBearer = gateway
-    && normalizedOrigin(aelliBase()) !== ''
-    && normalizedOrigin(aelliBase()) === normalizedOrigin(gateway)
+    && normalizedBase(aelliBase()) !== ''
+    && normalizedBase(aelliBase()) === normalizedBase(gateway)
   return useBearer
     ? { Authorization: `Bearer ${secret}` }
     : { 'x-aelli-secret': secret }
