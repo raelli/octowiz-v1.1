@@ -164,15 +164,15 @@ function parseGitStatus(output) {
     if (x === '?' && y === '?')
       continue
 
-    const rawPath = line.slice(3).trim()
+    const rawPath = line.slice(3)
     if (!rawPath)
       continue
 
     let candidate = rawPath
     if (x === 'R' || y === 'R' || x === 'C' || y === 'C') {
       const split = splitRenamePath(rawPath)
-      if (split && split[1])
-        candidate = split[1].trim()
+      if (split && split[1] !== '')
+        candidate = split[1]
     }
 
     const normalizedPath = unquoteGitPath(candidate)
@@ -185,7 +185,7 @@ function parseGitStatus(output) {
   }
 
   // Deterministic ordering for stable serialization and testing.
-  files.sort((a, b) => a.localeCompare(b))
+  files.sort()
   return files
 }
 
