@@ -101,7 +101,7 @@ async function postResult(taskId, leaseToken, result) {
         continue
       }
 
-      logger.error(`[daemon] postResult failed after retries: ${err?.message || String(err)}`)
+      logger.error(`[daemon] postResult failed${attempt > 1 ? ' after retries' : ''}: ${err?.message || String(err)}`)
       return false
     }
   }
