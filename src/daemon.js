@@ -65,15 +65,11 @@ function _clonePayload(rawPayload) {
     }
   }
 
-  try {
-    return JSON.parse(JSON.stringify(rawPayload))
-  }
-  catch (cloneErr) {
-    logger.error(
-      `[octowiz - processTask] payload clone failed, using empty payload: ${_sanitizeForLog(_errorToString(cloneErr))}`,
-    )
-    return {}
-  }
+  return JSON.parse(JSON.stringify(rawPayload))
+}
+
+function _mapQueueStatus(status) {
+  return status === 'error' ? 'error' : 'completed'
 }
 
 function _getA2AServerUrl() {
@@ -201,7 +197,18 @@ async function processTask(task) {
       return
     }
 
-    const payload = _clonePayload(rawPayload)
+    let payload
+    try {
+      payload = _clonePayload(rawPayload)
+    }
+    catch (cloneErr) {
+      await postResult(id, leaseToken, {
+        status: 'error',
+        failureKind: 'invalid-payload',
+        message: _errorToString(cloneErr),
+      })
+      return
+    }
 
     if (!KNOWN_CAPABILITIES.has(capability)) {
       await postResult(id, leaseToken, { status: 'error', failureKind: 'unknown-capability', message: `unknown capability: ${_sanitizeForLog(capability, 128)}` })
@@ -233,7 +240,7 @@ async function processTask(task) {
     const normalized = normalizeA2AResponse(artifact)
     // Normalize: Python capabilities use "error" for failures; queue needs
     // "completed" vs "error".
-    const queueStatus = normalized.status === 'error' ? 'error' : 'completed'
+    const queueStatus = _mapQueueStatus(normalized.status)
     await postResult(id, leaseToken, { ...normalized, status: queueStatus })
   }
   catch (err) {
