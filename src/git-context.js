@@ -4,6 +4,11 @@
  *
  * Two shapes are produced by this module:
  *
+ * Failure semantics:
+ * - Stable reads return `null` when cache is missing, unreadable, or invalid.
+ * - Live reads return `null` when stable context is missing or repo root is unavailable.
+ * - Git subprocess failures are treated as unavailable data (`null` / `[]`) rather than throwing.
+ *
  * @typedef {object} SessionContext
  * @property {string}      sessionId  - Claude Code session identifier.
  * @property {string|null} repoRoot   - Absolute path to the git repo root (stable).
@@ -169,7 +174,7 @@ function parseGitStatus(output) {
       continue
 
     let candidate = rawPath
-    if (x === 'R' || y === 'R' || x === 'C' || y === 'C') {
+    if (x === 'R' || x === 'C') {
       const split = splitRenamePath(rawPath)
       if (split && split[1] !== '')
         candidate = split[1]
@@ -203,7 +208,7 @@ function readBranch(repoRoot) {
 function readModifiedFiles(repoRoot) {
   if (!repoRoot)
     return []
-  return parseGitStatus(run(['status', '--porcelain=v1'], repoRoot))
+  return parseGitStatus(run(['-c', 'core.quotepath=true', 'status', '--porcelain=v1'], repoRoot))
 }
 
 function isValidStableContext(value) {
@@ -236,7 +241,7 @@ function captureContext(sessionId, cwd) {
 
   try {
     fs.mkdirSync(path.dirname(dest), { recursive: true })
-    fs.writeFileSync(tmp, JSON.stringify(ctx))
+    fs.writeFileSync(tmp, `${JSON.stringify(ctx)}\n`)
     fs.renameSync(tmp, dest)
   }
   catch {
