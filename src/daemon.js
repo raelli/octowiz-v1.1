@@ -238,12 +238,12 @@ async function processTask(task) {
   }
   catch (err) {
     const safeId = id ? _sanitizeForLog(id) : ''
-    const safeErr = _sanitizeForLog(_errorToString(err))
-    logger.error(`[octowiz - processTask] unhandled error${safeId ? ` for ${safeId}` : ''}: ${safeErr}`)
+    const errMsg = _errorToString(err)
+    logger.error(`[octowiz - processTask] unhandled error${safeId ? ` for ${safeId}` : ''}: ${_sanitizeForLog(errMsg)}`)
 
     if (id && leaseToken) {
       try {
-        await postResult(id, leaseToken, { status: 'error', message: _errorToString(err) })
+        await postResult(id, leaseToken, { status: 'error', message: errMsg })
       }
       catch (postErr) {
         logger.error(`[octowiz - processTask] failed to post error result for ${safeId}: ${_sanitizeForLog(_errorToString(postErr))}`)
