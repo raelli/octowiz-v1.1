@@ -23,6 +23,8 @@
  *     as malformed for this boundary and normalized to `{}`.
  *   - Normalization is shallow: the top-level object is copied, but nested
  *     references (objects/arrays within the payload) are intentionally shared.
+ *   - Copying uses object spread, so only own enumerable string-keyed fields
+ *     are copied (matching JSON-deserialized payload expectations).
  */
 
 /**
@@ -39,6 +41,18 @@ const ALIAS_MAP = Object.freeze([
   Object.freeze(['run_id', 'runId']),
   Object.freeze(['exit_status', 'exitStatus']),
 ])
+
+/**
+ * Stable own-property check resilient against objects that shadow
+ * `hasOwnProperty` (e.g. `Object.create(null)` or `{ hasOwnProperty: 5 }`).
+ *
+ * @param {object} obj
+ * @param {string} key
+ * @returns {boolean}
+ */
+function hasOwn(obj, key) {
+  return Object.prototype.hasOwnProperty.call(obj, key)
+}
 
 /**
  * Normalize a raw Python A2A response object into the JS-canonical shape.
@@ -68,7 +82,7 @@ function normalizeA2AResponse(raw) {
 
   for (const [snakeKey, camelKey] of ALIAS_MAP) {
     // Additive aliasing only; never overwrite an explicitly provided camelCase value.
-    if (Object.hasOwn(result, snakeKey) && !Object.hasOwn(result, camelKey)) {
+    if (hasOwn(result, snakeKey) && !hasOwn(result, camelKey)) {
       result[camelKey] = result[snakeKey]
     }
   }
