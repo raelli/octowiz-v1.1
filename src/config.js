@@ -116,7 +116,9 @@ function areUrlsEquivalent(a, b) {
 }
 
 function sanitizeHeaderValue(value) {
-  return String(value).replace(/[\r\n\t\0]/g, '')
+  // Strip all HTTP/1.1 control characters, not just the most obvious ones.
+  // eslint-disable-next-line no-control-regex
+  return String(value).replace(/[\x00-\x1F\x7F]/g, '')
 }
 
 // ---------------------------------------------------------------- AELLI ----
@@ -317,7 +319,7 @@ function configWarnings() {
       ...(router ? [['AELLI_ROUTER_URL', router]] : []),
     ]
     for (const [name, url] of urlsToCheck) {
-      if (!url.startsWith('https://') && !isLocalhost(url)) {
+      if (isValidHttpUrl(url) && !url.startsWith('https://') && !isLocalhost(url)) {
         warnings.push(
           `[AELLI A2A] AELLI_AUTH_TOKEN is set but ${name} uses plain HTTP on a non-localhost address. Use HTTPS to protect your token.`,
         )
