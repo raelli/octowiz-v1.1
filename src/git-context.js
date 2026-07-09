@@ -279,7 +279,7 @@ function getLiveContext(sessionId) {
 
   const { repoRoot } = cached
   return {
-    branch: readBranch(repoRoot) ?? null,
+    branch: readBranch(repoRoot),
     modifiedFiles: readModifiedFiles(repoRoot),
   }
 }
@@ -303,7 +303,7 @@ function getContext(sessionId) {
   const { repoRoot } = stable
   return {
     ...stable,
-    branch: readBranch(repoRoot) ?? null,
+    branch: readBranch(repoRoot),
     modifiedFiles: readModifiedFiles(repoRoot),
   }
 }
