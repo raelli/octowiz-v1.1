@@ -31,7 +31,7 @@ const VALIDATION_FAILURE_KINDS = Object.freeze({
  * @typedef {object} JavaScriptSyntaxValidationFailResult
  * @property {false} passed - The draft failed syntax validation.
  * @property {'empty-draft'|'syntax-error'|'compile-error'} failureKind - Categorical failure identifier.
- * @property {string} [output] - Human-readable detail about the validation outcome.
+ * @property {string} output - Human-readable detail about the validation outcome.
  *
  * @typedef {JavaScriptSyntaxValidationPassResult | JavaScriptSyntaxValidationFailResult} JavaScriptSyntaxValidationResult
  */
@@ -59,7 +59,7 @@ function validateJavaScriptSyntax(draft) {
       output: 'Draft must be a string.',
     }
   }
-  if (!draft.trim()) {
+  if (!/\S/.test(draft)) {
     return {
       passed: false,
       failureKind: VALIDATION_FAILURE_KINDS.EMPTY_DRAFT,
