@@ -38,8 +38,14 @@ function _sanitizeForLog(value, maxLen = 512) {
   const stripped = str.replace(/[\x00-\x1F\x7F-\x9F]/g, ' ')
   // Code-unit length >= code-point count, so this is a safe early exit for small inputs.
   if (stripped.length <= maxLen) return stripped
-  const glyphs = Array.from(stripped)
-  return glyphs.length > maxLen ? `${glyphs.slice(0, maxLen).join('')}…` : stripped
+  let out = ''
+  let count = 0
+  for (const ch of stripped) {
+    if (count >= maxLen) return `${out}…`
+    out += ch
+    count += 1
+  }
+  return stripped
 }
 
 function _errorToString(err) {
@@ -116,10 +122,11 @@ async function _handleValidationRequest(id, leaseToken, payload) {
   // missing field. (Do not default draft to '' — that would mask a missing one.)
   if (typeof workflowTaskId !== 'string' || typeof draft !== 'string') {
     await postResult(id, leaseToken, {
-      status: 'completed',
+      status: 'error',
       ...(typeof workflowTaskId === 'string' ? { workflowTaskId } : {}),
       passed: false,
       failureKind: 'invalid-payload',
+      message: 'validation request payload is invalid',
     })
     return
   }
