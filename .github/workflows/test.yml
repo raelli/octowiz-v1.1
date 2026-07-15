@@ -7,7 +7,7 @@ on:
     branches: ["**"]
 
 jobs:
-  test:
+  node:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -28,5 +28,32 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check ephemeral runtime syntax
+        run: |
+          node --check hooks/scripts/local.js
+          node --check hooks/scripts/local-supervisor.js
+          node --check hooks/scripts/start.js
+
       - name: Run tests
         run: pnpm test
+
+      - name: Run lint
+        run: pnpm lint
+
+  python:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install package and tests
+        run: python -m pip install -e ".[dev]"
+
+      - name: Run Python tests
+        run: python -m pytest packages/memory_client/tests apps/claude_code_bridge/tests providers/tests
