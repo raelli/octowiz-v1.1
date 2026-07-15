@@ -4,6 +4,8 @@ const { spawn } = require('node:child_process')
 const http = require('node:http')
 const path = require('node:path')
 
+const { version } = require('../../package.json')
+
 const host = '127.0.0.1'
 const port = Number(process.env.OCTOWIZ_LOCAL_PORT || 8764)
 const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT || path.join(__dirname, '../..')
@@ -21,8 +23,14 @@ function request(method, pathname, body, timeoutMs = 1500) {
         ? { 'content-type': 'application/json', 'content-length': Buffer.byteLength(payload) }
         : {},
     }, (res) => {
-      res.resume()
-      res.once('end', () => resolve(res.statusCode || 0))
+      let raw = ''
+      res.on('data', chunk => (raw += chunk))
+      res.once('end', () => {
+        let parsed = null
+        try { parsed = raw ? JSON.parse(raw) : null }
+        catch {}
+        resolve({ status: res.statusCode || 0, body: parsed })
+      })
     })
     req.once('timeout', () => req.destroy(new Error('timeout')))
     req.once('error', reject)
@@ -31,13 +39,38 @@ function request(method, pathname, body, timeoutMs = 1500) {
   })
 }
 
-async function healthy() {
-  try { return await request('GET', '/health') === 200 }
-  catch { return false }
+async function health() {
+  try { return await request('GET', '/health') }
+  catch { return null }
+}
+
+function processBelongsToOctowiz(pid) {
+  if (!Number.isInteger(pid) || pid <= 0) return false
+  try {
+    const { execFileSync } = require('node:child_process')
+    const command = execFileSync('ps', ['-p', String(pid), '-o', 'command='], { encoding: 'utf8' })
+    return command.includes('local-supervisor.js')
+  }
+  catch {
+    return false
+  }
 }
 
 async function ensureSupervisor() {
-  if (await healthy()) return
+  const current = await health()
+  if (current?.status === 200 && current.body?.name === 'octowiz-local') {
+    if (current.body.version === version) return
+    if (processBelongsToOctowiz(Number(current.body.pid))) {
+      process.kill(Number(current.body.pid), 'SIGTERM')
+      await new Promise(resolve => setTimeout(resolve, 250))
+    }
+    else {
+      throw new Error('stale Octowiz supervisor could not be verified; refusing to stop it')
+    }
+  }
+  else if (current) {
+    throw new Error(`port ${port} is occupied by a non-Octowiz service`)
+  }
 
   const child = spawn(process.execPath, [path.join(pluginRoot, 'hooks', 'scripts', 'local-supervisor.js')], {
     cwd: pluginRoot,
@@ -49,7 +82,8 @@ async function ensureSupervisor() {
 
   for (let attempt = 0; attempt < 20; attempt += 1) {
     await new Promise(resolve => setTimeout(resolve, 150))
-    if (await healthy()) return
+    const state = await health()
+    if (state?.status === 200 && state.body?.name === 'octowiz-local' && state.body.version === version) return
   }
   throw new Error('Octowiz local supervisor did not become healthy')
 }
@@ -68,7 +102,10 @@ async function main() {
 
     try {
       if (action === 'release') {
-        if (await healthy()) await request('POST', '/release', { sessionId })
+        const state = await health()
+        if (state?.status === 200 && state.body?.name === 'octowiz-local') {
+          await request('POST', '/release', { sessionId })
+        }
       }
       else {
         await ensureSupervisor()
