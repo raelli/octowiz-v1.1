@@ -4,36 +4,21 @@ on:
   push:
     branches: ["**"]
 
-permissions:
-  contents: write
-
 jobs:
-  lint-fix:
+  lint-diagnostics:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref_name }}
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: "pnpm"
-      - run: pnpm install --frozen-lockfile
-      - name: Apply deterministic ESLint fixes
-        run: pnpm lint:fix
-      - name: Commit formatting fixes
+      - name: Clone quietly and lint
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          if git diff --quiet; then
-            echo "No lint fixes required"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "style: apply ESLint fixes"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          git clone -q --branch "$GITHUB_REF_NAME" --single-branch \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" repo
+          cd repo
+          corepack enable
+          pnpm install --frozen-lockfile --reporter=silent
+          pnpm lint
 
   node:
     runs-on: ubuntu-latest
