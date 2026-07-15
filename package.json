@@ -1,27 +1,30 @@
 {
   "name": "octowiz",
-  "version": "0.9.24",
+  "version": "1.1.0-alpha.1",
   "packageManager": "pnpm@10.27.0",
-  "description": "Octowiz — AELLI's coding agent: monitors Claude Code sessions and executes sandboxed tasks",
+  "description": "Octowiz engineering control plane: Matt Pocock-first workflow routing, A2A coordination, and ephemeral local execution",
   "license": "MIT",
   "keywords": [
     "claude-code",
     "octowiz",
     "aelli",
     "a2a",
-    "daemon"
+    "engineering-control-plane",
+    "mattpocock"
   ],
   "main": "index.js",
   "files": [
     "hooks/",
     "index.js",
-    "src/"
+    "src/",
+    "apps/"
   ],
   "engines": {
     "node": ">=22.13"
   },
   "scripts": {
     "start": "node index.js",
+    "local": "node hooks/scripts/local-supervisor.js",
     "test": "jest --testPathPattern=tests/",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
