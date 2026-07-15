@@ -1,23 +1,22 @@
 {
   "name": "octowiz",
-  "description": "Octowiz Engineering Agent — Claude Code adapter, A2A bridge, and execution coordinator.",
-  "version": "0.9.24",
+  "description": "Octowiz Engineering Control Plane — Matt Pocock-first workflow routing, A2A bridge, and ephemeral local execution.",
+  "version": "1.1.0-alpha.1",
   "author": {
     "name": "IntegraHub",
     "email": "support@integrahub.de"
   },
-  "homepage": "https://github.com/raelli/octowiz",
-  "repository": "https://github.com/raelli/octowiz",
+  "homepage": "https://github.com/raelli/octowiz-v1.1",
+  "repository": "https://github.com/raelli/octowiz-v1.1",
   "license": "MIT",
   "keywords": [
     "claude-code",
     "mattpocock",
-    "superpowers",
     "integrahub",
     "memory",
     "workflow",
     "a2a",
-    "agent-view"
+    "engineering-control-plane"
   ],
   "skills": [
     "./skills/octowiz-workflow",
@@ -28,7 +27,9 @@
     "./providers/claude_agent_view"
   ],
   "dependencies": [
-    "superpowers",
     "mattpocock-skills"
+  ],
+  "optionalDependencies": [
+    "antfu-skills"
   ]
 }
