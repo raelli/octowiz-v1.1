@@ -1,12 +1,12 @@
-"""
-octowiz_env.py — environment detection, state-file I/O, and repo scan for first-run setup.
-"""
+"""Environment detection, state I/O, and repository profiling for Octowiz."""
 
 from __future__ import annotations
 
 import json
 import os
 import subprocess
+import uuid
+import urllib.parse
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -18,12 +18,9 @@ OCTOWIZ_DIR = ".octowiz"
 SETUP_STATE_FILENAME = "setup-state.json"
 ONBOARDING_FILENAME = "ONBOARDING.md"
 PLUGINS_CACHE_BASE = Path.home() / ".claude" / "plugins" / "cache"
-REQUIRED_PLUGINS = ["superpowers", "mattpocock-skills", "antfu-skills"]
-
-
-# ---------------------------------------------------------------------------
-# Data types
-# ---------------------------------------------------------------------------
+REQUIRED_PLUGINS = ["mattpocock-skills"]
+OPTIONAL_PLUGINS = ["antfu-skills"]
+CACHE_TTL_HOURS = 24
 
 
 @dataclass
@@ -49,9 +46,22 @@ class RepoState:
     project_id: Optional[str] = None
 
 
-# ---------------------------------------------------------------------------
-# State file I/O
-# ---------------------------------------------------------------------------
+@dataclass
+class RepoScan:
+    agent_file: Optional[str]
+    agent_has_skills_section: bool
+    stack: str
+    has_context_md: bool
+    has_adr: bool
+    has_github_remote: bool
+
+
+@dataclass
+class CheckResult:
+    hard_gaps: List[str]
+    advisory_gaps: List[str]
+    machine_state_absent: bool
+    repo_state_absent: bool
 
 
 def _now_iso() -> str:
@@ -68,12 +78,7 @@ def load_machine_state(path: Path = MACHINE_STATE_PATH) -> Optional[MachineState
     return MachineState(
         first_seen=data.get("first_seen", ""),
         plugins=data.get("plugins", {}),
-        litellm=data.get("litellm") or {
-            "routing_verified_at": None,
-            "planner_verified_at": None,
-            "implementer_verified_at": None,
-            "reviewer_verified_at": None,
-        },
+        litellm=data.get("litellm") or MachineState().litellm,
         dismissed_checks=data.get("dismissed_checks", {}),
     )
 
@@ -84,7 +89,6 @@ def save_machine_state(state: MachineState, path: Path = MACHINE_STATE_PATH) -> 
 
 
 def init_machine_state(path: Path = MACHINE_STATE_PATH) -> MachineState:
-    """Return existing state if present; otherwise create and save a skeleton."""
     existing = load_machine_state(path)
     if existing is not None:
         return existing
@@ -94,11 +98,11 @@ def init_machine_state(path: Path = MACHINE_STATE_PATH) -> MachineState:
 
 
 def load_repo_state(cwd: Path) -> Optional[RepoState]:
-    state_path = cwd / OCTOWIZ_DIR / SETUP_STATE_FILENAME
-    if not state_path.exists():
+    path = cwd / OCTOWIZ_DIR / SETUP_STATE_FILENAME
+    if not path.exists():
         return None
     try:
-        data = json.loads(state_path.read_text())
+        data = json.loads(path.read_text())
     except (json.JSONDecodeError, OSError):
         return None
     return RepoState(
@@ -112,13 +116,12 @@ def load_repo_state(cwd: Path) -> Optional[RepoState]:
 
 
 def save_repo_state(state: RepoState, cwd: Path) -> None:
-    state_path = cwd / OCTOWIZ_DIR / SETUP_STATE_FILENAME
-    state_path.parent.mkdir(parents=True, exist_ok=True)
-    state_path.write_text(json.dumps(asdict(state), indent=2))
+    path = cwd / OCTOWIZ_DIR / SETUP_STATE_FILENAME
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(asdict(state), indent=2))
 
 
 def init_repo_state(cwd: Path) -> RepoState:
-    """Return existing repo state if present; otherwise create skeleton."""
     existing = load_repo_state(cwd)
     if existing is not None:
         return existing
@@ -127,38 +130,17 @@ def init_repo_state(cwd: Path) -> RepoState:
     return state
 
 
-# ---------------------------------------------------------------------------
-# Plugin detection
-# ---------------------------------------------------------------------------
-
-
 def detect_plugin(plugin_id: str, plugins_base: Path = PLUGINS_CACHE_BASE) -> bool:
-    """Return True if any marketplace subdirectory contains <plugin_id>/."""
     if not plugins_base.exists():
         return False
-    return any(m.exists() for m in plugins_base.glob(f"*/{plugin_id}"))
+    return any(path.exists() for path in plugins_base.glob(f"*/{plugin_id}"))
 
 
 def detect_all_plugins(
     plugin_ids: List[str] = REQUIRED_PLUGINS,
     plugins_base: Path = PLUGINS_CACHE_BASE,
 ) -> Dict[str, bool]:
-    return {pid: detect_plugin(pid, plugins_base) for pid in plugin_ids}
-
-
-# ---------------------------------------------------------------------------
-# Repo scan
-# ---------------------------------------------------------------------------
-
-
-@dataclass
-class RepoScan:
-    agent_file: Optional[str]   # "AGENTS.md" | "CLAUDE.md" | "GEMINI.md" | None
-    agent_has_skills_section: bool
-    stack: str  # "ts_vue" | "react" | "generic_js" | "python" | "polyglot" | "empty"
-    has_context_md: bool
-    has_adr: bool
-    has_github_remote: bool
+    return {plugin_id: detect_plugin(plugin_id, plugins_base) for plugin_id in plugin_ids}
 
 
 def _detect_agent_file(cwd: Path) -> Optional[str]:
@@ -170,43 +152,35 @@ def _detect_agent_file(cwd: Path) -> Optional[str]:
 
 def _has_skills_section(cwd: Path, agent_file: str) -> bool:
     try:
-        content = (cwd / agent_file).read_text(errors="replace")
-        return "## Agent skills" in content
+        return "## Agent skills" in (cwd / agent_file).read_text(errors="replace")
     except OSError:
         return False
 
 
 def _detect_stack(cwd: Path) -> str:
-    has_package_json = (cwd / "package.json").exists()
-    has_pyproject = (cwd / "pyproject.toml").exists() or (cwd / "setup.py").exists()
-
-    if has_package_json and has_pyproject:
-        return "polyglot"
-    if has_pyproject:
-        return "python"
-    if has_package_json:
-        try:
-            pkg = json.loads((cwd / "package.json").read_text())
-        except Exception:
-            return "generic_js"
-        deps = {**(pkg.get("dependencies") or {}), **(pkg.get("devDependencies") or {})}
-        keys = set(deps.keys())
-        if keys & {"vue", "vite"}:
-            return "ts_vue"
-        if "react" in keys:
-            return "react"
-        return "generic_js"
-    return "empty"
+    package_path = cwd / "package.json"
+    has_python = (cwd / "pyproject.toml").exists() or (cwd / "setup.py").exists()
+    if not package_path.exists():
+        return "python" if has_python else "empty"
+    try:
+        package = json.loads(package_path.read_text())
+    except Exception:
+        return "polyglot" if has_python else "generic_js"
+    dependencies = {
+        **(package.get("dependencies") or {}),
+        **(package.get("devDependencies") or {}),
+    }
+    keys = set(dependencies)
+    js_stack = "ts_vue" if keys & {"vue", "nuxt", "vite", "vitest", "unocss", "@vueuse/core"} else (
+        "react" if "react" in keys else "generic_js"
+    )
+    return "polyglot" if has_python else js_stack
 
 
 def _has_github_remote(cwd: Path) -> bool:
     try:
         result = subprocess.run(
-            ["git", "remote", "-v"],
-            cwd=cwd,
-            capture_output=True,
-            text=True,
-            timeout=5,
+            ["git", "remote", "-v"], cwd=cwd, capture_output=True, text=True, timeout=5
         )
         return "github.com" in result.stdout
     except Exception:
@@ -215,10 +189,9 @@ def _has_github_remote(cwd: Path) -> bool:
 
 def scan_repo(cwd: Path) -> RepoScan:
     agent_file = _detect_agent_file(cwd)
-    agent_has_skills = _has_skills_section(cwd, agent_file) if agent_file else False
     return RepoScan(
         agent_file=agent_file,
-        agent_has_skills_section=agent_has_skills,
+        agent_has_skills_section=_has_skills_section(cwd, agent_file) if agent_file else False,
         stack=_detect_stack(cwd),
         has_context_md=(cwd / "CONTEXT.md").exists(),
         has_adr=(cwd / "docs" / "adr").is_dir(),
@@ -226,40 +199,21 @@ def scan_repo(cwd: Path) -> RepoScan:
     )
 
 
-# ---------------------------------------------------------------------------
-# Live environment check
-# ---------------------------------------------------------------------------
-
-CACHE_TTL_HOURS = 24
-
-
-@dataclass
-class CheckResult:
-    hard_gaps: List[str]      # failing hard-gate check IDs (after dismissals filtered out)
-    advisory_gaps: List[str]  # failing advisory check IDs (after dismissals filtered out)
-    machine_state_absent: bool   # True if machine-state.json did not exist before this call
-    repo_state_absent: bool      # True if setup-state.json did not exist before this call
-
-
 def _litellm_env_ok() -> bool:
-    """Return True if LITELLM_BASE_URL and at least one API key env var are set."""
-    has_base_url = bool(os.environ.get("LITELLM_BASE_URL"))
-    has_key = bool(os.environ.get("LITELLM_ADMIN_API_KEY") or os.environ.get("LITELLM_API_KEY"))
-    return has_base_url and has_key
+    return bool(
+        os.environ.get("LITELLM_BASE_URL")
+        and (os.environ.get("LITELLM_ADMIN_API_KEY") or os.environ.get("LITELLM_API_KEY"))
+    )
 
 
 def _litellm_cache_ok(machine_state: Optional[MachineState]) -> bool:
-    """Return True if routing_verified_at exists and is within CACHE_TTL_HOURS."""
-    if machine_state is None:
+    if machine_state is None or not isinstance(machine_state.litellm, dict):
         return False
-    litellm = machine_state.litellm
-    if not isinstance(litellm, dict):
-        return False
-    routing_ts = litellm.get("routing_verified_at")
-    if not routing_ts or not isinstance(routing_ts, str):
+    timestamp = machine_state.litellm.get("routing_verified_at")
+    if not isinstance(timestamp, str) or not timestamp:
         return False
     try:
-        verified_at = datetime.fromisoformat(routing_ts.replace("Z", "+00:00"))
+        verified_at = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
         age = datetime.now(timezone.utc) - verified_at
         return age.total_seconds() < CACHE_TTL_HOURS * 3600
     except (ValueError, TypeError):
@@ -267,25 +221,20 @@ def _litellm_cache_ok(machine_state: Optional[MachineState]) -> bool:
 
 
 def _antfu_gap(scan: RepoScan, repo_state: Optional[RepoState]) -> bool:
-    """Return True if antfu setup is needed but not done.
-
-    antfu is only a hard gate for ts_vue and polyglot stacks.
-    antfu_deferred means "no agent file existed at setup time" — re-flag on every
-    invocation so setup-repo can retry once an agent file is present.
-    """
+    """Compatibility helper: True means Antfu could be useful, never blocking."""
     if scan.stack not in {"ts_vue", "polyglot"}:
         return False
-    if repo_state is None:
-        return True  # no state file yet → antfu not set up
-    return not repo_state.antfu_setup
+    return repo_state is None or not repo_state.antfu_setup
 
 
 def _repo_key(cwd: Path) -> str:
-    """Return the canonical key for dismissed_checks — the git repo root, or cwd.resolve() as fallback."""
     try:
         result = subprocess.run(
             ["git", "rev-parse", "--show-toplevel"],
-            cwd=cwd, capture_output=True, text=True, timeout=5,
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         if result.returncode == 0 and result.stdout.strip():
             return result.stdout.strip()
@@ -294,11 +243,10 @@ def _repo_key(cwd: Path) -> str:
     return str(cwd.resolve())
 
 
-def _get_dismissed_checks(cwd: Path, machine_state: Optional[MachineState]) -> List[str]:
-    """Return the list of dismissed check IDs for the current repo root."""
-    if machine_state is None:
+def _get_dismissed_checks(cwd: Path, state: Optional[MachineState]) -> List[str]:
+    if state is None:
         return []
-    return list(machine_state.dismissed_checks.get(_repo_key(cwd), []))
+    return list(state.dismissed_checks.get(_repo_key(cwd), []))
 
 
 def run_live_check(
@@ -308,123 +256,82 @@ def run_live_check(
 ) -> CheckResult:
     machine_state = load_machine_state(machine_state_path)
     repo_state = load_repo_state(cwd)
-    machine_state_absent = machine_state is None
-    repo_state_absent = repo_state is None
-
     dismissed = _get_dismissed_checks(cwd, machine_state)
     hard_gaps: List[str] = []
     advisory_gaps: List[str] = []
 
-    # Check 1: plugins (hard gate)
-    plugin_results = detect_all_plugins(REQUIRED_PLUGINS, plugins_base)
-    for plugin_id, present in plugin_results.items():
-        if not present:
-            check_id = f"plugin_{plugin_id}"
-            if check_id not in dismissed:
-                hard_gaps.append(check_id)
+    if not detect_plugin("mattpocock-skills", plugins_base):
+        if "plugin_mattpocock-skills" not in dismissed:
+            hard_gaps.append("plugin_mattpocock-skills")
 
-    # Check 2: litellm env vars (hard gate)
-    if not _litellm_env_ok():
-        if "litellm_env" not in dismissed:
-            hard_gaps.append("litellm_env")
+    if not _litellm_env_ok() and "litellm_env" not in dismissed:
+        hard_gaps.append("litellm_env")
+    if not _litellm_cache_ok(machine_state) and "litellm_cache" not in dismissed:
+        hard_gaps.append("litellm_cache")
 
-    # Check 3: litellm cache TTL (hard gate)
-    if not _litellm_cache_ok(machine_state):
-        if "litellm_cache" not in dismissed:
-            hard_gaps.append("litellm_cache")
-
-    # Checks 4–6 need repo scan
     scan = scan_repo(cwd)
-
-    # Check 4: agent file (advisory)
-    if scan.agent_file is None:
-        if "agent_file" not in dismissed:
-            advisory_gaps.append("agent_file")
-
-    # Check 5: mattpo skills setup (advisory) — only if agent file exists
+    if scan.agent_file is None and "agent_file" not in dismissed:
+        advisory_gaps.append("agent_file")
     if scan.agent_file is not None and not scan.agent_has_skills_section:
         if "mattpo_skills_setup" not in dismissed:
             advisory_gaps.append("mattpo_skills_setup")
-
-    # Check 6: antfu (hard gate) — state file as truth
-    if _antfu_gap(scan, repo_state):
-        if "antfu" not in dismissed:
-            hard_gaps.append("antfu")
+    if _antfu_gap(scan, repo_state) and "antfu_optional" not in dismissed:
+        advisory_gaps.append("antfu_optional")
 
     return CheckResult(
         hard_gaps=hard_gaps,
         advisory_gaps=advisory_gaps,
-        machine_state_absent=machine_state_absent,
-        repo_state_absent=repo_state_absent,
+        machine_state_absent=machine_state is None,
+        repo_state_absent=repo_state is None,
     )
 
 
 def seed_project_namespace(project_id: str, client: "httpx.Client") -> None:
-    """Write default config and rules keys for a project namespace into LiteLLM Memory.
-
-    Uses merge/upsert: reads existing keys first, writes only absent or empty fields.
-    Raises RuntimeError on connection failure.
-    """
-    import json as _json
-    import urllib.parse
-
     namespace = f"project:{project_id}:octowiz"
     config_key = f"{namespace}:config"
     rules_key = f"{namespace}:rules"
 
-    def _exists(key: str) -> bool:
-        resp = client.get(f"/v1/memory/{urllib.parse.quote(key, safe='')}")
-        if resp.status_code == 404:
-            return False
-        resp.raise_for_status()
-        return True
-
-    def _read_value(key: str) -> Optional[str]:
-        resp = client.get(f"/v1/memory/{urllib.parse.quote(key, safe='')}")
-        if resp.status_code == 404:
+    def read(key: str):
+        response = client.get(f"/v1/memory/{urllib.parse.quote(key, safe='')}")
+        if response.status_code == 404:
             return None
-        resp.raise_for_status()
-        data = resp.json()
+        response.raise_for_status()
+        data = response.json()
         return data.get("value") or data.get("memory")
 
-    def _put(key: str, value: str) -> None:
-        resp = client.put(
+    def write(key: str, value: str) -> None:
+        response = client.put(
             f"/v1/memory/{urllib.parse.quote(key, safe='')}",
             json={"value": value, "metadata": {}},
         )
-        resp.raise_for_status()
+        response.raise_for_status()
 
-    if not _exists(config_key):
-        _put(config_key, _json.dumps({"namespace": namespace, "created_at": _now_iso()}))
-
-    existing_rules = _read_value(rules_key)
-    if existing_rules is None:
-        _put(rules_key, _json.dumps([]))
+    if read(config_key) is None:
+        write(config_key, json.dumps({"namespace": namespace, "created_at": _now_iso()}))
+    if read(rules_key) is None:
+        write(rules_key, json.dumps([]))
 
 
 def derive_project_id(cwd: Path) -> str:
-    """Return a stable project slug derived from the git remote URL, or a UUID fallback."""
     try:
         result = subprocess.run(
             ["git", "remote", "get-url", "origin"],
-            cwd=cwd, capture_output=True, text=True, timeout=5,
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         if result.returncode == 0:
             url = result.stdout.strip().rstrip("/")
-            # Strip .git suffix
             if url.endswith(".git"):
                 url = url[:-4]
-            # Handle SSH: git@github.com:org/repo → org/repo
             if ":" in url and not url.startswith("http"):
                 url = url.split(":", 1)[1]
-            # Take last two path segments: org/repo
-            parts = url.replace("\\", "/").split("/")
-            parts = [p for p in parts if p]
-            slug = "-".join(parts[-2:]) if len(parts) >= 2 else parts[-1]
-            return slug.lower()
+            parts = [part for part in url.replace("\\", "/").split("/") if part]
+            if parts:
+                return "-".join(parts[-2:]).lower()
     except Exception:
         pass
-    import uuid
     return uuid.uuid4().hex
 
 
@@ -433,13 +340,10 @@ def dismiss_check(
     cwd: Path,
     machine_state_path: Path = MACHINE_STATE_PATH,
 ) -> None:
-    """Record a dismissed check for the current repo root in machine-state.json."""
-    state = load_machine_state(machine_state_path)
-    if state is None:
-        state = MachineState(first_seen=_now_iso())
+    state = load_machine_state(machine_state_path) or MachineState(first_seen=_now_iso())
     repo_root = _repo_key(cwd)
-    existing = list(state.dismissed_checks.get(repo_root, []))
-    if check_id not in existing:
-        existing.append(check_id)
-    state.dismissed_checks[repo_root] = existing
+    checks = list(state.dismissed_checks.get(repo_root, []))
+    if check_id not in checks:
+        checks.append(check_id)
+    state.dismissed_checks[repo_root] = checks
     save_machine_state(state, machine_state_path)
