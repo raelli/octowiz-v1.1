@@ -1,7 +1,6 @@
 """Tests for octowiz-cache check subcommand."""
 import io
 import json
-import os
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -38,10 +37,9 @@ class TestCmdCheck(unittest.TestCase):
         self.tmp.cleanup()
 
     def _run(self, args, mock_result=None):
-        if mock_result is None:
-            mock_result = _make_result()
+        result = mock_result or _make_result()
         out = io.StringIO()
-        with patch("packages.memory_client.env.run_live_check", return_value=mock_result):
+        with patch("packages.memory_client.env.run_live_check", return_value=result):
             with redirect_stdout(out):
                 code = cmd_check(args)
         return code, json.loads(out.getvalue())
@@ -55,27 +53,25 @@ class TestCmdCheck(unittest.TestCase):
 
     def test_has_gaps_exits_one(self):
         result = _make_result(
-            hard_gaps=["plugin_superpowers", "litellm_env"],
+            hard_gaps=["plugin_mattpocock-skills", "litellm_env"],
             advisory_gaps=["agent_file"],
         )
         code, data = self._run(FakeArgs(cwd=self.cwd_str), mock_result=result)
         self.assertEqual(code, 1)
         self.assertEqual(data["status"], "has_gaps")
-        self.assertIn("plugin_superpowers", data["hard_gaps"])
+        self.assertIn("plugin_mattpocock-skills", data["hard_gaps"])
         self.assertIn("agent_file", data["advisory_gaps"])
 
     def test_advisory_only_still_exits_zero(self):
-        """Advisory gaps alone do NOT cause a non-zero exit; only hard_gaps do."""
-        result = _make_result(advisory_gaps=["agent_file"])
+        result = _make_result(advisory_gaps=["antfu_optional"])
         code, data = self._run(FakeArgs(cwd=self.cwd_str), mock_result=result)
         self.assertEqual(code, 0)
         self.assertEqual(data["status"], "clean")
 
     def test_default_cwd_is_path_cwd(self):
-        """When --cwd not provided, uses Path.cwd()."""
         captured = []
 
-        def fake_check(cwd, *a, **kw):
+        def fake_check(cwd, *args, **kwargs):
             captured.append(cwd)
             return _make_result()
 
@@ -88,7 +84,7 @@ class TestCmdCheck(unittest.TestCase):
     def test_explicit_cwd_passed_through(self):
         captured = []
 
-        def fake_check(cwd, *a, **kw):
+        def fake_check(cwd, *args, **kwargs):
             captured.append(cwd)
             return _make_result()
 
@@ -99,7 +95,7 @@ class TestCmdCheck(unittest.TestCase):
         self.assertEqual(captured[0], Path(self.cwd_str))
 
     def test_json_output_has_all_three_keys(self):
-        code, data = self._run(FakeArgs(cwd=self.cwd_str))
+        _, data = self._run(FakeArgs(cwd=self.cwd_str))
         self.assertIn("status", data)
         self.assertIn("hard_gaps", data)
         self.assertIn("advisory_gaps", data)
