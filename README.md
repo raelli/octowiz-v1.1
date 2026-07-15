@@ -15,12 +15,14 @@ Octowiz is not an autonomous IDE and not another general-purpose coding agent. I
 ## Design principles
 
 - **Matt Pocock first:** `mattpocock-skills` is the primary methodology pack.
+- **Lean by design:** choose the smallest maintainable solution that fully satisfies accepted scope.
 - **No Superpowers dependency:** Superpowers is not installed, invoked, or required.
 - **Repository-aware optional skills:** Antfu Skills are suggested only for relevant Vue, Nuxt, Vite, Vitest, pnpm, UnoCSS, or VueUse repositories.
 - **Non-invasive by default:** no launchd or systemd service is installed automatically.
 - **Fail open:** advisory and routing failures must not block the developer.
 - **Evidence before completion:** tests, checks, acceptance criteria, and the actual diff define done.
 - **Human gates for product decisions:** agents may execute scoped work, but unresolved intent and irreversible decisions remain human-controlled.
+- **Persistent state over conversational reconstruction:** decisions, criteria, evidence, and transitions should survive sessions.
 
 ## Development phases
 
@@ -45,11 +47,13 @@ Challenge an existing plan against repository context, architecture, assumptions
 
 ### C. Implementation and diagnosis
 
-Octowiz owns scope, branch/worktree operations, execution supervision, and verification. Matt Pocock Skills provide TDD, diagnosis, and prototyping methodology.
+Octowiz owns scope, branch/worktree operations, execution supervision, the lean engineering gate, and verification. Matt Pocock Skills provide TDD, diagnosis, and prototyping methodology.
+
+The lean gate evaluates, in order: do nothing, reuse repository capability, standard library, native platform, installed dependency, smaller design, then minimum complete implementation. It never overrides correctness, security, accessibility, accepted behavior, or required evidence.
 
 ### D. Review and handoff
 
-Review the implementation against its requirements and wider architecture, run the verification gate, then produce a compact handoff or prepare a pull request.
+Review the implementation against its requirements and wider architecture, run a dedicated complexity-reduction pass, execute the verification gate, then produce a compact handoff or prepare a pull request.
 
 ## Local runtime
 
@@ -132,6 +136,8 @@ Explicitly unsupported as an Octowiz dependency:
 superpowers
 ```
 
+The Octowiz skill also contains a native lean engineering gate conceptually adapted from [Ponytail](https://github.com/TheYan3/ponytail-skills) by Yannic Jundt under the MIT License. Octowiz uses it as an evidence-backed implementation and review control, not as a replacement for normal engineering review.
+
 ## Architecture
 
 ```text
@@ -155,6 +161,46 @@ LiteLLM / AELLI
 ```
 
 The Node layer owns trusted local policy and queue handling. The Python A2A application exposes richer agent capabilities. AELLI remains the intelligence and orchestration plane, while Octowiz is its engineering tentacle on the developer machine.
+
+## Next milestone: persistent engineering state
+
+The next major architectural step is not more skills or more agents. Octowiz needs a durable state model that survives sessions and makes intent, decisions, criteria, execution, and evidence explicit.
+
+Target local files:
+
+```text
+.octowiz/state.json
+.octowiz/events.jsonl
+```
+
+Illustrative state:
+
+```json
+{
+  "phase": "implementation",
+  "goal": "ephemeral local supervisor",
+  "artifact": "issue-42",
+  "decisions": [
+    "no automatic OS service"
+  ],
+  "acceptanceCriteria": [
+    "session leases",
+    "idle shutdown",
+    "foreign port safety"
+  ],
+  "evidence": {
+    "tests": "passed",
+    "lint": "passed",
+    "review": "pending"
+  }
+}
+```
+
+The full proposal defines schema boundaries, state transitions, an append-only event ledger, optimistic concurrency, evidence invariants, lean-gate integration, privacy constraints, CLI targets, and delivery milestones:
+
+- [`docs/engineering-state-model.md`](docs/engineering-state-model.md)
+
+This state layer is intended to become the foundation for cross-session continuity, runtime independence, multiplayer worktrees, safe autonomous execution, and deterministic handoff.
 
 ## Setup
 
@@ -195,7 +241,9 @@ python -m pytest
 - Sensitive header values are sanitized.
 - Hook failures are fail-open for the developer experience.
 - Octowiz does not kill a process unless it can identify it as its own.
+- Remote state updates are proposals until validated against trusted local facts.
+- Persistent state must never contain credentials or secret headers.
 
 ## Status
 
-`1.1.0-alpha.1` is an architectural reset. The core direction is stable, while lifecycle hardening, provider abstraction, state-machine routing, and cross-runtime support remain active development areas.
+`1.1.0-alpha.1` is an architectural reset. The core direction is stable. The next milestone is the persistent engineering-state model, followed by capability resolution, runtime abstraction, and multiplayer execution.
