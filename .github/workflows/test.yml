@@ -3,6 +3,8 @@ name: tests
 on:
   push:
     branches: ["**"]
+  pull_request:
+    branches: ["**"]
 
 jobs:
   lint-diagnostics:
@@ -12,8 +14,10 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.head_ref }}
         run: |
-          git clone -q --branch "$GITHUB_REF_NAME" --single-branch \
+          BRANCH="${HEAD_REF:-$GITHUB_REF_NAME}"
+          git clone -q --branch "$BRANCH" --single-branch \
             "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" repo
           cd repo
           corepack enable
