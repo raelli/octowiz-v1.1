@@ -68,8 +68,10 @@ async function startPythonA2A() {
 }
 
 function scheduleIdleExit() {
-  if (idleTimer) clearTimeout(idleTimer)
-  if (sessions.size > 0) return
+  if (idleTimer)
+    clearTimeout(idleTimer)
+  if (sessions.size > 0)
+    return
   idleTimer = setTimeout(() => {
     log(`idle for ${idleMs}ms; shutting down`)
     shutdown(0)
@@ -124,10 +126,14 @@ function readJson(req) {
 }
 
 function shutdown(code) {
-  if (idleTimer) clearTimeout(idleTimer)
-  if (leaseSweep) clearInterval(leaseSweep)
-  if (server) server.close()
-  if (pythonChild && !pythonChild.killed) pythonChild.kill('SIGTERM')
+  if (idleTimer)
+    clearTimeout(idleTimer)
+  if (leaseSweep)
+    clearInterval(leaseSweep)
+  if (server)
+    server.close()
+  if (pythonChild && !pythonChild.killed)
+    pythonChild.kill('SIGTERM')
   try { fs.unlinkSync(pidFile) }
   catch {}
   process.exit(code)
@@ -166,7 +172,8 @@ async function main() {
 
     if (req.method === 'POST' && req.url === '/release') {
       const body = await readJson(req)
-      if (body.sessionId) releaseLease(String(body.sessionId))
+      if (body.sessionId)
+        releaseLease(String(body.sessionId))
       sendJson(res, 200, { status: 'released', sessions: sessions.size })
       return
     }

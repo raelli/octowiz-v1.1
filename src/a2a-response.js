@@ -51,7 +51,7 @@ const ALIAS_MAP = Object.freeze([
  * @returns {boolean}
  */
 function hasOwn(obj, key) {
-  return Object.prototype.hasOwnProperty.call(obj, key)
+  return Object.hasOwn(obj, key)
 }
 
 /**

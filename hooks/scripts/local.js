@@ -34,7 +34,8 @@ function request(method, pathname, body, timeoutMs = 1500) {
     })
     req.once('timeout', () => req.destroy(new Error('timeout')))
     req.once('error', reject)
-    if (payload) req.write(payload)
+    if (payload)
+      req.write(payload)
     req.end()
   })
 }
@@ -45,7 +46,8 @@ async function health() {
 }
 
 function processBelongsToOctowiz(pid) {
-  if (!Number.isInteger(pid) || pid <= 0) return false
+  if (!Number.isInteger(pid) || pid <= 0)
+    return false
   try {
     const { execFileSync } = require('node:child_process')
     const command = execFileSync('ps', ['-p', String(pid), '-o', 'command='], { encoding: 'utf8' })
@@ -59,7 +61,8 @@ function processBelongsToOctowiz(pid) {
 async function ensureSupervisor() {
   const current = await health()
   if (current?.status === 200 && current.body?.name === 'octowiz-local') {
-    if (current.body.version === version) return
+    if (current.body.version === version)
+      return
     if (processBelongsToOctowiz(Number(current.body.pid))) {
       process.kill(Number(current.body.pid), 'SIGTERM')
       await new Promise(resolve => setTimeout(resolve, 250))
@@ -83,7 +86,8 @@ async function ensureSupervisor() {
   for (let attempt = 0; attempt < 20; attempt += 1) {
     await new Promise(resolve => setTimeout(resolve, 150))
     const state = await health()
-    if (state?.status === 200 && state.body?.name === 'octowiz-local' && state.body.version === version) return
+    if (state?.status === 200 && state.body?.name === 'octowiz-local' && state.body.version === version)
+      return
   }
   throw new Error('Octowiz local supervisor did not become healthy')
 }

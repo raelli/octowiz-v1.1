@@ -14,10 +14,10 @@
   ],
   "main": "index.js",
   "files": [
+    "apps/",
     "hooks/",
     "index.js",
-    "src/",
-    "apps/"
+    "src/"
   ],
   "engines": {
     "node": ">=22.13"
