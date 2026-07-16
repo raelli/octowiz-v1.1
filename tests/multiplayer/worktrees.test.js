@@ -10,6 +10,8 @@ const { createWorktree, listWorktrees, removeWorktree, isOctowizWorktree, findSt
 function makeGitRepo() {
   const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'octowiz-wt-')))
   execFileSync('git', ['-C', dir, 'init', '-q'])
+  execFileSync('git', ['-C', dir, 'config', 'user.email', 'test@test.com'])
+  execFileSync('git', ['-C', dir, 'config', 'user.name', 'Test'])
   execFileSync('git', ['-C', dir, 'commit', '--allow-empty', '-m', 'init', '-q'])
   return dir
 }

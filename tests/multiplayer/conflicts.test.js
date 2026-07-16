@@ -10,6 +10,8 @@ const { createConflictDetector, findOverlappingFiles } = require('../../src/mult
 function makeGitRepo() {
   const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'octowiz-cf-')))
   execFileSync('git', ['-C', dir, 'init', '-q'])
+  execFileSync('git', ['-C', dir, 'config', 'user.email', 'test@test.com'])
+  execFileSync('git', ['-C', dir, 'config', 'user.name', 'Test'])
   fs.writeFileSync(path.join(dir, 'base.txt'), 'base\n')
   execFileSync('git', ['-C', dir, 'add', '.'])
   execFileSync('git', ['-C', dir, 'commit', '-m', 'init', '-q'])

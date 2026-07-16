@@ -10,6 +10,8 @@ const { createBundle, verifyBundle, signBundle, sha256, BUNDLE_VERSION } = requi
 function makeGitRepo() {
   const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'octowiz-eb-')))
   execFileSync('git', ['-C', dir, 'init', '-q'])
+  execFileSync('git', ['-C', dir, 'config', 'user.email', 'test@test.com'])
+  execFileSync('git', ['-C', dir, 'config', 'user.name', 'Test'])
   fs.writeFileSync(path.join(dir, 'file.txt'), 'content\n')
   execFileSync('git', ['-C', dir, 'add', '.'])
   execFileSync('git', ['-C', dir, 'commit', '-m', 'init', '-q'])
