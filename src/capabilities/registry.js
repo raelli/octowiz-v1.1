@@ -191,6 +191,36 @@ function requiredProviders(registry) {
     .map(([id, def]) => ({ id, install: def.install ?? id }))
 }
 
+/**
+ * High-level resolver: evaluates all conditions against the repository,
+ * then resolves a capability using the satisfied set. Combines buildContext,
+ * evaluateAll, and resolveCapability into one call for convenience.
+ *
+ * @param {object} registry validated registry document
+ * @param {string} capabilityName
+ * @param {string} cwd repository root path
+ * @returns {ResolvedCapability|null}
+ */
+function resolveWithConditions(registry, capabilityName, cwd) {
+  const { buildContext, evaluateAll } = require('./conditions')
+  const ctx = buildContext(cwd)
+  const satisfiedConditions = evaluateAll(ctx)
+  return resolveCapability(registry, capabilityName, { satisfiedConditions })
+}
+
+/**
+ * High-level: resolve all capabilities with conditions evaluated from a repo.
+ * @param {object} registry
+ * @param {string} cwd
+ * @returns {Map<string, ResolvedCapability|null>}
+ */
+function resolveAllWithConditions(registry, cwd) {
+  const { buildContext, evaluateAll } = require('./conditions')
+  const ctx = buildContext(cwd)
+  const satisfiedConditions = evaluateAll(ctx)
+  return resolveAll(registry, { satisfiedConditions })
+}
+
 module.exports = {
   DEFAULT_REGISTRY_PATH,
   loadRegistry,
@@ -198,6 +228,8 @@ module.exports = {
   resolveAll,
   unresolvedCapabilities,
   requiredProviders,
+  resolveWithConditions,
+  resolveAllWithConditions,
   // Exported for testing internals
   isProviderAvailable,
   isResolverEligible,
