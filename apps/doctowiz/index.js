@@ -375,7 +375,62 @@ function checkPipeline() {
   }
 }
 
-// ── Phase 5: Logs ─────────────────────────────────────────────────────────────
+// ── Phase 5: Engineering State ────────────────────────────────────────────────
+
+function checkEngineeringState() {
+  const runtimeStore = require('../../src/state/runtime')
+  const stateStore = require('../../src/state/store')
+  const cwd = process.cwd()
+  const { stateFile } = stateStore.statePaths(cwd)
+
+  if (!fs.existsSync(stateFile)) {
+    addCheck('state', 'Engineering state', WARN, 'Not initialized in this repository — run: octowiz state init')
+    return
+  }
+
+  // Readability, schema compatibility and portability (read() validates all
+  // three; portability rules reject machine-specific data in shared state).
+  let doc = null
+  try {
+    doc = stateStore.read(cwd)
+    addCheck('state', 'State file', PASS, `${doc.repository.id} — ${doc.state} (phase ${doc.phase}), revision ${doc.revision}`)
+    addCheck('state', 'Schema & portability', PASS, `schemaVersion ${doc.schemaVersion}; no machine-specific data`)
+  }
+  catch (error) {
+    addCheck('state', 'State file', FAIL, `${error.message} — run: octowiz state repair`)
+  }
+
+  // Ledger validity and revision consistency with the snapshot.
+  try {
+    const events = stateStore.history(cwd)
+    if (events.length === 0) {
+      addCheck('state', 'Event ledger', WARN, 'Empty — expected at least state.initialized')
+    }
+    else {
+      const maxRevision = Math.max(...events.map(e => e.revision ?? 0))
+      if (doc && maxRevision > doc.revision) {
+        addCheck('state', 'Event ledger', FAIL, `Ledger reaches revision ${maxRevision} but snapshot is at ${doc.revision} — snapshot may be stale`)
+      }
+      else {
+        addCheck('state', 'Event ledger', PASS, `${events.length} events, latest revision ${maxRevision}`)
+      }
+    }
+  }
+  catch (error) {
+    addCheck('state', 'Event ledger', FAIL, error.message)
+  }
+
+  // Machine-local runtime state must live outside the repository.
+  const stray = runtimeStore.runtimeFileInsideRepo(cwd)
+  if (stray) {
+    addCheck('state', 'Runtime-state location', FAIL, `${stray} is inside the repository — machine-local state belongs under ${runtimeStore.runtimeBaseDir()}`)
+  }
+  else {
+    addCheck('state', 'Runtime-state location', PASS, `Outside the repository (${runtimeStore.runtimeBaseDir()})`)
+  }
+}
+
+// ── Phase 6: Logs ─────────────────────────────────────────────────────────────
 
 function checkLogs() {
   if (!fs.existsSync(LOG_FILE)) {
@@ -449,6 +504,7 @@ function printReport() {
     { key: 'config', label: 'Configuration' },
     { key: 'endpoint', label: 'Endpoint Health' },
     { key: 'pipeline', label: 'Hook Pipeline (live)' },
+    { key: 'state', label: 'Engineering State' },
     { key: 'logs', label: 'Log Analysis' },
   ]
 
@@ -487,6 +543,7 @@ async function main() {
   checkProcesses()
   await checkEndpoints()
   checkPipeline()
+  checkEngineeringState()
   checkLogs()
   printReport()
 }

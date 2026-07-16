@@ -114,6 +114,24 @@ console.log(roots.some(root => cwd.startsWith(root)) ? 'roots: ok' : 'roots: mis
 
 Treat allowed roots as a security boundary. Recommend the narrowest practical roots and never add broad home-directory access without explaining the consequence.
 
+## 5b. Engineering state
+
+When the repository has `.octowiz/state.json`, verify the persistent state layer:
+
+```bash
+octowiz state validate --json
+```
+
+Check and report:
+
+- **Readability and schema** — the state file parses and matches the supported schema version. A newer schema version means "upgrade octowiz", never downgrade the file.
+- **Revision consistency** — the highest ledger-event revision must not exceed the snapshot revision; if it does, the snapshot is stale.
+- **Ledger validity** — `events.jsonl` parses line by line; report the exact malformed line, never truncate or rewrite it.
+- **Runtime-state location** — machine-local runtime data belongs under `~/.cache/octowiz/<repository-id>/`; a `runtime.json` inside `.octowiz/` is a failure.
+- **Portability** — repository state must contain no PIDs, ports, session IDs, secrets, or machine-local absolute paths (schema validation enforces this; report any violation as a failure).
+
+On corruption, recommend `octowiz state repair` (backup-first) — never delete or hand-edit the broken file. When state is absent this is a note, not a failure: the layer is opt-in per repository via `octowiz state init`.
+
 ## 6. Connectivity
 
 Check the configured endpoints with short timeouts and appropriate authentication, but do not expose headers or secrets. Distinguish:

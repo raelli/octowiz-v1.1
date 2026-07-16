@@ -174,6 +174,8 @@ Example:
 
 Without this, Octowiz risks remaining a smart prompt dispatcher.
 
+> **Status update (2026-07-16):** addressed. The persistent state foundation is implemented — versioned schema, repository-local snapshot + append-only ledger under `.octowiz/`, machine-local runtime store outside the repository, guarded state machine, and the deterministic `octowiz state` CLI. See `docs/engineering-state-model.md` and `src/state/`.
+
 ## Recommended product evolution
 
 ### Stage 1: Make v1.1 trustworthy
@@ -224,6 +226,8 @@ explore -> define -> design -> slice -> implement -> verify -> review -> ship
 ```
 
 The user can still see A/B/C/D, while the engine uses finer states internally.
+
+> **Status update (2026-07-16):** the state machine core exists (`src/state/transitions.js`): explicit transitions with fail-closed guards over `explore → define → plan → implement → verify → review → ready-to-ship → shipped`, plus `diagnose` and `blocked`. What remains for this stage is routing the A/B/C/D workflow *from* that state rather than from prose.
 
 ### Stage 4: Runtime abstraction
 

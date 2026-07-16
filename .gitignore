@@ -8,8 +8,14 @@ docs/superpowers/plans/
 # Local agent workspace
 .claude/worktrees/
 
-# Octowiz local machine state (project_id, setup flags — must not be shared across clones)
-.octowiz/
+# Octowiz engineering state: state.json and events.jsonl are durable,
+# machine-independent truth and may be committed. Everything else under
+# .octowiz/ (locks, temp files, repair backups, legacy setup flags) is
+# machine-local and must not be shared across clones. Machine runtime state
+# (PIDs, leases) lives outside the repo in ~/.cache/octowiz/.
+.octowiz/*
+!.octowiz/state.json
+!.octowiz/events.jsonl
 
 node_modules/
 .worktrees/
