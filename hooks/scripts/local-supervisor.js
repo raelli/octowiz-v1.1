@@ -8,6 +8,7 @@ const os = require('node:os')
 const path = require('node:path')
 
 const { version } = require('../../package.json')
+const { checkStartup } = require('../../src/policy')
 
 function positiveNumber(value, fallback) {
   const parsed = Number(value)
@@ -29,6 +30,8 @@ let idleTimer = null
 let leaseSweep = null
 let pythonChild = null
 let server = null
+// 'started' | 'reused-current' | 'stale' | 'foreign' | 'missing' | 'unknown'
+let a2aState = 'unknown'
 
 function log(message) {
   fs.mkdirSync(cacheDir, { recursive: true })
@@ -43,16 +46,50 @@ function isPortOpen(checkPort) {
   })
 }
 
+// Classifies whatever is listening on the A2A port via its unauthenticated
+// GET /health, which a current octowiz A2A answers with the plugin version.
+async function classifyExistingA2A() {
+  const body = await new Promise((resolve) => {
+    const req = http.get({ host, port: a2aPort, path: '/health', timeout: 1500 }, (res) => {
+      let raw = ''
+      res.on('data', chunk => (raw += chunk))
+      res.once('end', () => {
+        try { resolve(JSON.parse(raw)) }
+        catch { resolve(null) }
+      })
+    })
+    req.once('timeout', () => req.destroy(new Error('timeout')))
+    req.once('error', () => resolve(null))
+  })
+
+  if (body?.status === 'ok' && typeof body.version === 'string')
+    return body.version === version ? { state: 'reused-current' } : { state: 'stale', version: body.version }
+  return { state: 'foreign' }
+}
+
 async function startPythonA2A() {
   if (await isPortOpen(a2aPort)) {
-    log(`A2A port ${a2aPort} already in use; leaving existing service untouched`)
-    return
+    // Never stop a process we did not start — but never forward to one that
+    // is not a current octowiz A2A either (stale versions silently break
+    // changed or newly added capabilities).
+    const existing = await classifyExistingA2A()
+    if (existing.state === 'reused-current') {
+      log(`A2A port ${a2aPort} already serves the current octowiz A2A (v${version}); reusing it`)
+    }
+    else if (existing.state === 'stale') {
+      log(`A2A port ${a2aPort} is bound to a stale octowiz A2A (v${existing.version}, current is v${version}); `
+        + 'not forwarding to it — stop the old process and restart a session to upgrade')
+    }
+    else {
+      log(`A2A port ${a2aPort} is occupied by a non-Octowiz service; leaving it untouched and not forwarding to it`)
+    }
+    return existing.state
   }
 
   const cwd = path.join(pluginRoot, 'apps', 'a2a-agent')
   if (!fs.existsSync(path.join(cwd, 'main.py'))) {
     log('Python A2A app missing; continuing without it')
-    return
+    return 'missing'
   }
 
   pythonChild = spawn('python3', ['-m', 'uvicorn', 'main:app', '--host', host, '--port', String(a2aPort)], {
@@ -65,6 +102,7 @@ async function startPythonA2A() {
     pythonChild = null
   })
   log(`Python A2A started pid=${pythonChild.pid} port=${a2aPort}`)
+  return 'started'
 }
 
 function scheduleIdleExit() {
@@ -141,10 +179,31 @@ function shutdown(code) {
 
 async function main() {
   fs.mkdirSync(cacheDir, { recursive: true })
+
+  // Daemon policy is validated before anything is written or spawned, so a
+  // misconfigured environment fails fast with nothing to clean up. The
+  // supervisor runs detached (stdio ignored), so mirror the fatal reason into
+  // the log file before checkStartup() exits the process.
+  if (!(process.env.OCTOWIZ_ALLOWED_ROOTS || '').split(path.delimiter).some(root => root.trim()))
+    log('fatal: OCTOWIZ_ALLOWED_ROOTS is not set or empty; daemon policy forbids startup')
+  checkStartup()
+
   fs.writeFileSync(pidFile, String(process.pid))
 
-  await startPythonA2A()
-  require('../../src/daemon').start()
+  a2aState = await startPythonA2A()
+  if (a2aState === 'stale' || a2aState === 'foreign') {
+    log('daemon not started: the A2A endpoint is not a current octowiz service, so tasks will not be forwarded to it')
+  }
+  else {
+    try {
+      require('../../src/daemon').start()
+    }
+    catch (error) {
+      // Boot failures after the Python child exists must release it.
+      log(`daemon start failed: ${error.message}`)
+      shutdown(1)
+    }
+  }
 
   server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && req.url === '/health') {
@@ -155,6 +214,7 @@ async function main() {
         pid: process.pid,
         sessions: sessions.size,
         mode: 'ephemeral',
+        a2a: a2aState,
       })
       return
     }
