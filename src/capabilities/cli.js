@@ -3,9 +3,10 @@
 // CLI surface for the capability registry. Provides `octowiz capability`
 // subcommands for resolving and listing capabilities from the registry.
 
+const path = require('node:path')
 const { parseArgs } = require('node:util')
 
-const { loadRegistry, resolveWithConditions, resolveAllWithConditions } = require('./registry')
+const { loadRegistryWithOverrides, resolveWithConditions, resolveAllWithConditions } = require('./registry')
 
 const USAGE = `usage: octowiz capability <command> [options]
 
@@ -26,6 +27,16 @@ function parse(argv, options = {}) {
   })
 }
 
+/**
+ * Load the merged registry (default + local overrides if present at cwd).
+ * @param {string} cwd
+ * @returns {object}
+ */
+function loadMergedRegistry(cwd) {
+  const overridesPath = path.resolve(cwd, '.octowiz', 'capabilities.json')
+  return loadRegistryWithOverrides({ overridesPath })
+}
+
 const COMMANDS = {
   resolve: (argv, cwd) => {
     const { values, positionals } = parse(argv)
@@ -34,7 +45,7 @@ const COMMANDS = {
       return { values, error: true, human: 'error: resolve requires a capability name', data: { error: { code: 'E_USAGE', message: 'resolve requires a capability name' } } }
     }
 
-    const registry = loadRegistry()
+    const registry = loadMergedRegistry(cwd)
     const resolved = resolveWithConditions(registry, name, cwd)
 
     if (!resolved) {
@@ -49,7 +60,7 @@ const COMMANDS = {
 
   list: (argv, cwd) => {
     const { values } = parse(argv)
-    const registry = loadRegistry()
+    const registry = loadMergedRegistry(cwd)
     const all = resolveAllWithConditions(registry, cwd)
     const data = {}
     const lines = []

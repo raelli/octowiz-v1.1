@@ -8,7 +8,7 @@
 const fs = require('node:fs')
 const path = require('node:path')
 
-const { validateRegistry } = require('./schema')
+const { validateRegistry, validateLocalOverrides } = require('./schema')
 
 // Default registry path relative to the project root (one level up from src/).
 const DEFAULT_REGISTRY_PATH = path.resolve(__dirname, '../../skills/registry.json')
@@ -52,6 +52,118 @@ function loadRegistry(registryPath = DEFAULT_REGISTRY_PATH) {
   }
 
   return validateRegistry(doc)
+}
+
+/**
+ * Load and validate a local overrides file. Returns null if the file does not
+ * exist; throws on invalid content.
+ * @param {string} overridesPath absolute path to .octowiz/capabilities.json
+ * @returns {object|null} validated local overrides document or null
+ */
+function loadLocalOverrides(overridesPath) {
+  let raw
+  try {
+    raw = fs.readFileSync(overridesPath, 'utf8')
+  }
+  catch (err) {
+    if (err.code === 'ENOENT')
+      return null
+    throw err
+  }
+
+  let doc
+  try {
+    doc = JSON.parse(raw)
+  }
+  catch (err) {
+    throw new Error(`local overrides file is not valid JSON: ${err.message}`)
+  }
+
+  return validateLocalOverrides(doc)
+}
+
+/**
+ * Merge local overrides into a base registry, producing a new registry object.
+ *
+ * Merge rules:
+ * - Local providers are added to the base. Duplicate provider IDs in the local
+ *   file override the base definition.
+ * - For each capability in the local overrides:
+ *   - mode 'prepend' (default): local resolvers are placed before base resolvers
+ *   - mode 'replace': local resolvers completely replace base resolvers
+ * - New capabilities (not in base) are added as-is.
+ * - Local description overrides base description when provided.
+ *
+ * @param {object} base validated base registry
+ * @param {object} overrides validated local overrides
+ * @returns {object} merged registry (new object; inputs are not mutated)
+ */
+function mergeLocalOverrides(base, overrides) {
+  // Merge providers
+  const mergedProviders = { ...base.providers }
+  if (overrides.providers) {
+    for (const [id, def] of Object.entries(overrides.providers)) {
+      mergedProviders[id] = def
+    }
+  }
+
+  // Merge capabilities
+  const mergedCapabilities = {}
+  for (const [name, cap] of Object.entries(base.capabilities)) {
+    mergedCapabilities[name] = { ...cap, resolvers: [...cap.resolvers] }
+  }
+
+  for (const [name, localCap] of Object.entries(overrides.capabilities)) {
+    const mode = localCap.mode || 'prepend'
+    const existing = mergedCapabilities[name]
+
+    if (!existing) {
+      // New capability — add it directly
+      mergedCapabilities[name] = {
+        description: localCap.description || `(local override: ${name})`,
+        resolvers: [...localCap.resolvers],
+      }
+    }
+    else if (mode === 'replace') {
+      // Replace: local resolvers completely replace base
+      mergedCapabilities[name] = {
+        description: localCap.description || existing.description,
+        resolvers: [...localCap.resolvers],
+      }
+    }
+    else {
+      // Prepend: local resolvers go before base resolvers
+      mergedCapabilities[name] = {
+        description: localCap.description || existing.description,
+        resolvers: [...localCap.resolvers, ...existing.resolvers],
+      }
+    }
+  }
+
+  return {
+    schemaVersion: base.schemaVersion,
+    providers: mergedProviders,
+    capabilities: mergedCapabilities,
+  }
+}
+
+/**
+ * Load the default registry and merge any local overrides found at the given
+ * path. If the overrides file doesn't exist, returns the base registry unchanged.
+ *
+ * @param {object} [options]
+ * @param {string} [options.registryPath] base registry path
+ * @param {string} [options.overridesPath] local overrides path (.octowiz/capabilities.json)
+ * @returns {object} merged registry document
+ */
+function loadRegistryWithOverrides({ registryPath, overridesPath } = {}) {
+  const base = loadRegistry(registryPath)
+  if (!overridesPath)
+    return base
+  const overrides = loadLocalOverrides(overridesPath)
+  if (!overrides)
+    return base
+  return mergeLocalOverrides(base, overrides)
 }
 
 /**
@@ -224,6 +336,9 @@ function resolveAllWithConditions(registry, cwd) {
 module.exports = {
   DEFAULT_REGISTRY_PATH,
   loadRegistry,
+  loadLocalOverrides,
+  loadRegistryWithOverrides,
+  mergeLocalOverrides,
   resolveCapability,
   resolveAll,
   unresolvedCapabilities,

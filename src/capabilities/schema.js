@@ -178,8 +178,149 @@ function validateRegistry(doc) {
   return doc
 }
 
+/**
+ * Validates a local override document (.octowiz/capabilities.json).
+ *
+ * Local overrides are a subset of the full registry:
+ * - `schemaVersion` (required, must match)
+ * - `providers` (optional) — additional providers available locally
+ * - `capabilities` (required) — overrides or additions; resolvers reference
+ *   providers from either the local doc or the default registry
+ *
+ * Unlike the full registry, resolvers in a local override can reference
+ * providers that will exist in the merged result (from the default registry).
+ * We validate structure but defer provider reference checks to merge time.
+ *
+ * @param {*} doc parsed JSON
+ * @returns {object} the document, unchanged
+ */
+function validateLocalOverrides(doc) {
+  if (typeof doc !== 'object' || doc === null || Array.isArray(doc))
+    throw new ValidationError('local overrides must be a JSON object', { issues: ['$: must be an object'] })
+
+  const issues = []
+
+  if (doc.schemaVersion !== REGISTRY_SCHEMA_VERSION) {
+    throw new ValidationError(
+      `unsupported local override schemaVersion ${JSON.stringify(doc.schemaVersion)} (this build supports ${REGISTRY_SCHEMA_VERSION})`,
+      { issues: ['$.schemaVersion: unsupported version'] },
+    )
+  }
+
+  const allowed = ['schemaVersion', 'capabilities', 'providers']
+  for (const key of Object.keys(doc)) {
+    if (!allowed.includes(key))
+      issues.push(`$.${key}: unknown top-level field`)
+  }
+
+  // -- providers (optional in local overrides)
+  const localProviderIds = []
+  if (doc.providers !== undefined) {
+    if (typeof doc.providers !== 'object' || doc.providers === null || Array.isArray(doc.providers)) {
+      issues.push('$.providers: must be an object when present')
+    }
+    else {
+      for (const [id, provider] of Object.entries(doc.providers)) {
+        localProviderIds.push(id)
+        checkProvider(issues, `$.providers.${id}`, provider)
+      }
+    }
+  }
+
+  // -- capabilities (required)
+  if (typeof doc.capabilities !== 'object' || doc.capabilities === null || Array.isArray(doc.capabilities)) {
+    issues.push('$.capabilities: must be an object')
+  }
+  else {
+    for (const [name, capability] of Object.entries(doc.capabilities)) {
+      checkLocalCapability(issues, `$.capabilities.${name}`, name, capability)
+    }
+  }
+
+  if (issues.length > 0) {
+    throw new ValidationError(
+      `local overrides invalid (${issues.length} issue${issues.length === 1 ? '' : 's'}): ${issues.join('; ')}`,
+      { issues },
+    )
+  }
+
+  return doc
+}
+
+/**
+ * Validate a capability in a local override. Resolver provider references are
+ * not cross-checked against the default registry here — validated at merge time.
+ */
+function checkLocalCapability(issues, capPath, name, capability) {
+  if (typeof capability !== 'object' || capability === null || Array.isArray(capability)) {
+    issues.push(`${capPath}: must be an object`)
+    return
+  }
+
+  const allowed = ['description', 'resolvers', 'mode']
+  for (const key of Object.keys(capability)) {
+    if (!allowed.includes(key))
+      issues.push(`${capPath}.${key}: unknown field`)
+  }
+
+  // description is optional in local overrides (inherited from default)
+  if (capability.description !== undefined) {
+    if (typeof capability.description !== 'string' || !capability.description.trim())
+      issues.push(`${capPath}.description: must be a non-empty string when present`)
+  }
+
+  if (capability.mode !== undefined) {
+    const validModes = ['prepend', 'replace']
+    if (!validModes.includes(capability.mode))
+      issues.push(`${capPath}.mode: must be one of ${validModes.join(', ')} (got ${JSON.stringify(capability.mode)})`)
+  }
+
+  if (!Array.isArray(capability.resolvers)) {
+    issues.push(`${capPath}.resolvers: must be an array`)
+  }
+  else {
+    capability.resolvers.forEach((r, i) => {
+      checkLocalResolver(issues, `${capPath}.resolvers[${i}]`, r)
+    })
+  }
+}
+
+/**
+ * Validate a resolver in a local override. Provider references are NOT
+ * checked against the default registry — only structural validity is enforced.
+ */
+function checkLocalResolver(issues, resolverPath, resolver) {
+  if (typeof resolver !== 'object' || resolver === null || Array.isArray(resolver)) {
+    issues.push(`${resolverPath}: must be an object`)
+    return
+  }
+
+  const allowed = ['provider', 'command', 'priority', 'when']
+  for (const key of Object.keys(resolver)) {
+    if (!allowed.includes(key))
+      issues.push(`${resolverPath}.${key}: unknown field`)
+  }
+
+  if (typeof resolver.provider !== 'string' || !resolver.provider.trim())
+    issues.push(`${resolverPath}.provider: must be a non-empty string`)
+
+  if (typeof resolver.command !== 'string' || !resolver.command.trim())
+    issues.push(`${resolverPath}.command: must be a non-empty string`)
+
+  if (resolver.priority !== undefined) {
+    if (!Number.isInteger(resolver.priority) || resolver.priority < 1)
+      issues.push(`${resolverPath}.priority: must be a positive integer`)
+  }
+
+  if (resolver.when !== undefined) {
+    if (typeof resolver.when !== 'string' || !resolver.when.trim())
+      issues.push(`${resolverPath}.when: must be a non-empty string when present`)
+  }
+}
+
 module.exports = {
   REGISTRY_SCHEMA_VERSION,
   PROVIDER_TYPES,
   validateRegistry,
+  validateLocalOverrides,
 }

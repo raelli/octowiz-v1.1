@@ -262,8 +262,10 @@ const COMMANDS = {
     const doc = store.read(cwd)
     let registry = null
     try {
-      const { loadRegistry } = require('../capabilities/registry')
-      registry = loadRegistry()
+      const path = require('node:path')
+      const { loadRegistryWithOverrides } = require('../capabilities/registry')
+      const overridesPath = path.resolve(cwd, '.octowiz', 'capabilities.json')
+      registry = loadRegistryWithOverrides({ overridesPath })
     }
     catch {
       // Registry unavailable — resolution will be skipped
