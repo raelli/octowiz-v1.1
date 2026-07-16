@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "0.1",
+  "capabilities": {
+    "requirements-discovery": {
+      "description": "Explore and challenge product requirements",
+      "resolvers": [
+        { "provider": "mattpocock-skills", "command": "grill-me", "priority": 1 },
+        { "provider": "mattpocock-skills", "command": "grill-with-docs", "priority": 2, "when": "docs-exist" }
+      ]
+    },
+    "plan-validation": {
+      "description": "Challenge a plan before implementation begins",
+      "resolvers": [
+        { "provider": "mattpocock-skills", "command": "grill-with-docs", "priority": 1, "when": "docs-exist" },
+        { "provider": "mattpocock-skills", "command": "grill-me", "priority": 2 }
+      ]
+    },
+    "definition": {
+      "description": "Define scope and acceptance criteria from a goal",
+      "resolvers": [
+        { "provider": "mattpocock-skills", "command": "to-prd", "priority": 1 },
+        { "provider": "mattpocock-skills", "command": "to-issues", "priority": 2 }
+      ]
+    },
+    "decision-resolution": {
+      "description": "Resolve blocking open questions",
+      "resolvers": [
+        { "provider": "mattpocock-skills", "command": "grill-me", "priority": 1 }
+      ]
+    },
+    "lean-design-check": {
+      "description": "Lean engineering gate evaluation before implementation",
+      "resolvers": [
+        { "provider": "octowiz-native", "command": "lean-gate", "priority": 1 }
+      ]
+    },
+    "implementation": {
+      "description": "TDD implementation of a scoped slice",
+      "resolvers": [
+        { "provider": "mattpocock-skills", "command": "tdd", "priority": 1 }
+      ]
+    },
+    "diagnosis": {
+      "description": "Root-cause analysis of unexpected behavior",
+      "resolvers": [
+        { "provider": "mattpocock-skills", "command": "diagnose", "priority": 1 }
+      ]
+    },
+    "verification": {
+      "description": "Run automated checks and collect evidence",
+      "resolvers": [
+        { "provider": "octowiz-native", "command": "verify", "priority": 1 }
+      ]
+    },
+    "code-review": {
+      "description": "Review implementation against requirements and architecture",
+      "resolvers": [
+        { "provider": "mattpocock-skills", "command": "zoom-out", "priority": 1 },
+        { "provider": "octowiz-native", "command": "complexity-review", "priority": 2 }
+      ]
+    },
+    "handoff-or-ship": {
+      "description": "Produce a compact handoff or prepare a pull request",
+      "resolvers": [
+        { "provider": "mattpocock-skills", "command": "handoff", "priority": 1 }
+      ]
+    },
+    "human-decision": {
+      "description": "A decision that requires human input — no automated resolver",
+      "resolvers": []
+    }
+  },
+  "providers": {
+    "mattpocock-skills": {
+      "type": "skill-pack",
+      "required": true,
+      "install": "mattpocock-skills"
+    },
+    "antfu-skills": {
+      "type": "skill-pack",
+      "required": false,
+      "install": "antfu-skills",
+      "when": "vue-nuxt-vite-ecosystem"
+    },
+    "octowiz-native": {
+      "type": "builtin",
+      "required": true
+    }
+  }
+}

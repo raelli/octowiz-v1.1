@@ -46,7 +46,7 @@ describe('octowiz state CLI', () => {
     expect(JSON.parse(show.stdout).state).toBe('explore')
 
     const next = run(['next', '--json'], repo)
-    expect(JSON.parse(next.stdout)).toEqual({
+    expect(JSON.parse(next.stdout)).toMatchObject({
       capability: 'requirements-discovery',
       reason: 'no goal is set',
       humanGate: false,
@@ -138,5 +138,77 @@ describe('octowiz state CLI', () => {
     const result = run(['frobnicate'], repo)
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('usage: octowiz state')
+  })
+
+  describe('next --json includes resolved capability', () => {
+    it('includes resolved provider and command for requirements-discovery', () => {
+      run(['init'], repo)
+      const result = run(['next', '--json'], repo)
+      expect(result.code).toBe(0)
+      const data = JSON.parse(result.stdout)
+      expect(data.capability).toBe('requirements-discovery')
+      expect(data.resolved).toEqual({
+        provider: 'mattpocock-skills',
+        command: 'grill-me',
+      })
+    })
+
+    it('includes resolved for implementation capability', () => {
+      run(['init'], repo)
+      run(['set-goal', 'build feature'], repo)
+      run(['link-artifact', '--type', 'issue', '--id', 'i-1'], repo)
+      run(['add-criterion', 'it works'], repo)
+      run(['transition', 'define'], repo)
+      run(['transition', 'plan'], repo)
+      run(['lean', '--rung', 'standard-library', '--decision', 'do it', '--reject', 'nothing'], repo)
+      run(['transition', 'implement'], repo)
+      const result = run(['next', '--json'], repo)
+      expect(result.code).toBe(0)
+      const data = JSON.parse(result.stdout)
+      expect(data.capability).toBe('implementation')
+      expect(data.resolved).toEqual({
+        provider: 'mattpocock-skills',
+        command: 'tdd',
+      })
+    })
+
+    it('omits resolved field for human-decision (no resolvers)', () => {
+      run(['init'], repo)
+      run(['set-goal', 'build feature'], repo)
+      run(['link-artifact', '--type', 'issue', '--id', 'i-1'], repo)
+      run(['add-criterion', 'it works'], repo)
+      run(['transition', 'define'], repo)
+      run(['transition', 'plan'], repo)
+      run(['lean', '--rung', 'standard-library', '--decision', 'do it', '--reject', 'nothing'], repo)
+      run(['transition', 'implement'], repo)
+      run(['transition', 'blocked', '--reason', 'waiting on approval'], repo)
+      const result = run(['next', '--json'], repo)
+      expect(result.code).toBe(0)
+      const data = JSON.parse(result.stdout)
+      expect(data.capability).toBe('human-decision')
+      expect(data.resolved).toBeUndefined()
+    })
+
+    it('includes resolved in human-readable output', () => {
+      run(['init'], repo)
+      const result = run(['next'], repo)
+      expect(result.code).toBe(0)
+      expect(result.stdout).toContain('resolved: mattpocock-skills:grill-me')
+    })
+
+    it('shows no resolved line in human output when capability has no resolver', () => {
+      run(['init'], repo)
+      run(['set-goal', 'build feature'], repo)
+      run(['link-artifact', '--type', 'issue', '--id', 'i-1'], repo)
+      run(['add-criterion', 'it works'], repo)
+      run(['transition', 'define'], repo)
+      run(['transition', 'plan'], repo)
+      run(['lean', '--rung', 'standard-library', '--decision', 'do it', '--reject', 'nothing'], repo)
+      run(['transition', 'implement'], repo)
+      run(['transition', 'blocked', '--reason', 'waiting'], repo)
+      const result = run(['next'], repo)
+      expect(result.code).toBe(0)
+      expect(result.stdout).not.toContain('resolved:')
+    })
   })
 })

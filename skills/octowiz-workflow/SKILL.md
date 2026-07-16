@@ -81,30 +81,39 @@ Keep the four understandable entry points, but infer and recommend one from stat
 
 Use when the problem, outcome, constraints, or major decisions remain unclear.
 
-Preferred sequence:
+Preferred capability sequence:
 
-1. `/mattpocock-skills:grill-me`
-2. `/mattpocock-skills:grill-with-docs` when `CONTEXT.md`, ADRs, or substantial domain documentation exist
-3. `/mattpocock-skills:prototype` only to test a risky technical assumption
-4. `/mattpocock-skills:to-prd`
-5. `/mattpocock-skills:to-issues`
-6. `/mattpocock-skills:triage`
+1. `requirements-discovery` — challenges and sharpens the user's idea
+2. `requirements-discovery` (with docs context) when `CONTEXT.md`, ADRs, or substantial domain documentation exist
+3. Prototype only to test a risky technical assumption
+4. `definition` — produces a PRD or issue breakdown
+5. Triage when multiple issues need priority ordering
 
 Do not force every step. Reuse and amend existing artifacts instead of generating duplicates. Record accepted decisions, open questions, goals, and artifacts in persistent engineering state when available.
+
+Resolve actual provider commands via the capability registry:
+
+```bash
+octowiz capability resolve requirements-discovery --json
+octowiz capability resolve definition --json
+```
 
 ### B. Plan validation
 
 Use when a proposed solution, plan, PRD, or architecture already exists but needs challenge.
 
-Preferred sequence:
+Preferred capability sequence:
 
-1. `/mattpocock-skills:grill-with-docs` when repository context exists
-2. `/mattpocock-skills:grill-me` for unresolved decisions
-3. update or create the PRD with `/mattpocock-skills:to-prd`
-4. `/mattpocock-skills:to-issues`
-5. `/mattpocock-skills:triage`
+1. `plan-validation` — challenges the plan against repository context
+2. `decision-resolution` — resolves unresolved decisions
+3. `definition` — update or create the PRD and issue breakdown
 
 Explicitly identify assumptions, irreversible decisions, missing acceptance criteria, architecture conflicts, and required human gates. Persist accepted outcomes rather than relying on conversation history.
+
+```bash
+octowiz capability resolve plan-validation --json
+octowiz capability resolve decision-resolution --json
+```
 
 ### C. Implementation and diagnosis
 
@@ -122,12 +131,18 @@ Octowiz owns runtime orchestration directly:
 - capture evidence before declaring completion
 - update state transitions and evidence references
 
-Use Matt Pocock Skills for methodology:
+Invoke capabilities for methodology:
 
-1. `/mattpocock-skills:tdd`
-2. implement the smallest complete passing slice
-3. `/mattpocock-skills:diagnose` when behavior differs from expectation
-4. `/mattpocock-skills:prototype` when an uncertain approach should be tested cheaply
+1. `implementation` — TDD-driven implementation of the smallest complete slice
+2. `diagnosis` — root-cause analysis when behavior differs from expectation
+3. `verification` — collect automated evidence
+
+Resolve provider commands dynamically:
+
+```bash
+octowiz capability resolve implementation --json
+octowiz capability resolve diagnosis --json
+```
 
 Never invoke Superpowers commands.
 
@@ -135,16 +150,23 @@ Never invoke Superpowers commands.
 
 Use when implementation is materially complete.
 
-Preferred sequence:
+Preferred capability sequence:
 
-1. `/mattpocock-skills:zoom-out`
-2. inspect the diff against requirements and wider architecture
-3. run the complexity-reduction review from `references/lean-engineering.md`
-4. `/mattpocock-skills:improve-codebase-architecture` only when structural issues are found
-5. run the native Octowiz verification gate
-6. `/mattpocock-skills:handoff`
+1. `code-review` — review against requirements and wider architecture
+2. Inspect the diff against requirements and architecture
+3. Run the complexity-reduction review from `references/lean-engineering.md`
+4. `verification` — collect all automated evidence
+5. `handoff-or-ship` — produce compact handoff or prepare a pull request
 
 The complexity pass complements normal review. It must not delete accepted behavior, security controls, accessibility, compatibility promises, or required evidence.
+
+Resolve provider commands dynamically:
+
+```bash
+octowiz capability resolve code-review --json
+octowiz capability resolve verification --json
+octowiz capability resolve handoff-or-ship --json
+```
 
 The verification gate requires evidence for:
 
@@ -174,7 +196,7 @@ Deterministic state commands exist. Always mutate state through them — never e
 
 ```bash
 octowiz state show --json          # read current truth (start of every session)
-octowiz state next --json          # deterministic next-action recommendation
+octowiz state next --json          # deterministic next-action recommendation (includes resolved provider)
 octowiz state set-goal <goal>
 octowiz state link-artifact --type issue --id <id>
 octowiz state ask <question> / resolve-question <id> --answer <a>
@@ -183,6 +205,13 @@ octowiz state add-criterion <text> / criterion <id> --status passed --evidence <
 octowiz state lean --rung <rung> --decision <d> --reject <alt>
 octowiz state evidence <tests|lint|types|review|ship> <status> --ref <ref>
 octowiz state transition <state> [--expected-revision <n>]
+```
+
+Capability resolution commands:
+
+```bash
+octowiz capability resolve <name> [--json]   # resolve a capability to provider:command
+octowiz capability list [--json]              # show all capabilities and their resolution
 ```
 
 Rules:
@@ -198,9 +227,11 @@ A completion claim without matching evidence remains unverified.
 
 ## Optional Antfu capability pack
 
-Detect repository relevance before suggesting Antfu Skills. Valid signals include direct dependencies or configuration for Vue, Nuxt, Vite, Vitest, pnpm workspaces, UnoCSS, or VueUse.
+The `antfu-skills` provider is registered in the capability registry with the condition `vue-nuxt-vite-ecosystem`. It becomes available automatically when the repository has Vue, Nuxt, Vite, Vitest, pnpm workspaces, UnoCSS, or VueUse dependencies.
 
-Use Antfu only for stack-specific implementation and tooling guidance. It must not influence lifecycle routing and its absence must not block the workflow.
+When the condition is satisfied, Antfu resolvers participate in capability resolution with appropriate priority. Use `octowiz capability list --json` to see which capabilities route through Antfu in the current repository context.
+
+Antfu provides stack-specific implementation and tooling guidance only. It must not influence lifecycle routing and its absence must not block the workflow.
 
 ## Routing response
 
@@ -210,8 +241,11 @@ Before invoking a skill, state:
 Recommended phase: <A|B|C|D>
 Internal state: <explore|define|plan|implement|diagnose|verify|review|blocked|ready-to-ship|shipped>
 Evidence: <brief state, repository, and request signals>
-Next capability: <Matt Pocock skill or native Octowiz operation>
+Next capability: <abstract capability name from octowiz state next>
+Resolved to: <provider:command from octowiz state next --json .resolved>
 Human gate: <decision required or none>
 ```
+
+Use `octowiz state next --json` to get the deterministic recommendation with the resolved provider command included.
 
 Prefer the shortest valid workflow. A bug may route directly to diagnosis, implementation, lean review, and verification without passing through planning phases.

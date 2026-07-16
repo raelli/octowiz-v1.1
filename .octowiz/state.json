@@ -1,0 +1,102 @@
+{
+  "schemaVersion": "0.1",
+  "repository": {
+    "id": "github:raelli/octowiz-v1.1"
+  },
+  "phase": "C",
+  "state": "implement",
+  "status": "active",
+  "blockedFrom": null,
+  "goal": "capability resolution: replace hardcoded skill names with abstract capabilities resolved through a registry",
+  "artifact": {
+    "type": "issue",
+    "id": "stage-3-capability-registry",
+    "url": null
+  },
+  "decisions": [],
+  "openQuestions": [],
+  "acceptanceCriteria": [
+    {
+      "id": "ac-be4c30ca",
+      "statement": "resolveCapability(name, context) returns best resolver or null",
+      "status": "pending",
+      "evidenceRefs": [],
+      "waiverReason": null,
+      "updatedAt": "2026-07-16T02:36:54.120Z"
+    },
+    {
+      "id": "ac-02a5a53b",
+      "statement": "unknown capabilities return null, not an error",
+      "status": "pending",
+      "evidenceRefs": [],
+      "waiverReason": null,
+      "updatedAt": "2026-07-16T02:36:54.166Z"
+    },
+    {
+      "id": "ac-4c701160",
+      "statement": "registry validates on load; malformed registries throw at startup",
+      "status": "pending",
+      "evidenceRefs": [],
+      "waiverReason": null,
+      "updatedAt": "2026-07-16T02:36:54.211Z"
+    },
+    {
+      "id": "ac-41ac4f5b",
+      "statement": "provider availability checked: required vs optional",
+      "status": "pending",
+      "evidenceRefs": [],
+      "waiverReason": null,
+      "updatedAt": "2026-07-16T02:36:54.254Z"
+    },
+    {
+      "id": "ac-5339f779",
+      "statement": "all capability names from src/state/next.js have registry entries",
+      "status": "pending",
+      "evidenceRefs": [],
+      "waiverReason": null,
+      "updatedAt": "2026-07-16T02:36:54.299Z"
+    }
+  ],
+  "leanGate": {
+    "status": "passed",
+    "selectedRung": "standard-library",
+    "decision": "static JSON registry loaded with Node fs, hand-rolled validation — no schema engine needed",
+    "rejectedAlternatives": [
+      "JSON Schema library, database, dynamic plugin system"
+    ],
+    "knownCeiling": null,
+    "upgradeTrigger": null,
+    "recordedAt": "2026-07-16T02:37:13.155Z"
+  },
+  "evidence": {
+    "tests": {
+      "status": "pending",
+      "items": []
+    },
+    "lint": {
+      "status": "pending",
+      "items": []
+    },
+    "types": {
+      "status": "not-configured",
+      "items": []
+    },
+    "review": {
+      "status": "pending",
+      "items": []
+    }
+  },
+  "complexityReview": {
+    "status": "pending",
+    "findings": [],
+    "estimatedLinesRemovable": null
+  },
+  "nextAction": {
+    "capability": null,
+    "reason": null,
+    "humanGate": false
+  },
+  "revision": 12,
+  "createdAt": "2026-07-16T02:36:29.058Z",
+  "updatedAt": "2026-07-16T02:37:22.240Z"
+}
