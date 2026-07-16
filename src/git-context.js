@@ -62,7 +62,7 @@ function run(args, cwd) {
 
 // Strips characters that are unsafe in filenames to prevent path traversal.
 function safeSessionId(sessionId) {
-  return String(sessionId).replace(/[^A-Za-z0-9._-]/g, '_')
+  return String(sessionId).replace(/[^\w.-]/g, '_')
 }
 
 function contextPath(sessionId) {
@@ -101,22 +101,22 @@ function unquoteGitPath(p) {
 
     const esc = s[i]
     switch (esc) {
-      case '"':  bytes.push(0x22); break
+      case '"': bytes.push(0x22); break
       case '\\': bytes.push(0x5C); break
-      case 'a':  bytes.push(0x07); break
-      case 'b':  bytes.push(0x08); break
-      case 't':  bytes.push(0x09); break
-      case 'n':  bytes.push(0x0A); break
-      case 'v':  bytes.push(0x0B); break
-      case 'f':  bytes.push(0x0C); break
-      case 'r':  bytes.push(0x0D); break
+      case 'a': bytes.push(0x07); break
+      case 'b': bytes.push(0x08); break
+      case 't': bytes.push(0x09); break
+      case 'n': bytes.push(0x0A); break
+      case 'v': bytes.push(0x0B); break
+      case 'f': bytes.push(0x0C); break
+      case 'r': bytes.push(0x0D); break
       default:
         if (esc >= '0' && esc <= '7') {
           // Octal \NNN: consume up to 2 more octal digits, then push the byte value.
           let octal = esc
           for (let j = 0; j < 2 && i + 1 < s.length - 1 && s[i + 1] >= '0' && s[i + 1] <= '7'; j++)
             octal += s[++i]
-          bytes.push(parseInt(octal, 8))
+          bytes.push(Number.parseInt(octal, 8))
         }
         else {
           bytes.push(esc.charCodeAt(0))

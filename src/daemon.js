@@ -37,11 +37,13 @@ function _sanitizeForLog(value, maxLen = 512) {
   // eslint-disable-next-line no-control-regex
   const stripped = str.replace(/[\x00-\x1F\x7F-\x9F]/g, ' ')
   // Code-unit length >= code-point count, so this is a safe early exit for small inputs.
-  if (stripped.length <= maxLen) return stripped
+  if (stripped.length <= maxLen)
+    return stripped
   let out = ''
   let count = 0
   for (const ch of stripped) {
-    if (count >= maxLen) return `${out}…`
+    if (count >= maxLen)
+      return `${out}…`
     out += ch
     count += 1
   }

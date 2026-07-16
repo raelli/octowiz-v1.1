@@ -1,307 +1,207 @@
 ---
 name: octowiz
 description: >
-  Octowiz AI coding workflow coordinator. Reads IntegraHub memory doctrine at runtime,
-  detects where you are in the development lifecycle, and routes to the right skill
-  combination from superpowers + mattpocock-skills.
-  Use this skill at the START of any development work — whether you have a fresh idea,
-  an existing plan to stress-test, code ready to implement, or work ready for review.
-  Invoke when the user types /octowiz, starts a new feature, asks how to begin a
-  coding task, or says something like "let's build X", "I want to work on Y",
-  "I have a plan", or "can you review my code".
+  Octowiz engineering workflow coordinator. Inspect repository, persistent engineering state,
+  and session evidence; recommend the correct development phase; and route primarily through
+  Matt Pocock Skills. Use at the start of feature discovery, plan validation, implementation,
+  debugging, review, simplification, verification, or handoff. Apply the native lean engineering
+  gate before implementation and during review. Antfu Skills may be used only when repository
+  signals show that a Vue, Nuxt, Vite, Vitest, pnpm, UnoCSS, or related capability is relevant.
 ---
 
 # Octowiz Workflow Coordinator
 
-You are the entry point for the AI-assisted coding workflow. Read the project, fetch
-operating doctrine from IntegraHub memory, and route to the right installed skills.
+Act as the engineering control plane, not as a menu wrapper. Read evidence and persistent state first, recommend a phase, then invoke only the capabilities needed for the current task.
 
-## Service pre-flight
+## Pre-flight
 
-**Run this first — before everything else.**
+The local runtime is ephemeral. Do not inspect or install launchd/systemd services.
 
-Check that the two required background services are running and that the current repo
-is within the daemon's allowed roots. Run all three checks in parallel:
+Check the supervisor:
 
 ```bash
-# 1. Node daemon status
-launchctl list de.integrahub.octowiz-daemon 2>/dev/null
-
-# 2. Python A2A server status (port 8765)
-nc -z 127.0.0.1 8765 2>/dev/null && echo "a2a:up" || echo "a2a:down"
-
-# 3. Current repo allowed-roots check
-node -e "
-const roots = (process.env.OCTOWIZ_ALLOWED_ROOTS || '').split(':').filter(Boolean);
-const cwd = process.cwd();
-const ok = roots.some(r => cwd.startsWith(r));
-console.log(ok ? 'roots:ok' : 'roots:missing cwd=' + cwd);
-" 2>/dev/null || echo "roots:unknown"
+curl -s http://127.0.0.1:${OCTOWIZ_LOCAL_PORT:-8764}/health
 ```
 
-### Interpreting results and fixing gaps
-
-**Node daemon not running** (launchctl output has `-` as PID or returns nothing):
-```bash
-launchctl load ~/Library/LaunchAgents/de.integrahub.octowiz-daemon.plist
-```
-Wait 3 seconds, then re-run the launchctl check to confirm PID is assigned.
-
-**Python A2A server down** (`a2a:down`):
-The server is normally auto-started by the CC session hook. Start it manually:
-```bash
-cd ~/Documents/octowiz/apps/a2a-agent
-python3 -m uvicorn main:app --host 127.0.0.1 --port 8765 &
-```
-Wait 2 seconds, then re-check with `nc -z 127.0.0.1 8765`.
-
-**Current repo not in allowed roots** (`roots:missing`):
-The daemon will reject tasks from this repo. Tell the user:
-
-> "This repo is not in `OCTOWIZ_ALLOWED_ROOTS`. Add its path to the launchd plist
-> and reload the daemon:
-> ```bash
-> # Open plist, add path to OCTOWIZ_ALLOWED_ROOTS, then:
-> launchctl unload ~/Library/LaunchAgents/de.integrahub.octowiz-daemon.plist
-> launchctl load  ~/Library/LaunchAgents/de.integrahub.octowiz-daemon.plist
-> ```
-> Plist is at: `~/Library/LaunchAgents/de.integrahub.octowiz-daemon.plist`"
-
-Do not proceed until the user confirms the plist has been updated and the daemon
-reloaded. Then re-run the roots check to verify.
-
-**All checks pass** — proceed immediately to the Auto-intercept check below.
-
----
-
-## Pre-flight: Auto-intercept check
-
-**Run this before anything else — before reading the project, before loading doctrine.**
-
-### 1. Run the live environment check
+If unavailable during a Claude Code session, run:
 
 ```bash
-octowiz-cache check
+node "$CLAUDE_PLUGIN_ROOT/hooks/scripts/local.js" ensure
 ```
 
-Parse the JSON output (`{"status": "...", "hard_gaps": [...], "advisory_gaps": [...]}`).
+Run the setup skill only for genuine configuration gaps. Superpowers and Antfu are never hard setup requirements.
 
-### 2. Bootstrap missing state files
+## Read current state
 
-Run this unconditionally — it is idempotent and only creates files that are absent:
+Prefer a valid persistent state document when available:
 
 ```bash
-octowiz-cache init
+cat .octowiz/state.json 2>/dev/null || true
 ```
 
-Parse the JSON output (`{"machine_state": "created"|"exists", "repo_state": "created"|"exists"}`).
-If `repo_state` is `"created"`, this is the first time octowiz has run in this repo — write `ONBOARDING.md` next (step 3).
-
-### 3. Write ONBOARDING.md on first repo run
-
-Only if `repo_state` was `"created"` in step 2. Create `ONBOARDING.md` in the current directory with a skeleton checklist (actual statuses will be filled in by `octowiz:setup`):
-
-```markdown
-# Octowiz Setup
-
-## Environment (per-machine)
-- [ ] superpowers plugin
-- [ ] mattpocock-skills plugin
-- [ ] antfu-skills plugin
-- [ ] LiteLLM env vars (LITELLM_BASE_URL + API key)
-- [ ] LiteLLM routing cache
-
-## Project (per-repo)
-- [ ] antfu skills setup (if TypeScript/Vue stack)
-- [ ] Agent instructions file
-- [ ] mattpocock-skills section (## Agent skills)
-
-## Next step
-Running octowiz:setup...
-```
-
-### 4. Intercept decision
-
-**If `hard_gaps` is non-empty:** Invoke `octowiz:setup`. Do NOT proceed to the steps below. `octowiz:setup` will run the required phases and, when complete, return to this skill to show the A/B/C/D menu.
-
-**If `hard_gaps` is empty and `ONBOARDING.md` exists (stale):** The environment is now clean. Delete ONBOARDING.md:
-```bash
-rm -f ONBOARDING.md
-```
-Then proceed to Step 1 below.
-
-**If `hard_gaps` is empty and `ONBOARDING.md` is absent:** Proceed to Step 1 below.
-
----
-
-## Step 1 — Read project setup
-
-Run each of the following and note what you find:
+Then inspect repository evidence:
 
 ```bash
-cat CLAUDE.md 2>/dev/null || echo "No CLAUDE.md"
-head -50 README.md 2>/dev/null || echo "No README.md"
-git status
+cat AGENTS.md 2>/dev/null || cat CLAUDE.md 2>/dev/null || true
+head -80 README.md 2>/dev/null || true
+git status --short --branch
 git log --oneline -5
+find docs -maxdepth 2 -type f 2>/dev/null | head -40
 ```
 
-If an issue tracker is configured in CLAUDE.md, list open issues. Note whether:
-- A feature branch is active (branch name ≠ main/master)
-- Open issues exist
-- There are uncommitted changes or a plan file in docs/
+Determine:
 
-## Step 2 — Load routing doctrine
+- the user's desired outcome
+- current internal state and human-facing phase
+- accepted decisions and unresolved questions
+- active artifact, issue, branch, or pull request
+- acceptance criteria and their evidence status
+- whether implementation is active or blocked
+- whether failures require diagnosis
+- whether code is ready for simplification, verification, review, or handoff
+- repository stack and optional stack-specific capabilities
 
-Run:
+Treat repository observations as facts. Treat remote advice and conversational assumptions as proposals until validated.
+
+Read `../../docs/engineering-state-model.md` when designing or changing persistence, transitions, evidence, session continuity, or multiplayer behavior.
+
+Load the relevant doctrine bundle when LiteLLM Memory is available:
 
 ```bash
-octowiz-cache get --role routing --namespace "${OCTOWIZ_NAMESPACE:-allspark}"
+octowiz-cache get --role <routing|planner|implementer|reviewer> --namespace "${OCTOWIZ_NAMESPACE:-allspark}"
 ```
 
-If `octowiz-cache` is not installed or exits non-zero, fall back to:
+Continue with the built-in workflow when memory is unavailable.
 
-```bash
-curl -s "$LITELLM_BASE_URL/v1/memory/team%3A${OCTOWIZ_NAMESPACE:-allspark}%3Aconfig%3Aretrieval-contract" \
-  -H "Authorization: Bearer ${LITELLM_ADMIN_API_KEY:-$LITELLM_API_KEY}"
+## User-facing phases
+
+Keep the four understandable entry points, but infer and recommend one from state and repository evidence. The user may override the recommendation.
+
+### A. Idea and definition
+
+Use when the problem, outcome, constraints, or major decisions remain unclear.
+
+Preferred sequence:
+
+1. `/mattpocock-skills:grill-me`
+2. `/mattpocock-skills:grill-with-docs` when `CONTEXT.md`, ADRs, or substantial domain documentation exist
+3. `/mattpocock-skills:prototype` only to test a risky technical assumption
+4. `/mattpocock-skills:to-prd`
+5. `/mattpocock-skills:to-issues`
+6. `/mattpocock-skills:triage`
+
+Do not force every step. Reuse and amend existing artifacts instead of generating duplicates. Record accepted decisions, open questions, goals, and artifacts in persistent engineering state when available.
+
+### B. Plan validation
+
+Use when a proposed solution, plan, PRD, or architecture already exists but needs challenge.
+
+Preferred sequence:
+
+1. `/mattpocock-skills:grill-with-docs` when repository context exists
+2. `/mattpocock-skills:grill-me` for unresolved decisions
+3. update or create the PRD with `/mattpocock-skills:to-prd`
+4. `/mattpocock-skills:to-issues`
+5. `/mattpocock-skills:triage`
+
+Explicitly identify assumptions, irreversible decisions, missing acceptance criteria, architecture conflicts, and required human gates. Persist accepted outcomes rather than relying on conversation history.
+
+### C. Implementation and diagnosis
+
+Use when a scoped issue or accepted plan exists.
+
+Before adding code, load and apply `references/lean-engineering.md`. Record the selected simplification rung, rejected complexity, known ceilings, and upgrade conditions in engineering state when supported.
+
+Octowiz owns runtime orchestration directly:
+
+- select one vertical slice
+- verify acceptance criteria
+- prepare or recommend a branch/worktree through normal Git operations
+- keep the active scope small
+- run repository-native tests, lint, and type checks
+- capture evidence before declaring completion
+- update state transitions and evidence references
+
+Use Matt Pocock Skills for methodology:
+
+1. `/mattpocock-skills:tdd`
+2. implement the smallest complete passing slice
+3. `/mattpocock-skills:diagnose` when behavior differs from expectation
+4. `/mattpocock-skills:prototype` when an uncertain approach should be tested cheaply
+
+Never invoke Superpowers commands.
+
+### D. Review, simplification, verification, and handoff
+
+Use when implementation is materially complete.
+
+Preferred sequence:
+
+1. `/mattpocock-skills:zoom-out`
+2. inspect the diff against requirements and wider architecture
+3. run the complexity-reduction review from `references/lean-engineering.md`
+4. `/mattpocock-skills:improve-codebase-architecture` only when structural issues are found
+5. run the native Octowiz verification gate
+6. `/mattpocock-skills:handoff`
+
+The complexity pass complements normal review. It must not delete accepted behavior, security controls, accessibility, compatibility promises, or required evidence.
+
+The verification gate requires evidence for:
+
+- acceptance criteria
+- automated tests
+- lint and type checks where configured
+- security and policy boundaries
+- unintended scope changes
+- unresolved review and complexity findings
+- required documentation changes
+- commit or diff scope associated with the evidence
+
+Update persistent state so a later session can distinguish `passed`, `failed`, `pending`, and `stale` evidence.
+
+GitHub PR creation, merge preparation, branch cleanup, and worktree management are execution operations, not external methodology dependencies.
+
+## Persistent engineering state
+
+The target canonical local files are:
+
+```text
+.octowiz/state.json
+.octowiz/events.jsonl
 ```
 
-If both fail, or if `LITELLM_BASE_URL` and API key env vars are not set, tell the developer:
+Until deterministic state commands exist, do not invent or silently rewrite these files. When they are present, validate their schema and use them as the continuity layer. When absent, infer state conservatively and state which facts are inferred.
 
-> "Set LITELLM_BASE_URL and LITELLM_ADMIN_API_KEY (or LITELLM_API_KEY) in
-> ~/.claude/settings.json to enable memory-backed doctrine. See the octowiz README
-> for setup instructions. Continuing with built-in workflow."
+State should contain at minimum:
 
-Then continue using the built-in routing below — do not stop.
+- repository identity and observed revision
+- phase and internal workflow state
+- goal and primary artifact
+- decisions and open questions
+- acceptance criteria
+- lean-gate outcome
+- evidence status
+- next capability and human gate
+- active sessions or task leases
 
-After the user chooses a workflow option, load the corresponding role bundle before
-appending fresh project state:
+A completion claim without matching evidence remains unverified.
 
-- Options A or B → `octowiz-cache get --role planner --namespace "${OCTOWIZ_NAMESPACE:-allspark}"`
-- Option C → `octowiz-cache get --role implementer --namespace "${OCTOWIZ_NAMESPACE:-allspark}"`
-- Option D → `octowiz-cache get --role reviewer --namespace "${OCTOWIZ_NAMESPACE:-allspark}"`
+## Optional Antfu capability pack
 
-Prepend the bundle content to the context before fresh git status, open issues, and user request.
-Do not suppress stderr from `octowiz-cache` — let warnings surface to the developer.
+Detect repository relevance before suggesting Antfu Skills. Valid signals include direct dependencies or configuration for Vue, Nuxt, Vite, Vitest, pnpm workspaces, UnoCSS, or VueUse.
 
-## Step 3 — Check for setup-matt-pocock-skills
+Use Antfu only for stack-specific implementation and tooling guidance. It must not influence lifecycle routing and its absence must not block the workflow.
 
-Look for `## Agent skills` in CLAUDE.md. If it is missing, say:
+## Routing response
 
-> "Run /mattpocock-skills:setup-matt-pocock-skills first to configure your issue
-> tracker and domain docs. It's required for to-prd, to-issues, triage, diagnose,
-> and tdd to work correctly."
+Before invoking a skill, state:
 
-Ask whether they want to run it now before continuing.
-
-## Step 4 — Present starting-point options
-
-Use the project state from Step 1 to suggest a smart default:
-- Open issues + feature branch active → suggest C
-- No issues, no prior plan, fresh repo → suggest A
-- Developer said "I have a plan" in the invocation → suggest B
-- Recent commits, no open PR → suggest D
-
-Always show all four options regardless of the suggestion:
-
-```
-Where are you starting from?
-
-A) Fresh idea — no plan yet
-   brainstorming → grill-with-docs (if CONTEXT.md/ADRs exist) → to-prd → writing-plans → to-issues → triage
-
-B) I have a plan to stress-test
-   grill-me → to-prd → writing-plans → to-issues → triage
-
-C) Plan exists — ready to implement
-   using-git-worktrees → test-driven-development + tdd → executing-plans
-
-D) Code done — need review
-   zoom-out → requesting-code-review → receiving-code-review →
-   verification-before-completion → finishing-a-development-branch → handoff
+```text
+Recommended phase: <A|B|C|D>
+Internal state: <explore|define|design|slice|ready|implement|diagnose|verify|review|ship|handoff>
+Evidence: <brief state, repository, and request signals>
+Next capability: <Matt Pocock skill or native Octowiz operation>
+Human gate: <decision required or none>
 ```
 
-Wait for the user to choose before proceeding.
-
----
-
-## Phase routing
-
-### Option A — Fresh idea
-
-Invoke in sequence, waiting for each to complete before moving to the next.
-
-1. `/superpowers:brainstorming` — explore the idea space, surface hidden requirements,
-   produce a written spec. Ends by invoking writing-plans.
-2. `/mattpocock-skills:grill-with-docs` — **only** if the codebase has CONTEXT.md or
-   docs/adr/ entries. Challenges the plan against the existing domain model and
-   sharpens terminology.
-3. `/mattpocock-skills:to-prd` — synthesise the brainstorming output into a formal PRD
-   on the issue tracker. Pure synthesis — does not interview.
-4. `/superpowers:writing-plans` — may already have run at the end of brainstorming;
-   run standalone if not.
-5. `/mattpocock-skills:to-issues` — break the PRD into independently-grabbable vertical
-   slice issues using tracer-bullet slicing.
-6. `/mattpocock-skills:triage` — classify issues as HITL or AFK, write agent briefs for
-   AFK tasks.
-
-### Option B — Stress-test a plan
-
-For when the developer arrives with a plan already formed and wants rigorous challenge
-before committing to implementation.
-
-1. `/mattpocock-skills:grill-me` — relentless one-question-at-a-time interview until
-   every branch of the decision tree is resolved.
-2. `/mattpocock-skills:to-prd` — synthesise the grilled plan into a formal PRD.
-3. `/superpowers:writing-plans` — implementation task breakdown.
-4. `/mattpocock-skills:to-issues` — vertical slice issues on the tracker.
-5. `/mattpocock-skills:triage` — HITL/AFK classification and agent briefs.
-
-### Option C — Ready to implement
-
-1. `/superpowers:using-git-worktrees` — isolated workspace before touching any code.
-2. `/superpowers:test-driven-development` — TDD discipline and structure.
-   Also invoke `/mattpocock-skills:tdd` for the technical depth it adds: deep modules,
-   mocking only at system boundaries, interface design for testability.
-   These two skills complement each other — use both, not one instead of the other.
-3. `/superpowers:executing-plans` — execute the written plan with review checkpoints.
-   Use `/superpowers:subagent-driven-development` if you want fresh subagents per task.
-
-Available on demand during implementation:
-- `/mattpocock-skills:prototype` — throwaway exploration for logic or UI questions
-  before committing to an approach.
-- `/mattpocock-skills:diagnose` — disciplined debugging: reproduce → minimise →
-  hypothesise → instrument → fix → regression-test.
-
-### Option D — Need review
-
-1. `/mattpocock-skills:zoom-out` — step back, understand broader context before
-   reviewing. Prevents narrow-context review mistakes.
-2. `/mattpocock-skills:improve-codebase-architecture` — optional; surface when
-   architecture concerns emerge during review.
-3. `/superpowers:requesting-code-review` — formal review request with full context
-   package.
-4. `/superpowers:receiving-code-review` — process review feedback systematically.
-5. `/superpowers:verification-before-completion` — evidence-before-assertions gate.
-   Must pass before claiming work done or opening a PR.
-6. `/superpowers:finishing-a-development-branch` — structured merge/PR/cleanup
-   decision.
-7. `/mattpocock-skills:handoff` — compact context transfer to next session or agent.
-
----
-
-## Doctrine reference
-
-Key principles from the operating memories (used when memory fetch fails or as
-a reminder):
-
-- **Context smart zone** — keep context windows small; split large work into focused
-  tasks. A large context window is a liability, not an asset.
-- **HITL vs AFK** — alignment and product decisions stay human-in-the-loop. Only
-  well-scoped, testable, dependency-resolved tasks go AFK.
-- **Tracer bullets** — prefer thin vertical slices over horizontal layers. The first
-  slice should cross schema, service, and UI together.
-- **TDD** — write the failing test before the implementation. Always.
-- **Fresh context review** — never review in the same context window used for
-  implementation. Open a new window, re-read the spec cold.
-- **Deep modules** — design interfaces that are narrow on the outside and rich on the
-  inside. If the implementation bleeds into the call site, the boundary is wrong.
+Prefer the shortest valid workflow. A bug may route directly to diagnosis, implementation, lean review, and verification without passing through planning phases.

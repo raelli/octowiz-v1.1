@@ -1,335 +1,116 @@
 ---
 name: setup
 description: >
-  Setup orchestrator for the Octowiz Bridge. Re-runs the live environment check,
-  builds a gap list, and runs only the phases needed: plugins, memory, repo, verify.
-  Invoked automatically by octowiz:octowiz when hard gaps are detected.
+  Configure Octowiz with a Matt Pocock-first workflow and an ephemeral local runtime.
+  Use when Octowiz is installed for the first time, when required configuration is
+  missing, or when migrating from the legacy launchd/systemd and Superpowers setup.
 ---
 
-# octowiz:setup
-
-Setup orchestrator for the Octowiz Bridge. Runs only the phases with gaps.
-
-## When invoked
-
-Invoked by `octowiz:octowiz` when the live check reports gaps. Do not invoke directly.
-
-## Pre-flight: run the live check
-
-```bash
-octowiz-cache check
-```
-
-Parse the JSON output. Store `hard_gaps` and `advisory_gaps`.
-
-If `hard_gaps` is empty: delete `ONBOARDING.md` from the current directory if it exists, then return control to `octowiz:octowiz` to show the A/B/C/D menu.
-
-## Create ONBOARDING.md
-
-If `.octowiz/setup-state.json` does not exist in the current directory, create `ONBOARDING.md`:
-
-```markdown
 # Octowiz Setup
 
-## Environment (per-machine)
-- [STATUS] superpowers plugin
-- [STATUS] mattpocock-skills plugin
-- [STATUS] antfu-skills plugin
-- [STATUS] LiteLLM env vars (LITELLM_BASE_URL + API key)
-- [STATUS] LiteLLM routing cache (verified within 24h)
-- [STATUS] Project namespace seeded in LiteLLM Memory
+Configure only what the current machine and repository need. Never install an operating-system service automatically.
 
-## Project (per-repo)
-- [STATUS] antfu skills setup (if TypeScript/Vue stack)
-- [STATUS] Agent instructions file (AGENTS.md / CLAUDE.md / GEMINI.md)
-- [STATUS] mattpocock-skills section in agent file (## Agent skills)
+## Principles
 
-## Next step
-[What is about to run]
-```
+- Require `mattpocock-skills` for the coding workflow.
+- Do not install or request `superpowers`.
+- Treat `antfu-skills` as optional and repository-specific.
+- Use the ephemeral local supervisor by default.
+- Offer persistent launchd/systemd integration only through an explicit future `octowiz service install` command.
 
-Use `[x]` for passing checks, `[ ]` for gaps, `[!]` for advisory items.
+## 1. Required plugin
 
----
-
-## Phase 1: Plugins
-
-**Run if any of these are in `hard_gaps`:** `plugin_superpowers`, `plugin_mattpocock-skills`, `plugin_antfu-skills`
-
-For each missing plugin, explain what it does and why it is required, then show the install command. Verify after each install.
-
-### superpowers
-
-Provides workflow discipline skills — TDD, brainstorming, code review, git worktrees, subagent-driven development.
+Check for Matt Pocock Skills:
 
 ```bash
-claude plugins install superpowers
+ls ~/.claude/plugins/cache/*/mattpocock-skills/ 2>/dev/null | head -1
 ```
 
-Verify: `ls ~/.claude/plugins/cache/*/superpowers/ 2>/dev/null | head -1`
-
-### mattpocock-skills
-
-Provides domain documentation and issue management skills — grill-with-docs, to-prd, to-issues, triage, diagnose, prototype.
-
-Note: install ID is `mattpocock-skills`; slash-command namespace is `/mattpocock-skills:` — these match.
+When missing:
 
 ```bash
 claude plugins install mattpocock-skills
 ```
 
-Verify: `ls ~/.claude/plugins/cache/*/mattpocock-skills/ 2>/dev/null | head -1`
+## 2. Repository profile
 
-### antfu-skills
+Inspect `package.json`, `pyproject.toml`, workspace files, agent instructions, `CONTEXT.md`, and `docs/adr/`.
 
-Provides TypeScript/Vue/Vite code quality skills — ESLint config, Vitest setup, Vite configuration, UnoCSS integration.
+Only recommend Antfu Skills when the repository actually uses relevant technologies such as Vue, Nuxt, Vite, Vitest, pnpm workspaces, UnoCSS, or VueUse. Its absence must never block Octowiz.
+
+## 3. Matt Pocock repository setup
+
+When an agent instructions file exists but lacks `## Agent skills`, invoke:
+
+```text
+/mattpocock-skills:setup-matt-pocock-skills
+```
+
+Do not create unrelated framework configuration merely to satisfy setup.
+
+## 4. LiteLLM and AELLI
+
+Check the configured gateway and credentials without printing secret values:
 
 ```bash
-claude plugins install antfu-skills
+test -n "$LITELLM_BASE_URL" && echo "LiteLLM URL: set" || echo "LiteLLM URL: missing"
+test -n "${LITELLM_ADMIN_API_KEY:-$LITELLM_API_KEY}" && echo "LiteLLM key: set" || echo "LiteLLM key: missing"
+test -n "$AELLI_AUTH_TOKEN" && echo "AELLI token: set" || echo "AELLI token: missing"
 ```
 
-Verify: `ls ~/.claude/plugins/cache/*/antfu-skills/ 2>/dev/null | head -1`
-
-After all plugins are installed, update `machine-state.json`:
-
-```bash
-python3 -c "
-import sys; sys.path.insert(0, '$(which octowiz-cache | xargs dirname 2>/dev/null || echo .)')
-from packages.memory_client.env import init_machine_state, save_machine_state, MACHINE_STATE_PATH
-state = init_machine_state()
-for pid in ['superpowers', 'mattpocock-skills', 'antfu-skills']:
-    state.plugins[pid] = 'verified'
-save_machine_state(state)
-print('machine-state.json updated')
-"
-```
-
----
-
-## Phase 2: Memory
-
-**Run if any of these are in `hard_gaps`:** `litellm_env`, `litellm_cache`
-**Also run Step 2.4 alone** if hard_gaps has no Memory entries but `setup-state.json` has no `project_id` (i.e. this is the first `/octowiz` run in this repo on a machine already fully configured). Check with:
-
-```bash
-python3 -c "
-from packages.memory_client.env import load_repo_state
-import pathlib
-s = load_repo_state(pathlib.Path('.'))
-print('seeded' if s and s.project_id else 'not-seeded')
-"
-```
-
-If the output is `not-seeded`, skip Steps 2.1–2.3 and run only Step 2.4.
-
-This phase covers all LiteLLM operations in sequence: env vars → role cache → project namespace seed.
-
-### Step 2.1: LiteLLM env vars
-
-If `litellm_env` is in `hard_gaps`, check current state:
-
-```bash
-echo "LITELLM_BASE_URL: ${LITELLM_BASE_URL:-<not set>}"
-echo "LITELLM_ADMIN_API_KEY: ${LITELLM_ADMIN_API_KEY:-<not set>}"
-echo "LITELLM_API_KEY: ${LITELLM_API_KEY:-<not set>}"
-```
-
-Guide the developer to add to `~/.claude/settings.json`:
-
-```json
-{
-  "env": {
-    "LITELLM_BASE_URL": "http://your-litellm-server:4000",
-    "LITELLM_ADMIN_API_KEY": "your-admin-key-here"
-  }
-}
-```
-
-Ask them to reload Claude Code so the env vars take effect, then verify before continuing.
-
-### Step 2.2: Build role bundles
+Build and verify memory bundles when configured:
 
 ```bash
 octowiz-cache build --all --namespace "${OCTOWIZ_NAMESPACE:-allspark}"
+octowiz-cache get --role routing --namespace "${OCTOWIZ_NAMESPACE:-allspark}" >/dev/null
 ```
 
-If this fails, check: Is LiteLLM running? `curl -s "${LITELLM_BASE_URL}/health"`
+## 5. Local runtime
 
-### Step 2.3: Verify routing bundle
+Do not create files under `~/Library/LaunchAgents`, `~/.config/systemd/user`, or `/etc/systemd`.
+
+The Claude Code `SessionStart` hook runs:
 
 ```bash
-octowiz-cache get --role routing --namespace "${OCTOWIZ_NAMESPACE:-allspark}" > /dev/null
+node "$CLAUDE_PLUGIN_ROOT/hooks/scripts/local.js" ensure
 ```
 
-If exit code is 0, record `routing_verified_at`:
+This starts one detached user process only when needed, registers a session lease, and returns immediately. `SessionEnd` releases the lease. The supervisor exits after the configured idle period when no sessions remain.
+
+Check it with:
 
 ```bash
-python3 -c "
-from packages.memory_client.env import init_machine_state, save_machine_state, MACHINE_STATE_PATH, _now_iso
-state = init_machine_state()
-state.litellm['routing_verified_at'] = _now_iso()
-save_machine_state(state)
-print('routing_verified_at recorded')
-"
+curl -s http://127.0.0.1:${OCTOWIZ_LOCAL_PORT:-8764}/health
 ```
 
-### Step 2.4: Seed project namespace
+Relevant settings:
 
-Seed the project namespace into LiteLLM Memory (idempotent — safe to re-run):
+```text
+OCTOWIZ_LOCAL_PORT=8764
+OCTOWIZ_IDLE_TIMEOUT_MS=600000
+OCTOWIZ_A2A_PORT=8765
+```
+
+## 6. Legacy migration
+
+When a legacy LaunchAgent exists, explain the exact removal before acting:
 
 ```bash
-octowiz-cache seed
+launchctl unload ~/Library/LaunchAgents/de.integrahub.octowiz-daemon.plist 2>/dev/null || true
+rm -f ~/Library/LaunchAgents/de.integrahub.octowiz-daemon.plist
 ```
 
-This writes `project:{id}:octowiz:config` and `project:{id}:octowiz:rules` if they do not already exist. The `project_id` is derived from the git remote URL (UUID fallback) and stored in `.octowiz/setup-state.json` for stability across runs.
+Do not remove it without explicit user approval.
 
-If this fails with a connection error, LiteLLM is not reachable. Revisit Steps 2.1 and 2.2 before retrying.
+For Linux, provide equivalent user-service removal instructions only after detecting an existing Octowiz unit.
 
----
+## Completion criteria
 
-## Phase 3: Repo
+Setup passes when:
 
-**Run if any of these are in `hard_gaps` or `advisory_gaps`:** `antfu`, `agent_file`, `mattpo_skills_setup`
+- Matt Pocock Skills are available.
+- required LiteLLM/AELLI configuration for the chosen deployment is available.
+- the repository has been inspected and optional packs are correctly classified.
+- the ephemeral supervisor becomes healthy during a Claude Code session.
 
-### Step 3.1: Scan the repo
-
-```bash
-octowiz-cache check
-```
-
-Also detect manually:
-- Agent file: check for `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` (in that priority order)
-- Stack: check `package.json` for vue/vite/react/typescript; check for `pyproject.toml`
-- Check for `CONTEXT.md` and `docs/adr/`
-
-Update the "Project (per-repo)" section of `ONBOARDING.md` with findings.
-
-### Step 3.2: mattpocock-skills setup
-
-If `mattpo_skills_setup` is in advisory gaps and the agent file exists but has no `## Agent skills` section, invoke:
-
-`/mattpocock-skills:setup-matt-pocock-skills`
-
-If no agent file exists: note in ONBOARDING.md that this step is deferred. Do not create the file.
-
-Update `setup-state.json`:
-
-```bash
-python3 -c "
-from packages.memory_client.env import init_repo_state, save_repo_state
-import pathlib
-state = init_repo_state(pathlib.Path('.'))
-state.mattpocock_setup = True
-save_repo_state(state, pathlib.Path('.'))
-"
-```
-
-### Step 3.3: Antfu setup
-
-**ts_vue or polyglot stack only.**
-
-If agent file exists, detect which antfu sub-skills are relevant from `package.json` and append to `## Agent skills`:
-
-```
-- /antfu-skills:vue    — Vue 3 composition API patterns
-- /antfu-skills:vite   — Vite configuration and build optimization
-- /antfu-skills:vitest — Vitest setup and patterns
-- /antfu-skills:pnpm   — pnpm workspace commands
-- /antfu-skills:unocss — UnoCSS integration
-```
-
-Update `setup-state.json`:
-
-```bash
-python3 -c "
-from packages.memory_client.env import init_repo_state, save_repo_state
-import pathlib
-state = init_repo_state(pathlib.Path('.'))
-state.antfu_setup = True
-state.antfu_relevant = True
-save_repo_state(state, pathlib.Path('.'))
-"
-```
-
-If no agent file exists or stack is not ts_vue/polyglot: note in ONBOARDING.md, set `antfu_relevant = False` if applicable.
-
-### Step 3.4: Flag lazy-creation items
-
-In ONBOARDING.md, note any items that follow lazy-creation:
-
-- `CONTEXT.md` absent: `[!] CONTEXT.md — not present; will be created lazily by /grill-with-docs`
-- `docs/adr/` absent: `[!] docs/adr/ — not present; will be created lazily by /grill-with-docs`
-
-Do NOT create these files now.
-
----
-
-## Phase 4: Verify
-
-Always run last, after all other phases complete.
-
-### Step 4.1: Re-run the live check
-
-```bash
-octowiz-cache check
-```
-
-### Step 4.1b: Background services
-
-Both services self-heal on version skew at session start (Node daemon since
-0.9.17, Python A2A server since 0.9.18) — verify they are up and current:
-
-```bash
-# Node daemon (launchd)
-launchctl list de.integrahub.octowiz-daemon 2>/dev/null || echo "daemon: not loaded"
-
-# Python A2A server — version must match the installed plugin
-curl -s -m 3 "http://localhost:${OCTOWIZ_A2A_PORT:-8765}/health" 2>/dev/null \
-  || echo "a2a: down (starts on next session open)"
-```
-
-If either is missing or stale, route to `/octowiz:octowiz-doctowiz` (fixes
-`daemon_start` and `aelli_python`) rather than fixing inline here.
-
-### Step 4.2: If hard_gaps is empty — setup complete
-
-1. Delete `ONBOARDING.md` from the current directory:
-   ```bash
-   rm -f ONBOARDING.md
-   ```
-2. Report: "Setup complete. All required plugins are installed, LiteLLM Memory is configured and seeded, repo setup is done. Proceeding to the workflow menu."
-3. Return control to `octowiz:octowiz` to show the A/B/C/D menu.
-
-### Step 4.3: If hard_gaps remain — offer escape hatch
-
-Report remaining gaps. For each:
-
-| Gap ID | Message |
-|---|---|
-| `plugin_superpowers` | superpowers plugin not found. Run: `claude plugins install superpowers` |
-| `plugin_mattpocock-skills` | mattpocock-skills plugin not found. Run: `claude plugins install mattpocock-skills` |
-| `plugin_antfu-skills` | antfu-skills plugin not found. Run: `claude plugins install antfu-skills` |
-| `litellm_env` | LITELLM_BASE_URL or API key not set. Add to `~/.claude/settings.json` under `"env"`. |
-| `litellm_cache` | LiteLLM routing bundle not verified. Run: `octowiz-cache build --all` |
-| `antfu` | Antfu setup needed for this TypeScript/Vue project. Re-run Phase 3. |
-
-Offer the escape hatch:
-
-> "Setup is incomplete. You can skip this and proceed anyway — but some features may not work.
->
-> To skip a specific check: respond with the check ID (e.g., `litellm_env`).
-> To skip all and proceed: respond `skip all`.
-> To fix: respond `fix`."
-
-To dismiss a check:
-
-```bash
-python3 -c "
-from packages.memory_client.env import dismiss_check, MACHINE_STATE_PATH
-import pathlib
-dismiss_check('<check_id>', pathlib.Path('.'), MACHINE_STATE_PATH)
-print('check dismissed')
-"
-```
-
-Advisory gaps (`agent_file`, `mattpo_skills_setup`) are noted but do not block Phase 4 from passing.
+Antfu Skills, a persistent OS service, and Superpowers are not completion criteria.
