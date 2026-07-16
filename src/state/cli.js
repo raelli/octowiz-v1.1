@@ -260,9 +260,17 @@ const COMMANDS = {
   'next': (argv, cwd) => {
     const { values } = parse(argv)
     const doc = store.read(cwd)
-    const next = resolveNextAction(doc, { cwd })
+    let registry = null
+    try {
+      const { loadRegistry } = require('../capabilities/registry')
+      registry = loadRegistry()
+    }
+    catch {
+      // Registry unavailable — resolution will be skipped
+    }
+    const next = resolveNextAction(doc, { cwd, registry })
     const human = next.capability
-      ? `next: ${next.capability}${next.humanGate ? ' (human gate)' : ''}\nreason: ${next.reason}`
+      ? `next: ${next.capability}${next.humanGate ? ' (human gate)' : ''}${next.resolved ? `\nresolved: ${next.resolved.provider}:${next.resolved.command}` : ''}\nreason: ${next.reason}`
       : `no next action — ${next.reason}`
     return { values, data: next, human }
   },

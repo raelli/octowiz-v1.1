@@ -11,12 +11,38 @@ function evidenceSatisfied(group) {
 }
 
 /**
+ * Attempt to resolve a capability name through the registry. Returns null
+ * when no registry is in context or no resolver qualifies.
+ * @param {string|null} capabilityName
+ * @param {object} context
+ * @returns {{ provider: string, command: string }|null}
+ */
+function tryResolve(capabilityName, context) {
+  if (!capabilityName || !context.registry)
+    return null
+  const { resolveWithConditions } = require('../capabilities/registry')
+  const resolved = resolveWithConditions(context.registry, capabilityName, context.cwd || process.cwd())
+  if (!resolved)
+    return null
+  return { provider: resolved.provider, command: resolved.command }
+}
+
+/**
  * @param {object} doc valid state document
  * @param {object} [context]
  * @param {string} [context.cwd] repository root, enables observed checks
- * @returns {{ capability: string | null, reason: string, humanGate: boolean }} the recommendation
+ * @param {object} [context.registry] validated capability registry document
+ * @returns {{ capability: string | null, reason: string, humanGate: boolean, resolved?: { provider: string, command: string } }} the recommendation
  */
 function resolveNextAction(doc, context = {}) {
+  const result = computeNextAction(doc, context)
+  const resolved = tryResolve(result.capability, context)
+  if (resolved)
+    return { ...result, resolved }
+  return result
+}
+
+function computeNextAction(doc, context) {
   if (doc.state === 'blocked') {
     return {
       capability: 'human-decision',
