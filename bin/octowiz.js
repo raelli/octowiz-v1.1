@@ -16,7 +16,12 @@ if (group === 'capability') {
   process.exit(runCapability(rest))
 }
 
-const { USAGE } = require('../src/state/cli')
-
-console.error(`usage: octowiz <group> [command]\n\ngroups:\n  state        persistent engineering state\n  capability   capability registry resolution\n\n${USAGE}`)
-process.exit(group ? 1 : 0)
+if (group === 'runtime') {
+  const { runRuntime } = require('../src/runtimes/cli')
+  runRuntime(rest).then(code => process.exit(code))
+}
+else {
+  const { USAGE } = require('../src/state/cli')
+  console.error(`usage: octowiz <group> [command]\n\ngroups:\n  state        persistent engineering state\n  capability   capability registry resolution\n  runtime      runtime adapter management\n\n${USAGE}`)
+  process.exit(group ? 1 : 0)
+}
