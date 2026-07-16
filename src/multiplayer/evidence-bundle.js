@@ -4,8 +4,8 @@
 // tie engineering evidence to a specific commit and session. Optional
 // HMAC-SHA256 signing when a key is configured.
 
-const crypto = require('node:crypto')
 const { execFileSync } = require('node:child_process')
+const crypto = require('node:crypto')
 
 const BUNDLE_VERSION = '0.1'
 const SIGNATURE_ALGORITHM = 'hmac-sha256'
