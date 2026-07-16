@@ -163,26 +163,36 @@ GitHub PR creation, merge preparation, branch cleanup, and worktree management a
 
 ## Persistent engineering state
 
-The target canonical local files are:
+The canonical local files are:
 
 ```text
-.octowiz/state.json
-.octowiz/events.jsonl
+.octowiz/state.json      # durable snapshot — may be committed
+.octowiz/events.jsonl    # append-only ledger — may be committed
 ```
 
-Until deterministic state commands exist, do not invent or silently rewrite these files. When they are present, validate their schema and use them as the continuity layer. When absent, infer state conservatively and state which facts are inferred.
+Deterministic state commands exist. Always mutate state through them — never edit `state.json` directly:
 
-State should contain at minimum:
+```bash
+octowiz state show --json          # read current truth (start of every session)
+octowiz state next --json          # deterministic next-action recommendation
+octowiz state set-goal <goal>
+octowiz state link-artifact --type issue --id <id>
+octowiz state ask <question> / resolve-question <id> --answer <a>
+octowiz state decide <statement> --reason <r>
+octowiz state add-criterion <text> / criterion <id> --status passed --evidence <ref>
+octowiz state lean --rung <rung> --decision <d> --reject <alt>
+octowiz state evidence <tests|lint|types|review|ship> <status> --ref <ref>
+octowiz state transition <state> [--expected-revision <n>]
+```
 
-- repository identity and observed revision
-- phase and internal workflow state
-- goal and primary artifact
-- decisions and open questions
-- acceptance criteria
-- lean-gate outcome
-- evidence status
-- next capability and human gate
-- active sessions or task leases
+Rules:
+
+- When state exists, it is the continuity layer: read it before inferring anything from chat history.
+- When absent, offer `octowiz state init`; until then, infer conservatively and say which facts are inferred.
+- Pass `--expected-revision` when acting on a previously read state so concurrent sessions conflict loudly instead of overwriting each other.
+- Transitions are guarded and fail closed with the exact unmet preconditions; fix the preconditions, do not route around the guard. Waivers always need a reason.
+- Machine-local facts (sessions, PIDs, leases) live outside the repository in `~/.cache/octowiz/<repository-id>/runtime.json` and never belong in `state.json`.
+- Never write secrets, tokens, or absolute local paths into goals, decisions, or evidence refs — the store rejects them.
 
 A completion claim without matching evidence remains unverified.
 
@@ -198,7 +208,7 @@ Before invoking a skill, state:
 
 ```text
 Recommended phase: <A|B|C|D>
-Internal state: <explore|define|design|slice|ready|implement|diagnose|verify|review|ship|handoff>
+Internal state: <explore|define|plan|implement|diagnose|verify|review|blocked|ready-to-ship|shipped>
 Evidence: <brief state, repository, and request signals>
 Next capability: <Matt Pocock skill or native Octowiz operation>
 Human gate: <decision required or none>

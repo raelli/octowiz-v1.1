@@ -2,7 +2,15 @@
 
 ## Status
 
-Proposed next architectural milestone after the v1.1 runtime reset.
+**Milestones 1 and 2 are implemented** (schema + local store, minimal hook integration). The implementation lives in `src/state/` with the CLI at `bin/octowiz.js` (`octowiz state ...`); this document remains the architectural reference for the milestones that follow.
+
+Implementation deltas against the proposal below:
+
+- The internal state list shipped smaller than the illustrative table: `explore, define, plan, implement, diagnose, verify, review, blocked, ready-to-ship, shipped`. `design/slice/ready` collapse into `plan`; `ship/handoff` became `ready-to-ship/shipped`.
+- `blocked` remembers its origin in `blockedFrom` and can only return there.
+- Session data (the `sessions` array in the canonical example) was **removed from repository state entirely** — it lives in the machine-local runtime store at `~/.cache/octowiz/<repository-id>/runtime.json`, together with PIDs, leases, and absolute paths. Repository state is validated to reject all machine-specific data.
+- `repository` keeps only the machine-independent `id`; `root`, `branch`, and `head` are observed facts, not persisted state.
+- Milestones 3–5 (workflow routing from state, remote projection, multiplayer) remain future work.
 
 The next major step for Octowiz is not another agent, skill pack, or routing layer. It is a durable engineering-state model that survives sessions and gives every human or agent the same operational truth.
 

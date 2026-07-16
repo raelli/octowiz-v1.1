@@ -31,6 +31,23 @@ async function handleStop(input) {
 
   killSubscriber(sessionId)
 
+  // Release the machine-local runtime lease. Durable engineering state is
+  // deliberately untouched: a session ending never marks work complete.
+  // Spawn-free like start.js: identity from the state file, else the
+  // directory name — the same derivation registration used.
+  try {
+    const runtime = require('../../src/state/runtime')
+    const store = require('../../src/state/store')
+    const cwd = input.cwd || process.cwd()
+    const repositoryId = store.exists(cwd)
+      ? store.read(cwd).repository.id
+      : `local:${path.basename(path.resolve(cwd))}`
+    runtime.releaseSession(repositoryId, sessionId)
+  }
+  catch (error) {
+    logger.warn('[octowiz - stop] runtime lease release failed:', error?.message ?? error)
+  }
+
   const ctx = getStableContext(sessionId)
 
   // Notify AELLI — advisory history, telemetry, and MemPalace session-end cleanup

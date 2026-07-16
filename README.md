@@ -162,45 +162,78 @@ LiteLLM / AELLI
 
 The Node layer owns trusted local policy and queue handling. The Python A2A application exposes richer agent capabilities. AELLI remains the intelligence and orchestration plane, while Octowiz is its engineering tentacle on the developer machine.
 
-## Next milestone: persistent engineering state
+## Persistent engineering state
 
-The next major architectural step is not more skills or more agents. Octowiz needs a durable state model that survives sessions and makes intent, decisions, criteria, execution, and evidence explicit.
+Octowiz keeps a durable, machine-independent record of what a repository's engineering work is actually doing — goal, internal workflow state, decisions, open questions, acceptance criteria, lean-gate outcome, and verification evidence. It survives session termination and is the shared operational truth for humans, coding agents, and (later) AELLI.
 
-Target local files:
+> The state model is the product. Skills, agents, hooks, and runtimes are adapters around it.
+
+### Two stores, one hard boundary
+
+| | Repository state | Machine runtime state |
+|---|---|---|
+| Location | `.octowiz/state.json` + `.octowiz/events.jsonl` | `~/.cache/octowiz/<repository-id>/runtime.json` |
+| Content | goal, state, decisions, criteria, lean gate, evidence, revision | sessions, PIDs, leases, heartbeats, local paths |
+| Committed | may be committed (default: yes) | never — lives outside the repository |
+| Written by | the `octowiz state` CLI only | session hooks |
+
+Repository state must never contain secrets, tokens, PIDs, ports, session IDs, or machine-local absolute paths — every write is validated against these rules and rejected on violation. `OCTOWIZ_RUNTIME_DIR` overrides the runtime location.
+
+### CLI
+
+```bash
+octowiz state init                                  # create .octowiz/state.json + first ledger event
+octowiz state show [--json]                         # current state (all commands support --json)
+octowiz state validate                              # schema + ledger check
+octowiz state set-goal "persistent state"
+octowiz state link-artifact --type issue --id issue-42
+octowiz state ask "commit the ledger by default?"   # open a (blocking) question
+octowiz state decide "state.json is canonical"      # record an accepted decision
+octowiz state add-criterion "state survives sessions"
+octowiz state criterion <id> --status passed --evidence "jest suite"
+octowiz state lean --rung reuse-existing-code --decision "..." --reject "..."
+octowiz state evidence tests passed --ref "jest: 23 suites"
+octowiz state transition implement [--expected-revision 12]
+octowiz state next                                  # deterministic next-action recommendation
+octowiz state history [--limit 20]                  # ledger events
+octowiz state repair                                # backup-first recovery of a broken state file
+```
+
+Agents mutate state through these commands, never by editing `state.json` directly.
+
+### Internal state machine
+
+A/B/C/D stays the human-facing vocabulary. Internally, work moves through explicit, guarded transitions:
 
 ```text
-.octowiz/state.json
-.octowiz/events.jsonl
+explore -> define -> plan -> implement -> verify -> review -> ready-to-ship -> shipped
+                                 ^  \                    /
+                                 |   \-> diagnose ------/   (verify/review can return to implement)
+any active state <-> blocked (returns only to where it was)
 ```
 
-Illustrative state:
+Guards fail closed with the exact unmet preconditions: `plan -> implement` needs a goal, an artifact (or explicit waiver), a criterion, and no blocking questions; `verify -> review` needs tests/lint/types passed or waived with a reason; `ready-to-ship -> shipped` needs completion evidence. Every waiver requires a reason.
 
-```json
-{
-  "phase": "implementation",
-  "goal": "ephemeral local supervisor",
-  "artifact": "issue-42",
-  "decisions": [
-    "no automatic OS service"
-  ],
-  "acceptanceCriteria": [
-    "session leases",
-    "idle shutdown",
-    "foreign port safety"
-  ],
-  "evidence": {
-    "tests": "passed",
-    "lint": "passed",
-    "review": "pending"
-  }
-}
-```
+### Storage guarantees
 
-The full proposal defines schema boundaries, state transitions, an append-only event ledger, optimistic concurrency, evidence invariants, lean-gate integration, privacy constraints, CLI targets, and delivery milestones:
+- **Atomic writes** — the snapshot is only ever replaced by temp-file + rename; partial JSON cannot reach `state.json`.
+- **Optimistic concurrency** — every mutation increments `revision`; `--expected-revision` turns stale writes into explicit conflicts instead of silent overwrites.
+- **Append-only ledger** — every successful mutation appends one compact event to `events.jsonl`; a failed append rolls the snapshot back so the two never diverge. `state.json` is the canonical snapshot; the ledger is audit and future reconstruction.
+- **Corruption safety** — a broken file is reported with its exact path and preserved, never rebuilt silently; `octowiz state repair` backs it up first, then recreates a valid state continuing the ledger's revision sequence.
+- **No downgrades** — a state file from a newer schema version is refused, not rewritten.
 
-- [`docs/engineering-state-model.md`](docs/engineering-state-model.md)
+### Git behavior
 
-This state layer is intended to become the foundation for cross-session continuity, runtime independence, multiplayer worktrees, safe autonomous execution, and deterministic handoff.
+`state.json` and `events.jsonl` may be committed (this repository's `.gitignore` un-ignores exactly those two files; everything else under `.octowiz/` — locks, temp files, repair backups — stays ignored). The CLI warns if a machine-local `runtime.json` ever appears inside the repository. Octowiz does not modify `.gitignore` on its own.
+
+### Known limitations
+
+- The ledger is not yet replayable into a full snapshot; repair produces a fresh valid state, not a reconstruction.
+- The activity guard for `implement -> verify` observes working-tree changes; fully committed work needs `--waive-activity-check --reason`.
+- Locking is per-machine (lock file + revision checks); cross-machine coordination is out of scope until remote synchronization exists.
+- AELLI synchronization is deliberately postponed: the local single-repository model must prove itself before a remote projection layer earns its complexity. Remote proposals must never silently rewrite local evidence.
+
+The full model — domain boundaries, transition contract, event model, privacy rules, delivery milestones — lives in [`docs/engineering-state-model.md`](docs/engineering-state-model.md).
 
 ## Setup
 

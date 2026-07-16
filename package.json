@@ -13,8 +13,12 @@
     "mattpocock"
   ],
   "main": "index.js",
+  "bin": {
+    "octowiz": "bin/octowiz.js"
+  },
   "files": [
     "apps/",
+    "bin/",
     "hooks/",
     "index.js",
     "src/"
