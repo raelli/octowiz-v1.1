@@ -39,7 +39,7 @@ const EVENT_TYPES = [
 
 /**
  * @typedef {object} TaskResult
- * @property {'completed'|'failed'|'deferred'|'human-gate'} status
+ * @property {'completed'|'failed'|'deferred'|'human-gate'} status - outcome of the task
  * @property {object} [evidence] - machine-readable output (test results, lint output, etc.)
  * @property {string} [summary] - human-readable summary of what happened
  * @property {string[]} [artifacts] - file paths or URLs produced
@@ -69,7 +69,7 @@ const EVENT_TYPES = [
 /**
  * Validate a TaskEnvelope. Returns issues array (empty = valid).
  * @param {*} envelope
- * @returns {string[]}
+ * @returns {string[]} validation issues (empty = valid)
  */
 function validateTaskEnvelope(envelope) {
   const issues = []
@@ -101,7 +101,7 @@ function validateTaskEnvelope(envelope) {
 /**
  * Validate a TaskResult. Returns issues array (empty = valid).
  * @param {*} result
- * @returns {string[]}
+ * @returns {string[]} validation issues (empty = valid)
  */
 function validateTaskResult(result) {
   const issues = []
@@ -136,7 +136,7 @@ function validateTaskResult(result) {
 /**
  * Validate an OctowizEvent. Returns issues array (empty = valid).
  * @param {*} event
- * @returns {string[]}
+ * @returns {string[]} validation issues (empty = valid)
  */
 function validateEvent(event) {
   const issues = []
@@ -166,7 +166,7 @@ function validateEvent(event) {
 /**
  * Validate a RuntimeStatus. Returns issues array (empty = valid).
  * @param {*} status
- * @returns {string[]}
+ * @returns {string[]} validation issues (empty = valid)
  */
 function validateRuntimeStatus(status) {
   const issues = []
@@ -193,7 +193,7 @@ function validateRuntimeStatus(status) {
 /**
  * Create a TaskEnvelope with defaults.
  * @param {object} fields
- * @returns {TaskEnvelope}
+ * @returns {TaskEnvelope} the task envelope
  */
 function createTaskEnvelope(fields) {
   return {
@@ -210,7 +210,7 @@ function createTaskEnvelope(fields) {
  * Create a TaskResult.
  * @param {'completed'|'failed'|'deferred'|'human-gate'} status
  * @param {object} [fields]
- * @returns {TaskResult}
+ * @returns {TaskResult} the task result
  */
 function createTaskResult(status, fields = {}) {
   return {
@@ -226,7 +226,7 @@ function createTaskResult(status, fields = {}) {
  * Create an OctowizEvent.
  * @param {string} type
  * @param {object} fields
- * @returns {OctowizEvent}
+ * @returns {OctowizEvent} the event envelope
  */
 function createEvent(type, fields) {
   return {

@@ -35,7 +35,7 @@ function parse(argv, options = {}) {
 
 /**
  * Create the default registry with all known adapters.
- * @returns {import('./registry').RuntimeRegistry}
+ * @returns {import('./registry').RuntimeRegistry} the populated registry
  */
 function createDefaultRegistry() {
   const registry = createRegistry()

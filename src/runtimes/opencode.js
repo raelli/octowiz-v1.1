@@ -16,7 +16,7 @@ const net = require('node:net')
  * @param {string} [options.host] OpenCode process host (default: '127.0.0.1')
  * @param {number} [options.port] OpenCode API port (default: OPENCODE_PORT or 9100)
  * @param {number} [options.timeoutMs] connection probe timeout (default: 1000)
- * @returns {import('./adapter').RuntimeAdapter}
+ * @returns {import('./adapter').RuntimeAdapter} the OpenCode runtime adapter stub
  */
 function createOpenCodeAdapter(options = {}) {
   const host = options.host ?? '127.0.0.1'

@@ -19,7 +19,7 @@ const http = require('node:http')
  * @param {number} [options.port] supervisor port (default: OCTOWIZ_LOCAL_PORT or 8764)
  * @param {number} [options.timeoutMs] HTTP timeout for health checks (default: 2000)
  * @param {string} [options.repositoryId] repository id for runtime store queries
- * @returns {import('./adapter').RuntimeAdapter}
+ * @returns {import('./adapter').RuntimeAdapter} the Claude Code runtime adapter
  */
 function createClaudeCodeAdapter(options = {}) {
   const host = options.host ?? '127.0.0.1'
