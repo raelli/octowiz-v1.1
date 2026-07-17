@@ -1,6 +1,6 @@
 {
   "name": "octowiz",
-  "description": "Octowiz Engineering Control Plane — Matt Pocock-first workflow routing, A2A bridge, and ephemeral local execution.",
+  "description": "Octowiz Engineering Control Plane — Matt Pocock-first workflow routing, executable coding doctrine, A2A bridge, and ephemeral local execution.",
   "version": "1.1.0-alpha.1",
   "author": {
     "name": "IntegraHub",
@@ -15,11 +15,13 @@
     "integrahub",
     "memory",
     "workflow",
+    "coding-doctrine",
     "a2a",
     "engineering-control-plane"
   ],
   "skills": [
     "./skills/octowiz-workflow",
+    "./skills/octowiz-engineering-doctrine",
     "./skills/octowiz-setup",
     "./skills/octowiz-doctowiz"
   ],
