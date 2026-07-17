@@ -15,7 +15,8 @@ function makeGitRepo() {
   fs.writeFileSync(path.join(dir, 'base.txt'), 'base\n')
   execFileSync('git', ['-C', dir, 'add', '.'])
   execFileSync('git', ['-C', dir, 'commit', '-m', 'init', '-q'])
-  return dir
+  const baseBranch = execFileSync('git', ['-C', dir, 'rev-parse', '--abbrev-ref', 'HEAD'], { encoding: 'utf8' }).trim()
+  return { dir, baseBranch }
 }
 
 describe('conflict detector', () => {
@@ -130,8 +131,13 @@ describe('conflict detector', () => {
 
 describe('findOverlappingFiles', () => {
   let repo
+  let baseBranch
 
-  beforeEach(() => { repo = makeGitRepo() })
+  beforeEach(() => {
+    const created = makeGitRepo()
+    repo = created.dir
+    baseBranch = created.baseBranch
+  })
   afterEach(() => { fs.rmSync(repo, { recursive: true, force: true }) })
 
   it('finds files modified in both branches', () => {
@@ -142,8 +148,8 @@ describe('findOverlappingFiles', () => {
     execFileSync('git', ['-C', repo, 'add', '.'])
     execFileSync('git', ['-C', repo, 'commit', '-m', 'b1', '-q'])
 
-    // Create branch2 from main with overlapping change
-    execFileSync('git', ['-C', repo, 'checkout', 'main', '-q'])
+    // Create branch2 from the repo default branch with overlapping change
+    execFileSync('git', ['-C', repo, 'checkout', baseBranch, '-q'])
     execFileSync('git', ['-C', repo, 'checkout', '-b', 'branch2', '-q'])
     fs.writeFileSync(path.join(repo, 'shared.txt'), 'branch2\n')
     fs.writeFileSync(path.join(repo, 'only2.txt'), 'only2\n')
