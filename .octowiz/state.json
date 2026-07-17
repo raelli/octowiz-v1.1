@@ -19,9 +19,18 @@
       "id": "q-066b3d4b",
       "question": "Should Stage 3 Sessions 3.2-3.4 gaps found in review (disable-provider enabled:false not implemented; when-clause and/or/not composability not wired into registry resolution; resolved:null vs omitted-key inconsistency between capability-resolve and state-next CLIs; has-typescript condition ignores .ts-file-present branch) become separate GitHub issues, or should the 'capability resolution' goal be narrowed to Session 3.1 scope only (already fully verified)?",
       "blocking": false,
+      "status": "resolved",
+      "answer": "Superseded — reopened as a blocking question (was incorrectly opened non-blocking; a PR reviewer flagged that this let 'octowiz state next' route to handoff-or-ship despite unresolved scope)",
+      "openedAt": "2026-07-17T11:19:50.740Z",
+      "resolvedAt": "2026-07-17T11:35:45.288Z"
+    },
+    {
+      "id": "q-1c2237af",
+      "question": "Should Stage 3 Sessions 3.2-3.4 gaps found in review (disable-provider enabled:false not implemented; when-clause and/or/not composability not wired into registry resolution; resolved:null vs omitted-key inconsistency between capability-resolve and state-next CLIs; has-typescript condition ignores .ts-file-present branch) become separate GitHub issues, or should the 'capability resolution' goal be narrowed to Session 3.1 scope only (already fully verified)?",
+      "blocking": true,
       "status": "open",
       "answer": null,
-      "openedAt": "2026-07-17T11:19:50.740Z",
+      "openedAt": "2026-07-17T11:35:45.335Z",
       "resolvedAt": null
     }
   ],
@@ -140,7 +149,7 @@
     "reason": null,
     "humanGate": false
   },
-  "revision": 23,
+  "revision": 25,
   "createdAt": "2026-07-16T02:36:29.058Z",
-  "updatedAt": "2026-07-17T11:19:50.740Z"
+  "updatedAt": "2026-07-17T11:35:45.335Z"
 }
