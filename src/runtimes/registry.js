@@ -11,7 +11,7 @@ const { assertValidAdapter } = require('./adapter')
  * Create a new RuntimeRegistry instance. Each registry is independent
  * (no global state), making it testable and composable.
  *
- * @returns {RuntimeRegistry}
+ * @returns {RuntimeRegistry} the new registry
  */
 function createRegistry() {
   /** @type {Map<string, import('./adapter').RuntimeAdapter>} */
@@ -41,7 +41,7 @@ function createRegistry() {
   /**
    * Get a registered adapter by id.
    * @param {string} id
-   * @returns {import('./adapter').RuntimeAdapter|null}
+   * @returns {import('./adapter').RuntimeAdapter|null} the adapter, or null if not registered
    */
   function get(id) {
     return adapters.get(id) ?? null
@@ -49,7 +49,7 @@ function createRegistry() {
 
   /**
    * List all registered adapter ids.
-   * @returns {string[]}
+   * @returns {string[]} registered adapter ids
    */
   function ids() {
     return [...adapters.keys()]
@@ -60,8 +60,8 @@ function createRegistry() {
    * Probes are run concurrently with a timeout.
    *
    * @param {object} [options]
-   * @param {number} [options.timeoutMs=3000] max ms to wait per probe
-   * @returns {Promise<import('./adapter').RuntimeAdapter[]>}
+   * @param {number} [options.timeoutMs] max ms to wait per probe (default: 3000)
+   * @returns {Promise<import('./adapter').RuntimeAdapter[]>} adapters that are currently available
    */
   async function getAvailableRuntimes({ timeoutMs = 3000 } = {}) {
     const entries = [...adapters.values()]
@@ -95,8 +95,8 @@ function createRegistry() {
    *
    * @param {string} [preference] preferred runtime id
    * @param {object} [options]
-   * @param {number} [options.timeoutMs=3000] availability probe timeout
-   * @returns {Promise<import('./adapter').RuntimeAdapter|null>}
+   * @param {number} [options.timeoutMs] availability probe timeout (default: 3000)
+   * @returns {Promise<import('./adapter').RuntimeAdapter|null>} the selected runtime, or null if none available
    */
   async function selectRuntime(preference, options = {}) {
     // Fast path: if preference exists and is available, return it directly
@@ -129,7 +129,7 @@ function createRegistry() {
 
   /**
    * Number of registered adapters.
-   * @returns {number}
+   * @returns {number} adapter count
    */
   function size() {
     return adapters.size

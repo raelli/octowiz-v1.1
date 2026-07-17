@@ -10,12 +10,12 @@ const DEFAULT_LEASE_DURATION_MS = 300_000 // 5 minutes
 
 /**
  * @typedef {object} Lease
- * @property {string} taskId
- * @property {string} sessionId
+ * @property {string} taskId - id of the leased task
+ * @property {string} sessionId - id of the session holding the lease
  * @property {string} token - opaque lease token for renewal/release
  * @property {string} grantedAt - ISO-8601
  * @property {string} expiresAt - ISO-8601
- * @property {'active'|'expired'|'released'} status
+ * @property {'active'|'expired'|'released'} status - current lease status
  */
 
 /**
@@ -23,7 +23,7 @@ const DEFAULT_LEASE_DURATION_MS = 300_000 // 5 minutes
  *
  * @param {object} [options]
  * @param {number} [options.leaseDurationMs] default lease duration
- * @returns {TaskLeaseManager}
+ * @returns {TaskLeaseManager} the task lease manager
  */
 function createTaskLeaseManager({ leaseDurationMs = DEFAULT_LEASE_DURATION_MS } = {}) {
   /** @type {Map<string, Lease>} taskId → lease */
@@ -44,7 +44,7 @@ function createTaskLeaseManager({ leaseDurationMs = DEFAULT_LEASE_DURATION_MS } 
    * @param {string} sessionId
    * @param {object} [options]
    * @param {number} [options.durationMs] custom lease duration
-   * @returns {{ ok: true, token: string, expiresAt: string } | { ok: false, reason: string, owner: string }}
+   * @returns {{ ok: true, token: string, expiresAt: string } | { ok: false, reason: string, owner: string }} the claim result
    */
   function claim(taskId, sessionId, { durationMs } = {}) {
     const existing = leases.get(taskId)
@@ -85,7 +85,7 @@ function createTaskLeaseManager({ leaseDurationMs = DEFAULT_LEASE_DURATION_MS } 
    * @param {string} token
    * @param {object} [options]
    * @param {number} [options.durationMs] custom renewal duration
-   * @returns {{ ok: true, token: string, expiresAt: string } | { ok: false, reason: string }}
+   * @returns {{ ok: true, token: string, expiresAt: string } | { ok: false, reason: string }} the renewal result
    */
   function renew(token, { durationMs } = {}) {
     for (const lease of leases.values()) {
@@ -123,7 +123,7 @@ function createTaskLeaseManager({ leaseDurationMs = DEFAULT_LEASE_DURATION_MS } 
   /**
    * Get the active lease for a task.
    * @param {string} taskId
-   * @returns {Lease|null}
+   * @returns {Lease|null} the active lease, or null if none
    */
   function getLease(taskId) {
     const lease = leases.get(taskId)
@@ -137,7 +137,7 @@ function createTaskLeaseManager({ leaseDurationMs = DEFAULT_LEASE_DURATION_MS } 
 
   /**
    * Get all active leases.
-   * @returns {Lease[]}
+   * @returns {Lease[]} all active leases
    */
   function activeLeases() {
     const result = []

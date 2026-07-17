@@ -15,7 +15,7 @@ const http = require('node:http')
  * @param {object} [options]
  * @param {string} [options.apiUrl] Daytona API base URL (default: DAYTONA_API_URL or http://localhost:3986)
  * @param {number} [options.timeoutMs] HTTP probe timeout (default: 2000)
- * @returns {import('./adapter').RuntimeAdapter}
+ * @returns {import('./adapter').RuntimeAdapter} the Daytona runtime adapter stub
  */
 function createDaytonaAdapter(options = {}) {
   const apiUrl = options.apiUrl ?? _defaultApiUrl()

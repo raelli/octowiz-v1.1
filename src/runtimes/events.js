@@ -15,7 +15,7 @@ const { EVENT_TYPES, validateEvent, createEvent } = require('./types')
  * Create an event bus for runtime events. Listeners receive validated,
  * normalized events. Invalid events are rejected with an error.
  *
- * @returns {EventBus}
+ * @returns {EventBus} the event bus
  */
 function createEventBus() {
   /** @type {Map<string, Set<(event: import('./types').OctowizEvent) => void>>} */
@@ -61,7 +61,7 @@ function createEventBus() {
 
   /**
    * Number of registered listeners (type-specific + wildcard).
-   * @returns {number}
+   * @returns {number} total listener count
    */
   function listenerCount() {
     let count = wildcardListeners.size
@@ -104,7 +104,7 @@ const HOOK_TYPE_MAP = {
  * @param {object} context
  * @param {string} context.sessionId
  * @param {string} [context.repositoryId]
- * @returns {import('./types').OctowizEvent}
+ * @returns {import('./types').OctowizEvent} the normalized event envelope
  */
 function normalizeHookEvent(hookType, rawPayload, context) {
   const type = HOOK_TYPE_MAP[hookType] ?? 'tool.used'
@@ -126,7 +126,7 @@ function normalizeHookEvent(hookType, rawPayload, context) {
  * @param {string} fields.sessionId
  * @param {string} [fields.repositoryId]
  * @param {object} [fields.metadata]
- * @returns {import('./types').OctowizEvent}
+ * @returns {import('./types').OctowizEvent} the session.started event
  */
 function sessionStarted(fields) {
   return createEvent('session.started', {
@@ -144,7 +144,7 @@ function sessionStarted(fields) {
  * @param {string} fields.sessionId
  * @param {string} [fields.repositoryId]
  * @param {string} [fields.reason]
- * @returns {import('./types').OctowizEvent}
+ * @returns {import('./types').OctowizEvent} the session.ended event
  */
 function sessionEnded(fields) {
   return createEvent('session.ended', {
@@ -165,7 +165,7 @@ function sessionEnded(fields) {
  * @param {string} fields.provider
  * @param {string} fields.command
  * @param {object} [fields.execution]
- * @returns {import('./types').OctowizEvent}
+ * @returns {import('./types').OctowizEvent} the task.dispatched event
  */
 function taskDispatched(fields) {
   return createEvent('task.dispatched', {
@@ -191,7 +191,7 @@ function taskDispatched(fields) {
  * @param {'completed'|'failed'|'deferred'|'human-gate'} fields.status
  * @param {string} [fields.summary]
  * @param {object} [fields.execution]
- * @returns {import('./types').OctowizEvent}
+ * @returns {import('./types').OctowizEvent} the task.completed event
  */
 function taskCompleted(fields) {
   return createEvent('task.completed', {
@@ -216,7 +216,7 @@ function taskCompleted(fields) {
  * @param {string} fields.from
  * @param {string} fields.to
  * @param {number} [fields.revision]
- * @returns {import('./types').OctowizEvent}
+ * @returns {import('./types').OctowizEvent} the state.changed event
  */
 function stateChanged(fields) {
   return createEvent('state.changed', {

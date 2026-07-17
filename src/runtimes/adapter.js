@@ -74,7 +74,7 @@ function assertValidAdapter(adapter) {
  * Override specific methods by passing them in `overrides`.
  *
  * @param {Partial<RuntimeAdapter>} [overrides]
- * @returns {RuntimeAdapter}
+ * @returns {RuntimeAdapter} the mock adapter
  */
 function createMockAdapter(overrides = {}) {
   return {

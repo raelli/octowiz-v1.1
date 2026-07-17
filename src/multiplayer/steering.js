@@ -16,8 +16,8 @@ const { runtimeFile } = require('../state/runtime')
  * @property {string|null} pausedAt - ISO-8601 when paused
  * @property {string|null} pausedBy - who paused (session id or 'human')
  * @property {string|null} pauseReason - reason for pause
- * @property {Array<{sessionId: string, capability: string, at: string}>} redirections
- * @property {Array<{sessionId: string, capability: string, reason: string, at: string}>} humanGates
+ * @property {Array<{sessionId: string, capability: string, at: string}>} redirections - pending capability redirections by session
+ * @property {Array<{sessionId: string, capability: string, reason: string, at: string}>} humanGates - pending human gates by session
  */
 
 /**
@@ -26,7 +26,7 @@ const { runtimeFile } = require('../state/runtime')
  * @param {object} options
  * @param {string} [options.storePath] path to persist steering state
  * @param {(notification: object) => void} [options.onNotify] callback for notifications
- * @returns {SteeringController}
+ * @returns {SteeringController} the steering controller
  */
 function createSteering({ storePath, onNotify } = {}) {
   function _read() {
@@ -89,7 +89,7 @@ function createSteering({ storePath, onNotify } = {}) {
 
   /**
    * Check if dispatch is currently paused.
-   * @returns {boolean}
+   * @returns {boolean} whether dispatch is currently paused
    */
   function isPaused() {
     return _read().paused
@@ -111,7 +111,7 @@ function createSteering({ storePath, onNotify } = {}) {
   /**
    * Get the pending redirection for a session, if any.
    * @param {string} sessionId
-   * @returns {{ capability: string } | null}
+   * @returns {{ capability: string } | null} the pending redirection, or null if none
    */
   function getRedirection(sessionId) {
     const state = _read()
@@ -149,7 +149,7 @@ function createSteering({ storePath, onNotify } = {}) {
 
   /**
    * Get all pending human gates.
-   * @returns {Array<{sessionId: string, capability: string, reason: string, at: string}>}
+   * @returns {Array<{sessionId: string, capability: string, reason: string, at: string}>} all pending human gates
    */
   function pendingHumanGates() {
     return _read().humanGates
@@ -167,7 +167,7 @@ function createSteering({ storePath, onNotify } = {}) {
 
   /**
    * Get the full steering state.
-   * @returns {SteeringState}
+   * @returns {SteeringState} the full steering state
    */
   function getState() {
     return _read()
@@ -189,7 +189,7 @@ function createSteering({ storePath, onNotify } = {}) {
    * Returns false if paused or if the session has a pending human gate.
    *
    * @param {string} sessionId
-   * @returns {{ allowed: boolean, reason?: string }}
+   * @returns {{ allowed: boolean, reason?: string }} whether dispatch is allowed, with a reason if not
    */
   function canDispatch(sessionId) {
     const state = _read()
@@ -222,7 +222,7 @@ function createSteering({ storePath, onNotify } = {}) {
  * Create steering backed by the repository's machine-local runtime directory.
  * @param {string} cwd repository root
  * @param {(notification: object) => void} [onNotify]
- * @returns {SteeringController}
+ * @returns {SteeringController} the steering controller
  */
 function createRepositorySteering(cwd, onNotify) {
   const repositoryId = deriveRepositoryId(cwd)

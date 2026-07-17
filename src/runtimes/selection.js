@@ -16,7 +16,7 @@ const CONFIG_FILENAME = 'config.json'
 /**
  * @typedef {object} RuntimeConfig
  * @property {string} [preferred] preferred runtime id
- * @property {Object<string, object>} [options] per-runtime options
+ * @property {{[key: string]: object}} [options] per-runtime options
  */
 
 /**
@@ -24,7 +24,7 @@ const CONFIG_FILENAME = 'config.json'
  * Returns null if no config exists or no runtime preference is set.
  *
  * @param {string} cwd repository root
- * @returns {RuntimeConfig|null}
+ * @returns {RuntimeConfig|null} the runtime config, or null if none is set
  */
 function readRuntimeConfig(cwd) {
   const configPath = path.resolve(cwd, '.octowiz', CONFIG_FILENAME)
@@ -106,7 +106,7 @@ function getPreferredRuntime({ cwd, preference } = {}) {
  * @param {string} [options.cwd] repository root for config lookup
  * @param {string} [options.preference] explicit preference override
  * @param {number} [options.timeoutMs] availability probe timeout
- * @returns {Promise<import('./adapter').RuntimeAdapter|null>}
+ * @returns {Promise<import('./adapter').RuntimeAdapter|null>} the selected runtime, or null if none available
  */
 async function selectFromRegistry(registry, options = {}) {
   const preferred = getPreferredRuntime(options)

@@ -61,7 +61,7 @@ function createWorktree(repoRoot, branch, { basePath, createBranch = true } = {}
  * List all git worktrees for a repository.
  *
  * @param {string} repoRoot
- * @returns {WorktreeInfo[]}
+ * @returns {WorktreeInfo[]} all worktrees for the repository
  */
 function listWorktrees(repoRoot) {
   let output
@@ -123,7 +123,7 @@ function removeWorktree(repoRoot, wtPath, { force = false } = {}) {
  * Check if a path is inside a worktree managed by octowiz.
  * @param {string} repoRoot
  * @param {string} checkPath
- * @returns {boolean}
+ * @returns {boolean} whether the path is inside an octowiz-managed worktree
  */
 function isOctowizWorktree(repoRoot, checkPath) {
   const wtBase = path.join(repoRoot, '.octowiz', 'worktrees')
@@ -134,7 +134,7 @@ function isOctowizWorktree(repoRoot, checkPath) {
  * Find stale worktrees (those not linked to any active session).
  * @param {string} repoRoot
  * @param {string[]} activeWorktreePaths paths of worktrees with active sessions
- * @returns {WorktreeInfo[]}
+ * @returns {WorktreeInfo[]} worktrees not linked to any active session
  */
 function findStaleWorktrees(repoRoot, activeWorktreePaths) {
   const all = listWorktrees(repoRoot)
