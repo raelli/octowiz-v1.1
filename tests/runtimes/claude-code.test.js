@@ -169,6 +169,11 @@ describe('claude code adapter', () => {
       expect(result.evidence.capability).toBe('implementation')
       expect(result.evidence.provider).toBe('mattpocock-skills')
       expect(result.evidence.command).toBe('tdd')
+      expect(result.evidence.execution).toMatchObject({
+        pattern: 'advisor',
+        executorModel: 'sonnet',
+        advisorModel: 'fable',
+      })
     })
 
     it('works with any task shape', async () => {

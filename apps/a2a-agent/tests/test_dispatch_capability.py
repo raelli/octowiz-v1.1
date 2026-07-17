@@ -32,13 +32,15 @@ class _MockProvider:
         self._log_output = log_output
         self.dispatched_task = None
         self.dispatched_cwd = None
+        self.dispatched_execution = None
         self.logs_calls = []
 
-    def dispatch(self, task, cwd):
+    def dispatch(self, task, cwd, **kwargs):
         if self._dispatch_exc:
             raise self._dispatch_exc
         self.dispatched_task = task
         self.dispatched_cwd = cwd
+        self.dispatched_execution = kwargs.get("execution")
         return self._session_id
 
     def get_status(self, session_id):
@@ -172,6 +174,7 @@ class TestDispatchHappyPaths(unittest.TestCase):
         ))
         self.assertEqual(provider.dispatched_task, "refactor auth")
         self.assertEqual(provider.dispatched_cwd, "/projects/myapp")
+        self.assertEqual(provider.dispatched_execution["pattern"], "advisor")
 
 
 class TestDispatchIdleTerminalState(unittest.TestCase):
@@ -218,6 +221,51 @@ class TestDispatchIdleTerminalState(unittest.TestCase):
 
 
 class TestDispatchValidation(unittest.TestCase):
+
+    def test_workflow_execution_is_forwarded_to_provider(self):
+        from capabilities.dispatch import handle_dispatch
+        provider = _MockProvider(status_sequence=[_Session("s1", "stopped")])
+        execution = {
+            "pattern": "workflow",
+            "partitionable": True,
+            "scope": "one worker per route",
+            "verification": "cross-check every finding",
+            "maxAgents": 4,
+            "plannerModel": "fable",
+            "workerModel": "sonnet",
+            "synthesizerModel": "fable",
+            "effort": "ultracode",
+            "writes": False,
+            "isolation": "none",
+        }
+        result = _run(handle_dispatch(
+            {"task": "audit routes", "cwd": "/repo", "execution": execution},
+            provider=provider, **_FAST,
+        ))
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(provider.dispatched_execution, execution)
+
+    def test_invalid_workflow_execution_is_rejected(self):
+        from capabilities.dispatch import handle_dispatch
+        provider = _MockProvider(status_sequence=[_Session("s1", "stopped")])
+        result = _run(handle_dispatch(
+            {"task": "edit files", "cwd": "/repo", "execution": {
+                "pattern": "workflow",
+                "partitionable": True,
+                "scope": "one worker per file",
+                "verification": "run tests",
+                "maxAgents": 4,
+                "plannerModel": "fable",
+                "workerModel": "sonnet",
+                "synthesizerModel": "fable",
+                "effort": "ultracode",
+                "writes": True,
+                "isolation": "none",
+            }},
+            provider=provider, **_FAST,
+        ))
+        self.assertEqual(result["status"], "error")
+        self.assertEqual(result["failureKind"], "invalid-execution-policy")
 
     def test_missing_task_returns_error(self):
         from capabilities.dispatch import handle_dispatch
@@ -882,8 +930,13 @@ class _MockWorkflowClient:
         self.completed: list = []
         self.failed: list = []
 
-    async def create_run(self, *, task, cwd, principal):
-        self.created.append({"task": task, "cwd": cwd, "principal": principal})
+    async def create_run(self, *, task, cwd, principal, execution=None):
+        self.created.append({
+            "task": task,
+            "cwd": cwd,
+            "principal": principal,
+            "execution": execution,
+        })
         return self._create_returns
 
     async def transition(self, run_id, event_type, step_name, *, data=None):

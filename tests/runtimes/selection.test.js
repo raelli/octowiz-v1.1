@@ -11,6 +11,7 @@ const {
   readRuntimeConfig,
   writeRuntimeConfig,
   getPreferredRuntime,
+  getExecutionDefaults,
   selectFromRegistry,
 } = require('../../src/runtimes/selection')
 
@@ -48,6 +49,23 @@ describe('runtime selection', () => {
       fs.mkdirSync(path.join(dir, '.octowiz'), { recursive: true })
       fs.writeFileSync(path.join(dir, '.octowiz', 'config.json'), JSON.stringify({ runtime: { preferred: 'opencode' } }))
       expect(readRuntimeConfig(dir)).toEqual({ preferred: 'opencode' })
+    })
+  })
+
+  describe('getExecutionDefaults', () => {
+    it('reads Claude Code execution defaults without changing runtime selection', () => {
+      writeRuntimeConfig(dir, {
+        preferred: 'claude-code',
+        options: {
+          'claude-code': {
+            execution: { executorModel: 'sonnet', advisorModel: 'fable' },
+          },
+        },
+      })
+      expect(getExecutionDefaults(dir)).toEqual({
+        executorModel: 'sonnet',
+        advisorModel: 'fable',
+      })
     })
   })
 

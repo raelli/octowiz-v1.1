@@ -108,13 +108,16 @@ function createClaudeCodeAdapter(options = {}) {
     // For Claude Code, dispatch is advisory — we're telling the session what
     // to do, not sending work to a remote executor. The session reads the
     // result and acts on it.
+    const { resolveExecutionPolicy } = require('../execution/policy')
+    const execution = task.execution ?? resolveExecutionPolicy()
     return {
       status: 'completed',
-      summary: `advisory: invoke ${task.provider}:${task.command} for capability ${task.capability}`,
+      summary: `${execution.pattern}: invoke ${task.provider}:${task.command} for capability ${task.capability}`,
       evidence: {
         capability: task.capability,
         provider: task.provider,
         command: task.command,
+        execution,
       },
       artifacts: [],
     }

@@ -41,6 +41,19 @@ function readRuntimeConfig(cwd) {
 }
 
 /**
+ * Read repository-local Claude Code execution defaults.
+ * @param {string} cwd repository root
+ * @returns {object} execution defaults or an empty object
+ */
+function getExecutionDefaults(cwd) {
+  const config = readRuntimeConfig(cwd)
+  const execution = config?.options?.['claude-code']?.execution
+  return execution && typeof execution === 'object' && !Array.isArray(execution)
+    ? execution
+    : {}
+}
+
+/**
  * Write or update the runtime preference in .octowiz/config.json.
  * Preserves other fields in the config file.
  *
@@ -104,5 +117,6 @@ module.exports = {
   readRuntimeConfig,
   writeRuntimeConfig,
   getPreferredRuntime,
+  getExecutionDefaults,
   selectFromRegistry,
 }

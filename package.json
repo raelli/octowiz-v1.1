@@ -21,7 +21,8 @@
     "bin/",
     "hooks/",
     "index.js",
-    "src/"
+    "src/",
+    "workflows/"
   ],
   "engines": {
     "node": ">=22.13"

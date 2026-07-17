@@ -33,6 +33,7 @@ const EVENT_TYPES = [
  * @property {string} [context.cwd] - repository root
  * @property {string} [context.goal] - current goal
  * @property {string} [context.state] - current engineering state
+ * @property {object} [execution] - validated advisor or workflow execution policy
  * @property {object} [options] - runtime-specific overrides
  */
 
@@ -89,6 +90,10 @@ function validateTaskEnvelope(envelope) {
 
   if (!envelope.context || typeof envelope.context !== 'object')
     issues.push('envelope.context must be an object')
+  if (envelope.execution !== undefined) {
+    const { validateExecutionPolicy } = require('../execution/policy')
+    issues.push(...validateExecutionPolicy(envelope.execution))
+  }
 
   return issues
 }
@@ -196,6 +201,7 @@ function createTaskEnvelope(fields) {
     command: fields.command,
     provider: fields.provider,
     context: fields.context || {},
+    execution: fields.execution,
     options: fields.options,
   }
 }

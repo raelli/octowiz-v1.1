@@ -270,9 +270,14 @@ const COMMANDS = {
     catch {
       // Registry unavailable — resolution will be skipped
     }
-    const next = resolveNextAction(doc, { cwd, registry })
+    const { getExecutionDefaults } = require('../runtimes/selection')
+    const next = resolveNextAction(doc, {
+      cwd,
+      registry,
+      executionDefaults: getExecutionDefaults(cwd),
+    })
     const human = next.capability
-      ? `next: ${next.capability}${next.humanGate ? ' (human gate)' : ''}${next.resolved ? `\nresolved: ${next.resolved.provider}:${next.resolved.command}` : ''}\nreason: ${next.reason}`
+      ? `next: ${next.capability}${next.humanGate ? ' (human gate)' : ''}${next.resolved ? `\nresolved: ${next.resolved.provider}:${next.resolved.command}` : ''}\nexecution: ${next.execution.pattern} — ${next.execution.reason}\nreason: ${next.reason}`
       : `no next action — ${next.reason}`
     return { values, data: next, human }
   },

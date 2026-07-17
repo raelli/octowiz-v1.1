@@ -175,11 +175,13 @@ describe('factory helpers', () => {
       capability: 'implementation',
       provider: 'mattpocock-skills',
       command: 'tdd',
+      execution: { pattern: 'advisor' },
     })
     expect(validateEvent(event)).toEqual([])
     expect(event.type).toBe('task.dispatched')
     expect(event.payload.capability).toBe('implementation')
     expect(event.payload.provider).toBe('mattpocock-skills')
+    expect(event.payload.execution.pattern).toBe('advisor')
   })
 
   it('taskCompleted produces valid event', () => {

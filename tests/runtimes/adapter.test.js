@@ -333,6 +333,17 @@ describe('runtime types', () => {
       const issues = validateTaskEnvelope({ capability: 'x', command: 'y', provider: 'z' })
       expect(issues).toContainEqual(expect.stringContaining('context'))
     })
+
+    it('validates an execution policy when present', () => {
+      const issues = validateTaskEnvelope({
+        capability: 'x',
+        command: 'y',
+        provider: 'z',
+        context: {},
+        execution: { pattern: 'workflow' },
+      })
+      expect(issues).toContainEqual(expect.stringContaining('partitionable'))
+    })
   })
 
   describe('validateTaskResult', () => {

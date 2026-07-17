@@ -67,6 +67,25 @@ class TestCreateRun(unittest.TestCase):
         self.assertEqual(result["run_id"], "run-abc")
         self.assertEqual(result["session_id"], "sess-xyz")
 
+    def test_records_execution_metadata(self):
+        received = {}
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            received["body"] = json.loads(request.content)
+            return httpx.Response(200, json=_FAKE_RUN)
+
+        client = _make_client(httpx.MockTransport(handler))
+        _run(client.create_run(
+            task="audit",
+            cwd="/repo",
+            principal="user",
+            execution={"pattern": "workflow", "workerModel": "sonnet"},
+        ))
+        self.assertEqual(
+            received["body"]["metadata"]["execution"]["pattern"],
+            "workflow",
+        )
+
     def test_returns_none_on_http_error(self):
         client = _make_client(_mock_transport(500, {"error": "db down"}))
         result = _run(client.create_run(task="do stuff", cwd="/repo", principal="user"))

@@ -13,7 +13,7 @@ const jestGlobals = {
 }
 
 export default antfu({
-  ignores: ['node_modules', 'dist', 'docs', 'skills', 'assets', '**/*.toml', '**/*.yml', '**/*.yaml'],
+  ignores: ['node_modules', 'dist', 'docs', 'skills', 'assets', 'workflows', '**/*.toml', '**/*.yml', '**/*.yaml'],
   rules: {
     // Node.js CJS project — process/Buffer/etc. are always globals
     'node/prefer-global/process': 'off',

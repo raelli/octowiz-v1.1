@@ -53,7 +53,7 @@ class AgentRunProvider(Protocol):
     """Run an agent task somewhere, watch it, stop it."""
 
     def dispatch(self, task: str, cwd: str, **kwargs) -> str:
-        """Start a run; returns its run/session id."""
+        """Start a run; execution policy may be supplied in kwargs."""
         ...
 
     def poll_run(self, run_id: str) -> Optional[RunState]:

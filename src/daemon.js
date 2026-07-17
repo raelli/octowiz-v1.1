@@ -7,6 +7,8 @@ const logger = require('./logger')
 const { checkStartup, validateCwd } = require('./policy')
 const { claimTask, postResult } = require('./task-queue-client')
 const { validateJavaScriptSyntax } = require('./validation')
+const { resolveExecutionPolicy } = require('./execution/policy')
+const { createRepositorySteering } = require('./multiplayer/steering')
 
 const ALLOWED_ADVISORY_TYPES = new Set(['file-conflict', 'branch-drift', 'spec-deviation'])
 
@@ -235,6 +237,31 @@ async function processTask(task) {
         await postResult(id, leaseToken, { status: 'error', message: _errorToString(err) })
         return
       }
+    }
+    if (capability === 'octowiz.dispatch') {
+      const steering = typeof payload.cwd === 'string'
+        ? createRepositorySteering(payload.cwd)
+        : null
+      const admission = steering?.canDispatch(payload.sessionId ?? id) ?? { allowed: true }
+      if (!admission.allowed) {
+        await postResult(id, leaseToken, {
+          status: 'error',
+          failureKind: 'human-gate',
+          message: admission.reason,
+        })
+        return
+      }
+      const requestedPattern = payload.execution?.pattern
+      const execution = resolveExecutionPolicy(payload.execution)
+      if (requestedPattern && execution.fallbackIssues) {
+        await postResult(id, leaseToken, {
+          status: 'error',
+          failureKind: 'invalid-execution-policy',
+          message: execution.fallbackIssues.join('; '),
+        })
+        return
+      }
+      payload.execution = execution
     }
 
     const localHandler = _LOCAL_CAPABILITY_HANDLERS[capability]

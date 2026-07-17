@@ -21,7 +21,8 @@ describe('state next resolver', () => {
   it('recommends requirements-discovery without a goal', () => {
     store.init(repo)
     const next = resolveNextAction(store.read(repo))
-    expect(next).toEqual({ capability: 'requirements-discovery', reason: 'no goal is set', humanGate: false })
+    expect(next).toMatchObject({ capability: 'requirements-discovery', reason: 'no goal is set', humanGate: false })
+    expect(next.execution.pattern).toBe('advisor')
   })
 
   it('recommends decision-resolution while blocking questions are open', () => {
@@ -115,5 +116,20 @@ describe('state next resolver', () => {
     doc.state = 'shipped'
     doc.status = 'done'
     expect(resolveNextAction(doc).capability).toBeNull()
+  })
+
+  it('selects workflow mode only from explicit safe fan-out metadata', () => {
+    store.init(repo)
+    const next = resolveNextAction(store.read(repo), {
+      executionRequest: {
+        pattern: 'workflow',
+        partitionable: true,
+        scope: 'one worker per route',
+        verification: 'cross-check findings',
+        maxAgents: 6,
+        writes: false,
+      },
+    })
+    expect(next.execution.pattern).toBe('workflow')
   })
 })

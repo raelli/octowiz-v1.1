@@ -18,6 +18,7 @@ commands:
   list               list all known runtimes and their availability
   select <id>        set the preferred runtime for this repository
   show               show the current runtime preference
+  doctor             check Claude Code advisor/workflow readiness
 
 global options: --json`
 
@@ -78,6 +79,19 @@ const COMMANDS = {
       `${r.preferred ? '→' : ' '} ${r.id.padEnd(14)} ${r.name.padEnd(14)} ${r.available ? '✓ available' : '✗ unavailable'}`,
     ).join('\n')
 
+    return { values, data, human }
+  },
+
+  doctor: (argv) => {
+    const { values } = parse(argv)
+    const { inspectClaudeCode } = require('./doctor')
+    const data = inspectClaudeCode()
+    const human = [
+      `Claude Code: ${data.available ? data.version : 'not available'}`,
+      `advisor: ${data.advisorReady ? 'ready (fable)' : `not ready (${data.advisorModel ?? 'not configured'})`}`,
+      `workflows: ${data.workflowCapable && !data.workflowsDisabled ? 'ready' : 'not ready'}`,
+      `overall: ${data.ready ? 'ready' : 'configuration required'}`,
+    ].join('\n')
     return { values, data, human }
   },
 

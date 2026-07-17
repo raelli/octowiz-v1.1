@@ -11,6 +11,11 @@ if (group === 'state') {
   process.exit(runState(rest))
 }
 
+if (group === 'workflow') {
+  const { runWorkflow } = require('../src/workflows/cli')
+  process.exit(runWorkflow(rest))
+}
+
 if (group === 'capability') {
   const { runCapability } = require('../src/capabilities/cli')
   process.exit(runCapability(rest))
@@ -22,6 +27,6 @@ if (group === 'runtime') {
 }
 else {
   const { USAGE } = require('../src/state/cli')
-  console.error(`usage: octowiz <group> [command]\n\ngroups:\n  state        persistent engineering state\n  capability   capability registry resolution\n  runtime      runtime adapter management\n\n${USAGE}`)
+  console.error(`usage: octowiz <group> [command]\n\ngroups:\n  state        persistent engineering state\n  capability   capability registry resolution\n  runtime      runtime adapter management\n  workflow     install versioned Dynamic Workflows\n\n${USAGE}`)
   process.exit(group ? 1 : 0)
 }

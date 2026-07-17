@@ -37,9 +37,11 @@ function tryResolve(capabilityName, context) {
 function resolveNextAction(doc, context = {}) {
   const result = computeNextAction(doc, context)
   const resolved = tryResolve(result.capability, context)
+  const { resolveExecutionPolicy } = require('../execution/policy')
+  const execution = resolveExecutionPolicy(context.executionRequest, context.executionDefaults)
   if (resolved)
-    return { ...result, resolved }
-  return result
+    return { ...result, resolved, execution }
+  return { ...result, execution }
 }
 
 function computeNextAction(doc, context) {

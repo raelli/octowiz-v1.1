@@ -1,6 +1,7 @@
 # providers/claude_agent_view/provider.py
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 import time
@@ -86,6 +87,36 @@ def _resolve_full_session_id(
     return short_id  # fall back; get_status exact-then-prefix will still work
 
 
+def _dispatch_args(task: str, execution: Optional[dict] = None) -> List[str]:
+    """Build a shell-free Claude CLI argv for an advisor or workflow run."""
+    if execution is None:
+        return ["--bg", "--", task]
+
+    if execution["pattern"] == "advisor":
+        return [
+            "--model", execution["executorModel"],
+            "--advisor", execution["advisorModel"],
+            "--effort", "high",
+            "--bg", "--", task,
+        ]
+
+    routed_task = (
+        "Use a dynamic workflow for this task. Do not rely on the ultracode "
+        "keyword trigger because this prompt is programmatic. "
+        f"Plan with {execution['plannerModel']}; execute workers with "
+        f"{execution['workerModel']}; synthesize with "
+        f"{execution['synthesizerModel']}. Use at most "
+        f"{execution['maxAgents']} agents. Independent scope: "
+        f"{execution['scope']}. Verification: {execution['verification']}. "
+        f"Writes: {json.dumps(execution['writes'])}; isolation: "
+        f"{execution['isolation']}."
+    )
+    if execution.get("budgetTokens"):
+        routed_task += f" Token budget: {execution['budgetTokens']}."
+    routed_task += f"\n\nTask:\n{task}"
+    return ["--effort", "ultracode", "--bg", "--", routed_task]
+
+
 class ClaudeAgentViewProvider:
     """Execution provider backed by Claude Code Agent View (claude agents CLI)."""
 
@@ -97,13 +128,13 @@ class ClaudeAgentViewProvider:
         except Exception:
             return []
 
-    def dispatch(self, task: str, repo: str) -> str:
+    def dispatch(self, task: str, repo: str, **kwargs) -> str:
         """Start a new background session for task in repo. Returns the full session id."""
         if repo.startswith("-"):
             raise ValueError(f"Invalid repo path: {repo!r}")
         if task.startswith("-"):
             raise ValueError(f"task must not start with '-': {task!r}")
-        output = _run_claude(["--bg", "--", task], cwd=repo)
+        output = _run_claude(_dispatch_args(task, kwargs.get("execution")), cwd=repo)
         clean = _ANSI_RE.sub("", output)
         m = _SESSION_RE.search(clean)
         if not m:

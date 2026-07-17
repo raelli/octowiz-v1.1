@@ -12,6 +12,7 @@ from typing import Any, Dict, Optional
 
 import session_owners
 from a2a import err, require
+from execution_policy import normalize_execution_policy
 from path_guard import validate_cwd
 from providers.protocol import is_error, is_terminal
 
@@ -29,7 +30,13 @@ def _make_provider():
     return ClaudeAgentViewProvider()
 
 
-def _dispatch_and_register(provider: Any, task: str, cwd: str, principal: str) -> str:
+def _dispatch_and_register(
+    provider: Any,
+    task: str,
+    cwd: str,
+    principal: str,
+    execution: Optional[Dict[str, Any]] = None,
+) -> str:
     """Dispatch a session and register ownership in a single thread.
 
     Running both steps atomically (from the event loop's perspective) prevents
@@ -37,7 +44,10 @@ def _dispatch_and_register(provider: Any, task: str, cwd: str, principal: str) -
     if the coroutine is cancelled mid-await, this thread still completes and the
     session is tracked, so manage_agents log/stop/rm calls are not rejected.
     """
-    session_id = provider.dispatch(task, cwd)
+    if execution is None:
+        session_id = provider.dispatch(task, cwd)
+    else:
+        session_id = provider.dispatch(task, cwd, execution=execution)
     if session_id:
         session_owners.register(session_id, principal)
     return session_id
@@ -74,6 +84,7 @@ class DispatchSession:
         poll_interval: float,
         timeout: float,
         workflow_client: Any = None,
+        execution: Optional[Dict[str, Any]] = None,
     ):
         self.task = task
         self.cwd = cwd
@@ -82,6 +93,7 @@ class DispatchSession:
         self._poll_interval = poll_interval
         self._timeout = timeout
         self._workflow_client = workflow_client
+        self.execution = execution
 
         self.session_id: Optional[str] = None
         self._wf_run_id: Optional[str] = None
@@ -105,7 +117,7 @@ class DispatchSession:
         _loop = asyncio.get_running_loop()
         session_id = await _loop.run_in_executor(
             None, _dispatch_and_register,
-            self._provider, self.task, self.cwd, self.principal,
+            self._provider, self.task, self.cwd, self.principal, self.execution,
         )
         if not session_id:
             raise RuntimeError("no session ID returned")
@@ -118,6 +130,7 @@ class DispatchSession:
                 task=self.task,
                 cwd=self.cwd,
                 principal=self.principal,
+                execution=self.execution,
             )
             if run:
                 self._wf_run_id = run["run_id"]
@@ -194,6 +207,7 @@ class DispatchSession:
                     "status": "needs-input",
                     "session_id": self.session_id,
                     "output": self._output,
+                    "execution": self.execution,
                 }
 
             if current_state == DispatchSessionState.DONE:
@@ -201,20 +215,33 @@ class DispatchSession:
                     if self._workflow_client and self._wf_run_id:
                         await self._workflow_client.fail(
                             self._wf_run_id,
-                            output={"session_id": self.session_id, "output": self._output},
+                            output={
+                                "session_id": self.session_id,
+                                "output": self._output,
+                                "execution": self.execution,
+                            },
                         )
                     # Retain ownership — caller may still retrieve logs via manage_agents.
-                    return err(session_id=self.session_id, output=self._output)
+                    return err(
+                        session_id=self.session_id,
+                        output=self._output,
+                        execution=self.execution,
+                    )
                 if self._workflow_client and self._wf_run_id:
                     await self._workflow_client.complete(
                         self._wf_run_id,
-                        output={"session_id": self.session_id, "output": self._output},
+                        output={
+                            "session_id": self.session_id,
+                            "output": self._output,
+                            "execution": self.execution,
+                        },
                     )
                 # Retain ownership — caller may still run manage_agents logs/rm.
                 return {
                     "status": "completed",
                     "session_id": self.session_id,
                     "output": self._output,
+                    "execution": self.execution,
                 }
 
         # Deadline elapsed. If the session was never observed by the supervisor
@@ -244,6 +271,7 @@ class DispatchSession:
         return err(
             f"timeout after {self._timeout}s waiting for session to complete",
             session_id=self.session_id,
+            execution=self.execution,
         )
 
     def mark_orphaned(self) -> Dict:
@@ -260,7 +288,11 @@ class DispatchSession:
         )
         if self.session_id:
             session_owners.deregister(self.session_id)
-        return err("dispatch timed out (orphaned)", session_id=self.session_id)
+        return err(
+            "dispatch timed out (orphaned)",
+            session_id=self.session_id,
+            execution=self.execution,
+        )
 
 
 async def handle_dispatch(
@@ -305,6 +337,10 @@ async def handle_dispatch(
         workflow_client = _make_from_env()
 
     principal = event.get("_principal", "")
+    try:
+        execution = normalize_execution_policy(event.get("execution"))
+    except ValueError as exc:
+        return err(str(exc), failureKind="invalid-execution-policy")
 
     session = DispatchSession(
         task,
@@ -314,6 +350,7 @@ async def handle_dispatch(
         poll_interval=poll_interval,
         timeout=timeout,
         workflow_client=workflow_client,
+        execution=execution,
     )
 
     try:

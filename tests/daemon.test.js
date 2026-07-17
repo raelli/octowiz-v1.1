@@ -25,6 +25,7 @@ function makeA2AResponse(artifact) {
       ],
     },
   })
+
 }
 
 /**
@@ -112,6 +113,11 @@ describe('daemon.processTask (forwarding)', () => {
     const inner = JSON.parse(innerText)
     expect(inner.capability).toBe('octowiz.dispatch')
     expect(inner.task).toBe('fix')
+    expect(inner.execution).toMatchObject({
+      pattern: 'advisor',
+      executorModel: 'sonnet',
+      advisorModel: 'fable',
+    })
     // Principal is derived server-side; it is never sent as a header
     expect(inner._principal).toBeUndefined()
 
@@ -221,6 +227,34 @@ describe('daemon.processTask (forwarding)', () => {
       payload: { task: 'x', cwd: {} },
     })
     expect(postResult).toHaveBeenCalledWith('t3b', 'lt-1', expect.objectContaining({ status: 'error' }))
+  })
+
+  it('rejects an unsafe explicit workflow policy before forwarding', async () => {
+    await processTask({
+      id: 't-workflow-invalid',
+      capability: 'octowiz.dispatch',
+      payload: {
+        task: 'change files',
+        cwd: '/allowed/repo',
+        execution: {
+          pattern: 'workflow',
+          partitionable: true,
+          scope: 'one worker per file',
+          verification: 'run tests',
+          maxAgents: 4,
+          writes: true,
+          isolation: 'none',
+        },
+      },
+    })
+    expect(postResult).toHaveBeenCalledWith(
+      't-workflow-invalid',
+      'lt-1',
+      expect.objectContaining({
+        status: 'error',
+        failureKind: 'invalid-execution-policy',
+      }),
+    )
   })
 
   it('posts error when A2A server returns non-200', async () => {

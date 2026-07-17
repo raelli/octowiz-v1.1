@@ -164,6 +164,7 @@ function sessionEnded(fields) {
  * @param {string} fields.capability
  * @param {string} fields.provider
  * @param {string} fields.command
+ * @param {object} [fields.execution]
  * @returns {import('./types').OctowizEvent}
  */
 function taskDispatched(fields) {
@@ -175,6 +176,7 @@ function taskDispatched(fields) {
       capability: fields.capability,
       provider: fields.provider,
       command: fields.command,
+      execution: fields.execution,
     },
   })
 }
@@ -188,6 +190,7 @@ function taskDispatched(fields) {
  * @param {string} fields.capability
  * @param {'completed'|'failed'|'deferred'|'human-gate'} fields.status
  * @param {string} [fields.summary]
+ * @param {object} [fields.execution]
  * @returns {import('./types').OctowizEvent}
  */
 function taskCompleted(fields) {
@@ -199,6 +202,7 @@ function taskCompleted(fields) {
       capability: fields.capability,
       status: fields.status,
       summary: fields.summary,
+      execution: fields.execution,
     },
   })
 }

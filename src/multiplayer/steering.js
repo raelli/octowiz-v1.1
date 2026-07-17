@@ -7,6 +7,8 @@
 
 const fs = require('node:fs')
 const path = require('node:path')
+const { deriveRepositoryId } = require('../state/repository-id')
+const { runtimeFile } = require('../state/runtime')
 
 /**
  * @typedef {object} SteeringState
@@ -216,4 +218,16 @@ function createSteering({ storePath, onNotify } = {}) {
   }
 }
 
-module.exports = { createSteering }
+/**
+ * Create steering backed by the repository's machine-local runtime directory.
+ * @param {string} cwd repository root
+ * @param {(notification: object) => void} [onNotify]
+ * @returns {SteeringController}
+ */
+function createRepositorySteering(cwd, onNotify) {
+  const repositoryId = deriveRepositoryId(cwd)
+  const storePath = path.join(path.dirname(runtimeFile(repositoryId)), 'steering.json')
+  return createSteering({ storePath, onNotify })
+}
+
+module.exports = { createSteering, createRepositorySteering }

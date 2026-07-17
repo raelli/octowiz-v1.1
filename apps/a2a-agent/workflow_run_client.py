@@ -44,6 +44,7 @@ class WorkflowRunClient:
         task: str,
         cwd: str,
         principal: str,
+        execution: Optional[Dict[str, Any]] = None,
     ) -> Optional[Dict[str, Any]]:
         """Create a new workflow run. Returns the run dict (includes run_id and
         session_id) on success, None on failure.
@@ -61,6 +62,7 @@ class WorkflowRunClient:
                         "task": task,
                         "cwd": cwd,
                         "principal": principal,
+                        "execution": execution or {},
                     },
                 },
             )

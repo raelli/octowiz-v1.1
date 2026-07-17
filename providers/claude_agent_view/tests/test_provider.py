@@ -78,6 +78,36 @@ def _make_dispatch_mock(banner, session_id_in_agents):
 
 class TestDispatch(unittest.TestCase):
 
+    def test_dispatch_builds_advisor_arguments_without_shell_interpolation(self):
+        from providers.claude_agent_view.provider import _dispatch_args
+        args = _dispatch_args("fix auth; rm -rf nope", {
+            "pattern": "advisor",
+            "executorModel": "sonnet",
+            "advisorModel": "fable",
+        })
+        self.assertEqual(args, [
+            "--model", "sonnet", "--advisor", "fable", "--effort", "high",
+            "--bg", "--", "fix auth; rm -rf nope",
+        ])
+
+    def test_dispatch_builds_ultracode_arguments_with_explicit_routing(self):
+        from providers.claude_agent_view.provider import _dispatch_args
+        args = _dispatch_args("audit routes", {
+            "pattern": "workflow",
+            "plannerModel": "fable",
+            "workerModel": "sonnet",
+            "synthesizerModel": "fable",
+            "maxAgents": 4,
+            "scope": "one worker per route",
+            "verification": "adversarial cross-check",
+            "writes": False,
+            "isolation": "none",
+        })
+        self.assertEqual(args[:3], ["--effort", "ultracode", "--bg"])
+        self.assertNotIn("ultracode:", args[-1])
+        self.assertIn("Use at most 4 agents", args[-1])
+        self.assertIn("Plan with fable", args[-1])
+
     def test_dispatch_passes_cwd_to_subprocess_not_argv(self):
         from providers.claude_agent_view.provider import ClaudeAgentViewProvider
         with patch("providers.claude_agent_view.provider._run_claude",
