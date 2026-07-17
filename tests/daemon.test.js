@@ -25,7 +25,6 @@ function makeA2AResponse(artifact) {
       ],
     },
   })
-
 }
 
 /**

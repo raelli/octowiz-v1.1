@@ -141,6 +141,51 @@ describe('octowiz state CLI', () => {
   })
 
   describe('next --json includes resolved capability', () => {
+    it('exposes an explicitly bounded workflow policy', () => {
+      run(['init'], repo)
+      const result = run([
+        'next',
+        '--json',
+        '--execution',
+        'workflow',
+        '--partitionable',
+        '--scope',
+        'one worker per route',
+        '--verification',
+        'cross-check findings',
+        '--max-agents',
+        '6',
+      ], repo)
+      expect(result.code).toBe(0)
+      const data = JSON.parse(result.stdout)
+      expect(data.execution).toMatchObject({
+        pattern: 'workflow',
+        maxAgents: 6,
+        workerModel: 'sonnet',
+        plannerModel: 'fable',
+      })
+    })
+
+    it('falls back to advisor with reasons for an unsafe writing workflow', () => {
+      run(['init'], repo)
+      const result = run([
+        'next',
+        '--json',
+        '--execution',
+        'workflow',
+        '--partitionable',
+        '--scope',
+        'one worker per file',
+        '--verification',
+        'run tests',
+        '--max-agents',
+        '4',
+        '--writes',
+      ], repo)
+      const data = JSON.parse(result.stdout)
+      expect(data.execution.pattern).toBe('advisor')
+      expect(data.execution.fallbackIssues.join(' ')).toContain('worktree')
+    })
     it('includes resolved provider and command for requirements-discovery', () => {
       run(['init'], repo)
       const result = run(['next', '--json'], repo)
@@ -151,6 +196,7 @@ describe('octowiz state CLI', () => {
         provider: 'mattpocock-skills',
         command: 'grill-me',
       })
+      expect(data.execution.pattern).toBe('advisor')
     })
 
     it('includes resolved for implementation capability', () => {

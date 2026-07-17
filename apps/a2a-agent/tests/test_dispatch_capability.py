@@ -174,7 +174,7 @@ class TestDispatchHappyPaths(unittest.TestCase):
         ))
         self.assertEqual(provider.dispatched_task, "refactor auth")
         self.assertEqual(provider.dispatched_cwd, "/projects/myapp")
-        self.assertEqual(provider.dispatched_execution["pattern"], "advisor")
+        self.assertIsNone(provider.dispatched_execution)
 
 
 class TestDispatchIdleTerminalState(unittest.TestCase):
@@ -896,6 +896,23 @@ class TestDispatchAndRegisterAtomicity(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             _dispatch_and_register(provider, "task", "/repo", "p-test")
         self.assertFalse(session_owners.check("s1", "p-test"))
+
+    def test_supports_legacy_provider_without_execution_keyword(self):
+        import session_owners
+        from capabilities.dispatch import _dispatch_and_register
+
+        class LegacyProvider:
+            def dispatch(self, task, cwd):
+                return "s-legacy"
+
+        result = _dispatch_and_register(
+            LegacyProvider(),
+            "task",
+            "/repo",
+            "p-test",
+        )
+        self.assertEqual(result, "s-legacy")
+        self.assertTrue(session_owners.check("s-legacy", "p-test"))
 
     def test_start_uses_atomic_dispatch_and_register(self):
         """Ownership is registered before start() returns (i.e. inside the executor)."""

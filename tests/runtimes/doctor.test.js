@@ -6,7 +6,7 @@ const path = require('node:path')
 
 const { inspectClaudeCode } = require('../../src/runtimes/doctor')
 
-describe('Claude Code runtime doctor', () => {
+describe('claude Code runtime doctor', () => {
   let home
 
   beforeEach(() => {

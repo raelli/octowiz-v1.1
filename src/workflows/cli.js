@@ -93,9 +93,9 @@ function runWorkflow(argv, {
     }
     if (command === 'install') {
       const { values, positionals } = _parse(rest, {
-        scope: { type: 'string', default: 'project' },
+        'scope': { type: 'string', default: 'project' },
         'dry-run': { type: 'boolean', default: false },
-        force: { type: 'boolean', default: false },
+        'force': { type: 'boolean', default: false },
       })
       const data = installWorkflows(positionals, {
         cwd,
