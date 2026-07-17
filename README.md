@@ -162,8 +162,8 @@ The local A2A server additionally needs FastAPI and Uvicorn from `apps/a2a-agent
 ```bash
 corepack enable
 pnpm install --frozen-lockfile
-python -m pip install -e ".[dev]"
-python -m pip install -r apps/a2a-agent/requirements.txt
+python3 -m pip install -e ".[dev]"
+python3 -m pip install -r apps/a2a-agent/requirements.txt
 ```
 
 ### 2. Install the required workflow pack
