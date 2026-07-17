@@ -213,6 +213,9 @@ describe('mergeLocalOverrides', () => {
   it('prepends local resolvers before default by default', () => {
     const overrides = {
       schemaVersion: '0.1',
+      providers: {
+        'local-pack': { type: 'skill-pack', required: false },
+      },
       capabilities: {
         implementation: {
           resolvers: [{ provider: 'local-pack', command: 'my-tdd', priority: 1 }],
@@ -228,6 +231,9 @@ describe('mergeLocalOverrides', () => {
   it('replaces default resolvers when mode is replace', () => {
     const overrides = {
       schemaVersion: '0.1',
+      providers: {
+        'local-pack': { type: 'skill-pack', required: false },
+      },
       capabilities: {
         implementation: {
           mode: 'replace',
@@ -244,6 +250,9 @@ describe('mergeLocalOverrides', () => {
   it('adds new capabilities from overrides', () => {
     const overrides = {
       schemaVersion: '0.1',
+      providers: {
+        'local-pack': { type: 'skill-pack', required: false },
+      },
       capabilities: {
         'custom-capability': {
           description: 'A custom local capability',
@@ -291,6 +300,9 @@ describe('mergeLocalOverrides', () => {
   it('local description overrides default description', () => {
     const overrides = {
       schemaVersion: '0.1',
+      providers: {
+        x: { type: 'skill-pack', required: false },
+      },
       capabilities: {
         implementation: {
           description: 'Custom implementation approach',
@@ -305,6 +317,9 @@ describe('mergeLocalOverrides', () => {
   it('inherits default description when local does not provide one', () => {
     const overrides = {
       schemaVersion: '0.1',
+      providers: {
+        x: { type: 'skill-pack', required: false },
+      },
       capabilities: {
         implementation: {
           resolvers: [{ provider: 'x', command: 'y', priority: 1 }],
@@ -319,6 +334,9 @@ describe('mergeLocalOverrides', () => {
     const originalResolverCount = base.capabilities.implementation.resolvers.length
     const overrides = {
       schemaVersion: '0.1',
+      providers: {
+        x: { type: 'skill-pack', required: false },
+      },
       capabilities: {
         implementation: {
           resolvers: [{ provider: 'x', command: 'y', priority: 1 }],
@@ -332,6 +350,9 @@ describe('mergeLocalOverrides', () => {
   it('preserves all default capabilities not referenced in overrides', () => {
     const overrides = {
       schemaVersion: '0.1',
+      providers: {
+        x: { type: 'skill-pack', required: false },
+      },
       capabilities: {
         implementation: {
           resolvers: [{ provider: 'x', command: 'y', priority: 1 }],
@@ -340,6 +361,31 @@ describe('mergeLocalOverrides', () => {
     }
     const merged = mergeLocalOverrides(base, overrides)
     expect(Object.keys(merged.capabilities)).toEqual(expect.arrayContaining(Object.keys(base.capabilities)))
+  })
+
+  it('throws when a local resolver references a provider absent from base and local', () => {
+    const overrides = {
+      schemaVersion: '0.1',
+      capabilities: {
+        implementation: {
+          resolvers: [{ provider: 'typo-pack', command: 'impl', priority: 1 }],
+        },
+      },
+    }
+    expect(() => mergeLocalOverrides(base, overrides)).toThrow(/references unknown provider "typo-pack"/)
+  })
+
+  it('accepts a local resolver referencing a base-registry provider', () => {
+    const overrides = {
+      schemaVersion: '0.1',
+      capabilities: {
+        implementation: {
+          resolvers: [{ provider: 'mattpocock-skills', command: 'custom-impl', priority: 1 }],
+        },
+      },
+    }
+    const merged = mergeLocalOverrides(base, overrides)
+    expect(merged.capabilities.implementation.resolvers[0].command).toBe('custom-impl')
   })
 })
 
@@ -360,6 +406,9 @@ describe('loadRegistryWithOverrides', () => {
   it('returns merged registry when overrides exist', () => {
     writeOverrides(dir, {
       schemaVersion: '0.1',
+      providers: {
+        'local-pack': { type: 'skill-pack', required: false },
+      },
       capabilities: {
         implementation: {
           resolvers: [{ provider: 'local-pack', command: 'fast-impl', priority: 1 }],
@@ -376,6 +425,20 @@ describe('loadRegistryWithOverrides', () => {
     const base = loadRegistry()
     const result = loadRegistryWithOverrides({})
     expect(JSON.stringify(result)).toBe(JSON.stringify(base))
+  })
+
+  it('throws at load time when overrides reference an unknown provider', () => {
+    writeOverrides(dir, {
+      schemaVersion: '0.1',
+      capabilities: {
+        implementation: {
+          resolvers: [{ provider: 'typo-pack', command: 'impl', priority: 1 }],
+        },
+      },
+    })
+    expect(() => loadRegistryWithOverrides({
+      overridesPath: path.join(dir, '.octowiz', 'capabilities.json'),
+    })).toThrow(/references unknown provider "typo-pack"/)
   })
 })
 
