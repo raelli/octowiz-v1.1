@@ -1,4 +1,8 @@
 ---
 name: octowiz-engineering-doctrine
 description: >
-  Apply executable engineering doctrine alongside the selected Octowiz capability and Matt Pocock methodology. Use during repository-backed discovery, architecture, implementation, diagnosis, review, verification, or delegation when coding standards, stack placement, concurrency, worker isolation, evidence, or Nuxt monorepo rules matter. Select only the references relevant to the current repository and phase; do not replace lifecycle
+  Apply Octowiz's executable engineering doctrine alongside the selected lifecycle capability,
+  Matt Pocock methodology, repository rules, and stack-specific guidance. Use for repository-backed
+  discovery, planning, implementation, diagnosis, review, verification, delegation, or handoff when
+  context limits, HITL/AFK classification, vertical slicing, TDD, worker isolation, fresh-context
+  review, evidence gates, E
