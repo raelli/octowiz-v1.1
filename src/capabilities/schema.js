@@ -311,7 +311,7 @@ function checkLocalResolver(issues, resolverPath, resolver) {
     return
   }
 
-  const allowed = ['provider', 'command', 'priority', 'when']
+  const allowed = ['provider', 'command', 'priority', 'when', 'role']
   for (const key of Object.keys(resolver)) {
     if (!allowed.includes(key))
       issues.push(`${resolverPath}.${key}: unknown field`)

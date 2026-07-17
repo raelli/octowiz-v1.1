@@ -44,13 +44,13 @@ class _SessionAPI:
         self.create_calls = []
         self.send_calls = []
         self._events = events
-        self.events = SimpleNamespace(send=self._send)
+        self.events = SimpleNamespace(send=self._send, stream=self._stream)
 
     def create(self, **kwargs):
         self.create_calls.append(kwargs)
         return SimpleNamespace(id="sesn_1")
 
-    def stream(self, **kwargs):
+    def _stream(self, **kwargs):
         self.stream_args = kwargs
         return _Stream(self._events)
 
@@ -104,11 +104,25 @@ class TestManagedAgentsSetup(unittest.TestCase):
 class TestManagedAgentsRuntime(unittest.TestCase):
     def test_session_stream_collects_threads_output_and_usage(self):
         events = [
-            {"type": "thread_created", "id": "e1", "thread_id": "worker-1"},
+            {
+                "type": "session.thread_created",
+                "id": "e1",
+                "session_thread_id": "worker-1",
+            },
+            {
+                "type": "session.thread_status_running",
+                "id": "e2",
+                "session_thread_id": "worker-1",
+            },
             {
                 "type": "span.model_request_end",
-                "thread_id": "worker-1",
+                "session_thread_id": "worker-1",
                 "model_usage": {"input_tokens": 20, "output_tokens": 5},
+            },
+            {
+                "type": "session.thread_status_idle",
+                "id": "e3",
+                "session_thread_id": "worker-1",
             },
             {
                 "type": "agent.message",
@@ -142,6 +156,27 @@ class TestManagedAgentsRuntime(unittest.TestCase):
         self.assertEqual(result.output, "final synthesis")
         self.assertEqual(result.usage["input_tokens"], 30)
         self.assertEqual(result.usage_by_thread["worker-1"]["output_tokens"], 5)
+        self.assertEqual(sessions.stream_args, {"session_id": "sesn_1"})
+        self.assertEqual(
+            result.thread_events,
+            [
+                {
+                    "type": "session.thread_created",
+                    "threadId": "worker-1",
+                    "eventId": "e1",
+                },
+                {
+                    "type": "session.thread_status_running",
+                    "threadId": "worker-1",
+                    "eventId": "e2",
+                },
+                {
+                    "type": "session.thread_status_idle",
+                    "threadId": "worker-1",
+                    "eventId": "e3",
+                },
+            ],
+        )
         self.assertIn("Use at most 4 workers", sessions.send_calls[0]["events"][0]["content"][0]["text"])
 
     def test_dispatch_uses_managed_path_without_claude_provider(self):

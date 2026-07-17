@@ -89,7 +89,7 @@ class ManagedAgentsOrchestrator:
         result = ManagedAgentsResult(session_id=session.id)
         prompt = self._build_task_prompt(task, execution, capability)
 
-        with self._client.beta.sessions.stream(session_id=session.id) as stream:
+        with self._client.beta.sessions.events.stream(session_id=session.id) as stream:
             self._client.beta.sessions.events.send(
                 session_id=session.id,
                 events=[{
@@ -128,7 +128,10 @@ class ManagedAgentsOrchestrator:
         for event in stream:
             event_type = str(_get(event, "type", ""))
             thread_id = str(
-                _get(event, "thread_id")
+                _get(event, "session_thread_id")
+                or _get(event, "thread_id")
+                or _get(event, "to_session_thread_id")
+                or _get(event, "from_session_thread_id")
                 or _get(event, "agent_id")
                 or "coordinator"
             )
@@ -136,14 +139,13 @@ class ManagedAgentsOrchestrator:
                 text = _message_text(event)
                 if text and thread_id == "coordinator":
                     coordinator_messages.append(text)
-            if event_type in {
-                "thread_created",
-                "thread_message_sent",
-                "thread_message_received",
-                "agent.thread_created",
-                "agent.thread_message_sent",
-                "agent.thread_message_received",
-            }:
+            if (
+                event_type.startswith("session.thread_")
+                or event_type in {
+                    "agent.thread_message_sent",
+                    "agent.thread_message_received",
+                }
+            ):
                 result.thread_events.append({
                     "type": event_type,
                     "threadId": thread_id,
