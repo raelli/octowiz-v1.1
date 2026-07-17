@@ -395,6 +395,26 @@ describe('capabilities/registry — default skills/registry.json', () => {
       expect(shippedCommands.has(resolver.command)).toBe(true)
   })
 
+  it('pins the user-invoked implementation workflow contract', () => {
+    const contractPath = path.resolve(__dirname, '../../skills/provider-contracts/mattpocock-skills.json')
+    const contract = JSON.parse(fs.readFileSync(contractPath, 'utf8'))
+
+    expect(contract.commandContracts.implement).toMatchObject({
+      path: 'skills/engineering/implement/SKILL.md',
+      blobSha: '7a0b11f5f4fe9505ea5c7983c3083ba1bf754f69',
+      disableModelInvocation: true,
+      input: 'spec-or-tickets',
+      usesTddWherePossible: true,
+      validation: {
+        typecheckRegularly: true,
+        focusedTestsRegularly: true,
+        fullSuiteOnceAtEnd: true,
+      },
+      followUp: 'code-review',
+      commitsToCurrentBranch: true,
+    })
+  })
+
   it('maps core lifecycle capabilities to current Matt Pocock commands', () => {
     const expected = {
       'requirements-discovery': 'grill-with-docs',

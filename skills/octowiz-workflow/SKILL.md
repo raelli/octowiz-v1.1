@@ -178,6 +178,10 @@ Invoke capabilities for methodology:
    seams, then commits the work to the current branch before handing off to `code-review`
 2. `diagnosis` — root-cause analysis when behavior differs from expectation
 3. `verification` — collect automated evidence
+While `implementation` is active, run typechecking and the smallest relevant single
+test files regularly. Run the full test suite once when implementation is complete,
+then invoke `code-review`. Later verification should reuse that evidence unless the
+commit or working tree changed and made it stale.
 
 A slice is not complete until its commit exists on the current branch; verification
 evidence must reference that commit.
