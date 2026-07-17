@@ -477,7 +477,11 @@ describe('capability CLI with local overrides', () => {
     const result = run(['list', '--json'], dir)
     expect(result.code).toBe(0)
     const data = JSON.parse(result.stdout)
-    expect(data['security-review']).toEqual({ provider: 'team-skills', command: 'sec-check' })
+    expect(data['security-review']).toEqual({
+      provider: 'team-skills',
+      command: 'sec-check',
+      role: 'worker',
+    })
   })
 
   it('falls back to default registry when no overrides exist', () => {

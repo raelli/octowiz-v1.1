@@ -33,9 +33,11 @@ commands:
                           [--reject alt]... [--ceiling c] [--upgrade-trigger t] [--failed]
   evidence <kind> <status> record evidence: --ref <ref> [--note n] [--reason r]
   next                    deterministic next-action recommendation
-                          [--execution advisor|workflow] [--partitionable]
+                          [--execution advisor|workflow|managed-agents] [--partitionable]
                           [--scope text] [--verification text] [--max-agents N]
                           [--writes --isolation worktree] [--budget-tokens N]
+                          [--coordinator-agent-id ID] [--coordinator-agent-version N]
+                          [--environment-id ID]
   history                 print ledger events [--limit N]
   repair                  back up an invalid state file and recreate a valid one
 
@@ -270,6 +272,9 @@ const COMMANDS = {
       'writes': { type: 'boolean', default: false },
       'isolation': { type: 'string' },
       'budget-tokens': { type: 'string' },
+      'coordinator-agent-id': { type: 'string' },
+      'coordinator-agent-version': { type: 'string' },
+      'environment-id': { type: 'string' },
     })
     const doc = store.read(cwd)
     let registry = null
@@ -284,14 +289,14 @@ const COMMANDS = {
     }
     const { getExecutionDefaults } = require('../runtimes/selection')
     let executionRequest
-    if (values.execution && !['advisor', 'workflow'].includes(values.execution))
-      throw new StateError('E_USAGE', '--execution must be advisor or workflow')
+    if (values.execution && !['advisor', 'workflow', 'managed-agents'].includes(values.execution))
+      throw new StateError('E_USAGE', '--execution must be advisor, workflow, or managed-agents')
     if (values.execution === 'advisor') {
       executionRequest = { pattern: 'advisor' }
     }
-    else if (values.execution === 'workflow') {
+    else if (['workflow', 'managed-agents'].includes(values.execution)) {
       executionRequest = {
-        pattern: 'workflow',
+        pattern: values.execution,
         partitionable: values.partitionable,
         writes: values.writes,
       }
@@ -305,6 +310,12 @@ const COMMANDS = {
         executionRequest.isolation = values.isolation
       if (values['budget-tokens'] !== undefined)
         executionRequest.budgetTokens = Number(values['budget-tokens'])
+      if (values['coordinator-agent-id'] !== undefined)
+        executionRequest.coordinatorAgentId = values['coordinator-agent-id']
+      if (values['coordinator-agent-version'] !== undefined)
+        executionRequest.coordinatorAgentVersion = Number(values['coordinator-agent-version'])
+      if (values['environment-id'] !== undefined)
+        executionRequest.environmentId = values['environment-id']
     }
     const next = resolveNextAction(doc, {
       cwd,

@@ -1,7 +1,9 @@
 # Changelog
+
 All notable changes to this project are documented in this file.
 
 ## [Unreleased]
+- Added an opt-in Anthropic Managed Agents coordinator path with persisted agent setup, explicit coordinator/worker capability roles, hosted Matt/Antfu/Octowiz skill attachment, session-level write isolation, delegation events, and per-thread usage accounting.
 
 ## [1.1.0-alpha.1] - 2026-07-17
 ### Added

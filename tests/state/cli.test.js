@@ -202,6 +202,7 @@ describe('octowiz state CLI', () => {
       expect(data.resolved).toEqual({
         provider: 'mattpocock-skills',
         command: 'grill-with-docs',
+        role: 'coordinator',
       })
       expect(data.humanGate).toBe(true)
       expect(data.execution.pattern).toBe('advisor')
@@ -223,6 +224,7 @@ describe('octowiz state CLI', () => {
       expect(data.resolved).toEqual({
         provider: 'mattpocock-skills',
         command: 'implement',
+        role: 'worker',
       })
       expect(data.humanGate).toBe(true)
     })

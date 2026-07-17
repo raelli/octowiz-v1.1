@@ -43,3 +43,45 @@ class TestExecutionPolicy(unittest.TestCase):
                 "writes": True,
                 "isolation": "none",
             })
+
+    def test_accepts_managed_agents_policy(self):
+        policy = {
+            "pattern": "managed-agents",
+            "partitionable": True,
+            "scope": "one worker per package",
+            "verification": "run package checks",
+            "maxAgents": 4,
+            "coordinatorAgentId": "agent_coordinator",
+            "coordinatorAgentVersion": 3,
+            "environmentId": "env_octowiz",
+            "writes": False,
+            "isolation": "none",
+        }
+        self.assertEqual(normalize_execution_policy(policy), policy)
+
+    def test_rejects_managed_writes_without_session_isolation(self):
+        with self.assertRaisesRegex(ValueError, "managed-session"):
+            normalize_execution_policy({
+                "pattern": "managed-agents",
+                "partitionable": True,
+                "scope": "one worker per package",
+                "verification": "run package checks",
+                "maxAgents": 4,
+                "coordinatorAgentId": "agent_coordinator",
+                "environmentId": "env_octowiz",
+                "writes": True,
+                "isolation": "worktree",
+            })
+
+    def test_accepts_persisted_managed_agents_profile(self):
+        policy = {
+            "pattern": "managed-agents",
+            "managedAgentsProfile": "default",
+            "partitionable": True,
+            "scope": "one worker per package",
+            "verification": "cross-check findings",
+            "maxAgents": 4,
+            "writes": False,
+            "isolation": "none",
+        }
+        self.assertEqual(normalize_execution_policy(policy), policy)

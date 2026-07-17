@@ -33,6 +33,20 @@ describe('execution policy', () => {
     expect(validateExecutionPolicy(policy)).toEqual([])
   })
 
+  it('defaults managed-agents execution to the persisted machine profile', () => {
+    const policy = resolveExecutionPolicy({
+      pattern: 'managed-agents',
+      partitionable: true,
+      scope: 'one worker per package',
+      verification: 'cross-check findings',
+      maxAgents: 4,
+      writes: false,
+    })
+    expect(policy.pattern).toBe('managed-agents')
+    expect(policy.managedAgentsProfile).toBe('default')
+    expect(validateExecutionPolicy(policy)).toEqual([])
+  })
+
   it('requires worktree isolation for writing workflows', () => {
     const policy = resolveExecutionPolicy({
       pattern: 'workflow',
@@ -62,5 +76,40 @@ describe('execution policy', () => {
 
   it('does not infer workflow mode from task prose', () => {
     expect(resolveExecutionPolicy({ task: 'audit every file in parallel' }).pattern).toBe('advisor')
+  })
+
+  it('accepts persisted Managed Agents coordinator references', () => {
+    const policy = resolveExecutionPolicy({
+      pattern: 'managed-agents',
+      partitionable: true,
+      scope: 'one worker per package',
+      verification: 'run package tests and synthesize evidence',
+      maxAgents: 6,
+      coordinatorAgentId: 'agent_coordinator',
+      coordinatorAgentVersion: 7,
+      environmentId: 'env_octowiz',
+      writes: false,
+    })
+    expect(policy.pattern).toBe('managed-agents')
+    expect(policy.isolation).toBe('none')
+    expect(validateExecutionPolicy(policy)).toEqual([])
+  })
+
+  it('requires managed-session isolation for hosted writes', () => {
+    const policy = resolveExecutionPolicy({
+      pattern: 'managed-agents',
+      partitionable: true,
+      scope: 'one worker per package',
+      verification: 'run package tests',
+      maxAgents: 4,
+      coordinatorAgentId: 'agent_coordinator',
+      environmentId: 'env_octowiz',
+      writes: true,
+      isolation: 'worktree',
+    })
+    expect(policy.pattern).toBe('advisor')
+    expect(policy.fallbackIssues).toContain(
+      'writing managed-agents runs require execution.isolation=managed-session',
+    )
   })
 })

@@ -24,7 +24,7 @@ function tryResolve(capabilityName, context) {
   const resolved = resolveWithConditions(context.registry, capabilityName, context.cwd || process.cwd())
   if (!resolved)
     return null
-  return { provider: resolved.provider, command: resolved.command }
+  return { provider: resolved.provider, command: resolved.command, role: resolved.role }
 }
 
 /**
