@@ -25,7 +25,8 @@ Octowiz is not an autonomous IDE and not another general-purpose coding agent. I
 | Persistent engineering state | Integrated | Versioned state, guarded transitions, append-only ledger, repair, and deterministic next-action CLI. |
 | Capability resolution | Integrated | Abstract capabilities resolve to repository-appropriate providers and commands. |
 | Runtime abstraction | Integrated | Runtime registry, availability checks, repository-local preference, and normalized events exist. |
-| Claude Code runtime adapter | Operational | Default advisory runtime around the existing supervisor and hook flow. |
+| Claude Code execution policy | Integrated | Sequential tasks default to Sonnet with Fable as advisor; bounded fan-out can use Dynamic Workflows with explicit routing and isolation. |
+| Claude Code runtime adapter | Operational | Advisor and workflow policies route through the existing supervisor, hook, and A2A flow. |
 | OpenCode runtime adapter | Stub | Availability probe works; task dispatch returns `deferred`. |
 | Daytona runtime adapter | Stub | API health probe works; task dispatch returns `deferred`. |
 | Multiplayer and autonomous-execution modules | Implemented building blocks | Sessions, ownership, worktrees, conflicts, evidence bundles, leases, and steering exist as modules, but are not yet exposed as a unified CLI and hook-driven workflow. |
@@ -152,6 +153,7 @@ curl -s http://127.0.0.1:${OCTOWIZ_LOCAL_PORT:-8764}/health
 - Python `3.8` or newer
 - `mattpocock-skills`
 - Git for repository inspection and worktree operations
+- Claude Code `2.1.203` or newer for Dynamic Workflow dispatch
 
 The local A2A server additionally needs FastAPI and Uvicorn from `apps/a2a-agent/requirements.txt`.
 
@@ -268,9 +270,51 @@ octowiz runtime show
 octowiz runtime select claude-code
 octowiz runtime select opencode
 octowiz runtime select daytona
+octowiz runtime doctor
 ```
 
 The preference is stored in `.octowiz/config.json`. Selecting OpenCode or Daytona does not make those adapters operational yet. Their current dispatch result is `deferred`.
+
+### Advisor and Dynamic Workflow execution
+
+Execution policy is separate from capability and runtime selection:
+
+- **Advisor** is the safe default for sequential implementation, diagnosis, and refactoring. The executor uses `sonnet`; `fable` is available as a bounded advisor.
+- **Workflow** requires explicit independent scope, a verification strategy, an agent limit from 1 to 16, and worktree isolation for writes. Fable plans and synthesizes; Sonnet workers perform the bulk work.
+
+Octowiz never infers workflow mode from task prose alone. The queue daemon validates the policy before forwarding it, and the Python A2A boundary validates it again. Programmatic workflow dispatch uses `claude --effort ultracode`; it does not rely on the human-only `ultracode:` keyword trigger.
+
+Repository defaults may be placed under `runtime.options.claude-code.execution`:
+
+```json
+{
+  "runtime": {
+    "preferred": "claude-code",
+    "options": {
+      "claude-code": {
+        "execution": {
+          "executorModel": "sonnet",
+          "advisorModel": "fable",
+          "maxAdvisorCalls": 1
+        }
+      }
+    }
+  }
+}
+```
+
+`octowiz runtime doctor --json` checks the installed Claude Code version, Fable advisor setting, and workflow-disable flag without changing user settings.
+
+Two versioned workflow harnesses are bundled:
+
+```bash
+octowiz workflow list
+octowiz workflow install integra-audit --dry-run
+octowiz workflow install integra-audit --scope project
+octowiz workflow install integra-migration --scope user
+```
+
+`integra-audit` is read-only and adversarially verifies findings. `integra-migration` gives every writing worker native Claude Code worktree isolation. Installation is always explicit; existing workflow files are preserved unless `--force` is passed.
 
 ## Persistent engineering state
 
@@ -348,7 +392,7 @@ The native lean engineering gate is conceptually adapted from [Ponytail](https:/
 
 All runtimes implement a shared adapter contract for availability, status, dispatch, and event notifications.
 
-- **Claude Code:** operational default runtime. Dispatch is advisory and uses the existing supervisor, hook, and AELLI flow.
+- **Claude Code:** operational default runtime. Sequential dispatch uses advisor mode; explicitly partitionable work can use bounded Dynamic Workflows through the same supervisor, hook, and AELLI flow.
 - **OpenCode:** TCP availability probe plus deferred dispatch stub. Default probe port is `9100` or `OPENCODE_PORT`.
 - **Daytona:** HTTP health probe plus deferred dispatch stub. Default API URL is `http://localhost:3986` or `DAYTONA_API_URL`.
 
@@ -366,7 +410,7 @@ Stage 5 added tested modules for:
 - renewable task leases;
 - global pause/resume, redirect, and human-gate state.
 
-These are currently library-level building blocks. The following planned operator commands are **not yet wired into `bin/octowiz.js`**:
+Pause and per-session human gates now block new queue dispatches at the daemon boundary. The following planned operator commands are **not yet wired into `bin/octowiz.js`**:
 
 ```text
 octowiz worktree ...
@@ -403,7 +447,7 @@ Do not treat Stage 5 as end-to-end multiplayer execution until these modules are
 ```bash
 pnpm lint
 pnpm test
-python -m pytest packages/memory_client/tests apps/claude_code_bridge/tests providers/tests
+python3 -m pytest packages/memory_client/tests apps/claude_code_bridge/tests apps/a2a-agent/tests providers/tests
 ```
 
 CI runs ESLint, JavaScript syntax checks, Jest on Node.js 22 and 24, and Python tests on Python 3.12.
@@ -415,6 +459,8 @@ CI runs ESLint, JavaScript syntax checks, Jest on Node.js 22 and 24, and Python 
 - Empty path configuration is deny-all.
 - Queue tasks require claims and lease tokens.
 - Unknown capabilities are rejected.
+- Invalid workflow policies and writing workflows without worktree isolation are rejected before execution.
+- Repository pause and human-gate state is checked before dispatch.
 - Sensitive header values are sanitized.
 - Hook failures are fail-open for developer experience.
 - Octowiz does not stop a process unless it can identify it as its own.
@@ -425,8 +471,8 @@ CI runs ESLint, JavaScript syntax checks, Jest on Node.js 22 and 24, and Python 
 ## Known limitations and next integration work
 
 - OpenCode and Daytona cannot execute tasks yet; both adapters return `deferred`.
-- Runtime preference is managed separately from the deterministic state recommendation and still needs full dispatch integration.
-- Stage 5 modules are not yet connected into one hook-driven, CLI-controlled multiplayer workflow.
+- Runtime preference is managed separately from the deterministic state recommendation and still needs full adapter dispatch integration for non-Claude runtimes.
+- Stage 5 modules are not yet exposed as one CLI-controlled multiplayer workflow; only dispatch admission is connected to steering.
 - The event ledger is not yet replayable into a full snapshot; repair creates a fresh valid state instead of reconstructing history.
 - Locking and multiplayer state are machine-local; cross-machine coordination is out of scope until remote synchronization exists.
 - AELLI synchronization is deliberately postponed until the local single-repository model proves stable.

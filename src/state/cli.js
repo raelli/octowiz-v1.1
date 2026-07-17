@@ -33,6 +33,9 @@ commands:
                           [--reject alt]... [--ceiling c] [--upgrade-trigger t] [--failed]
   evidence <kind> <status> record evidence: --ref <ref> [--note n] [--reason r]
   next                    deterministic next-action recommendation
+                          [--execution advisor|workflow] [--partitionable]
+                          [--scope text] [--verification text] [--max-agents N]
+                          [--writes --isolation worktree] [--budget-tokens N]
   history                 print ledger events [--limit N]
   repair                  back up an invalid state file and recreate a valid one
 
@@ -258,7 +261,16 @@ const COMMANDS = {
   },
 
   'next': (argv, cwd) => {
-    const { values } = parse(argv)
+    const { values } = parse(argv, {
+      'execution': { type: 'string' },
+      'partitionable': { type: 'boolean', default: false },
+      'scope': { type: 'string' },
+      'verification': { type: 'string' },
+      'max-agents': { type: 'string' },
+      'writes': { type: 'boolean', default: false },
+      'isolation': { type: 'string' },
+      'budget-tokens': { type: 'string' },
+    })
     const doc = store.read(cwd)
     let registry = null
     try {
@@ -271,9 +283,33 @@ const COMMANDS = {
       // Registry unavailable — resolution will be skipped
     }
     const { getExecutionDefaults } = require('../runtimes/selection')
+    let executionRequest
+    if (values.execution && !['advisor', 'workflow'].includes(values.execution))
+      throw new StateError('E_USAGE', '--execution must be advisor or workflow')
+    if (values.execution === 'advisor') {
+      executionRequest = { pattern: 'advisor' }
+    }
+    else if (values.execution === 'workflow') {
+      executionRequest = {
+        pattern: 'workflow',
+        partitionable: values.partitionable,
+        writes: values.writes,
+      }
+      if (values.scope !== undefined)
+        executionRequest.scope = values.scope
+      if (values.verification !== undefined)
+        executionRequest.verification = values.verification
+      if (values['max-agents'] !== undefined)
+        executionRequest.maxAgents = Number(values['max-agents'])
+      if (values.isolation !== undefined)
+        executionRequest.isolation = values.isolation
+      if (values['budget-tokens'] !== undefined)
+        executionRequest.budgetTokens = Number(values['budget-tokens'])
+    }
     const next = resolveNextAction(doc, {
       cwd,
       registry,
+      executionRequest,
       executionDefaults: getExecutionDefaults(cwd),
     })
     const human = next.capability

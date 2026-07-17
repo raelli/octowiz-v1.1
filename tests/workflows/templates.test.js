@@ -12,12 +12,12 @@ describe('bundled Dynamic Workflow harnesses', () => {
     '%s is deterministic, bounded, phased, and explicitly routed',
     (name) => {
       const source = read(name)
-      expect(source).toContain("model: 'fable'")
-      expect(source).toContain("model: 'sonnet'")
+      expect(source).toContain('model: \'fable\'')
+      expect(source).toContain('model: \'sonnet\'')
       expect(source).toContain('Math.min')
       expect(source).toContain(', 16)')
       expect(source).toContain('budget.total')
-      expect(source).toContain("phase('Plan')")
+      expect(source).toContain('phase(\'Plan\')')
       expect(source).toContain('.filter(Boolean)')
       expect(source).not.toContain('Date.now(')
       expect(source).not.toContain('Math.random(')
@@ -27,10 +27,10 @@ describe('bundled Dynamic Workflow harnesses', () => {
   )
 
   it('keeps the audit read-only', () => {
-    expect(read('integra-audit.js')).not.toContain("isolation: 'worktree'")
+    expect(read('integra-audit.js')).not.toContain('isolation: \'worktree\'')
   })
 
   it('isolates every migration worker in a worktree', () => {
-    expect(read('integra-migration.js')).toContain("isolation: 'worktree'")
+    expect(read('integra-migration.js')).toContain('isolation: \'worktree\'')
   })
 })

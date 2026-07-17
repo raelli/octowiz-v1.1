@@ -85,6 +85,7 @@ class DispatchSession:
         timeout: float,
         workflow_client: Any = None,
         execution: Optional[Dict[str, Any]] = None,
+        dispatch_execution: Optional[Dict[str, Any]] = None,
     ):
         self.task = task
         self.cwd = cwd
@@ -94,6 +95,7 @@ class DispatchSession:
         self._timeout = timeout
         self._workflow_client = workflow_client
         self.execution = execution
+        self._dispatch_execution = dispatch_execution
 
         self.session_id: Optional[str] = None
         self._wf_run_id: Optional[str] = None
@@ -117,7 +119,7 @@ class DispatchSession:
         _loop = asyncio.get_running_loop()
         session_id = await _loop.run_in_executor(
             None, _dispatch_and_register,
-            self._provider, self.task, self.cwd, self.principal, self.execution,
+            self._provider, self.task, self.cwd, self.principal, self._dispatch_execution,
         )
         if not session_id:
             raise RuntimeError("no session ID returned")
@@ -338,7 +340,8 @@ async def handle_dispatch(
 
     principal = event.get("_principal", "")
     try:
-        execution = normalize_execution_policy(event.get("execution"))
+        dispatch_execution = event.get("execution") if "execution" in event else None
+        execution = normalize_execution_policy(dispatch_execution)
     except ValueError as exc:
         return err(str(exc), failureKind="invalid-execution-policy")
 
@@ -351,6 +354,7 @@ async def handle_dispatch(
         timeout=timeout,
         workflow_client=workflow_client,
         execution=execution,
+        dispatch_execution=dispatch_execution,
     )
 
     try:
