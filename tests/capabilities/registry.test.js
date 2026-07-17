@@ -186,6 +186,7 @@ describe('capabilities/registry — resolveCapability', () => {
       command: 'implement',
       priority: 1,
       when: undefined,
+      role: 'worker',
     })
   })
 
@@ -458,5 +459,18 @@ describe('capabilities/registry — default skills/registry.json', () => {
 
   it('human-decision capability has no resolvers (by design)', () => {
     expect(reg.capabilities['human-decision'].resolvers).toEqual([])
+  })
+
+  it('assigns every executable default resolver an explicit CMA role', () => {
+    for (const capability of Object.values(reg.capabilities)) {
+      for (const resolver of capability.resolvers)
+        expect(['coordinator', 'worker']).toContain(resolver.role)
+    }
+  })
+
+  it('restricts Antfu to workers while Matt and Octowiz span their declared roles', () => {
+    expect(reg.providers['antfu-skills'].roles).toEqual(['worker'])
+    expect(reg.providers['mattpocock-skills'].roles).toEqual(['coordinator', 'worker'])
+    expect(reg.providers['octowiz-native'].roles).toEqual(['coordinator', 'worker'])
   })
 })

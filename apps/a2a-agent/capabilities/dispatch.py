@@ -30,6 +30,26 @@ def _make_provider():
     return ClaudeAgentViewProvider()
 
 
+def _run_managed_agents(
+    task: str,
+    execution: Dict[str, Any],
+    capability: Optional[Dict[str, str]],
+    resources: Optional[list],
+    title: Optional[str],
+) -> Any:
+    import anthropic
+    from managed_agents_orchestrator import ManagedAgentsOrchestrator
+
+    orchestrator = ManagedAgentsOrchestrator(anthropic.Anthropic())
+    return orchestrator.run(
+        task=task,
+        execution=execution,
+        capability=capability,
+        resources=resources,
+        title=title,
+    )
+
+
 def _dispatch_and_register(
     provider: Any,
     task: str,
@@ -327,6 +347,78 @@ async def handle_dispatch(
     except ValueError as exc:
         return err(str(exc))
 
+
+    principal = event.get("_principal", "")
+    try:
+        dispatch_execution = event.get("execution") if "execution" in event else None
+        execution = normalize_execution_policy(dispatch_execution)
+    except ValueError as exc:
+        return err(str(exc), failureKind="invalid-execution-policy")
+
+    if execution["pattern"] == "managed-agents":
+        if not execution.get("coordinatorAgentId"):
+            try:
+                from managed_agents_config import load_team_config
+                team = load_team_config()
+            except Exception as exc:
+                return err(
+                    f"managed-agents profile could not be loaded: {exc}",
+                    failureKind="missing-managed-agents-profile",
+                    execution=execution,
+                )
+            execution = {
+                **execution,
+                "coordinatorAgentId": team["coordinatorAgentId"],
+                "coordinatorAgentVersion": team.get("coordinatorAgentVersion"),
+                "environmentId": team["environmentId"],
+            }
+        resources = event.get("resources")
+        if resources is not None and not isinstance(resources, list):
+            return err("resources must be a list", failureKind="invalid-resources")
+        if execution["writes"] and not resources:
+            return err(
+                "writing managed-agents runs require at least one mounted resource",
+                failureKind="missing-resource",
+                execution=execution,
+            )
+        capability = event.get("resolvedCapability")
+        if capability is not None and not isinstance(capability, dict):
+            return err(
+                "resolvedCapability must be an object",
+                failureKind="invalid-capability-route",
+            )
+        try:
+            result = await asyncio.get_running_loop().run_in_executor(
+                None,
+                _run_managed_agents,
+                task,
+                execution,
+                capability,
+                resources,
+                event.get("title"),
+            )
+        except ImportError:
+            return err(
+                "anthropic SDK is required for managed-agents execution",
+                failureKind="missing-dependency",
+                execution=execution,
+            )
+        except Exception as exc:
+            return err(
+                f"managed-agents session failed: {exc}",
+                failureKind="managed-agents-error",
+                execution=execution,
+            )
+        return {
+            "status": "completed",
+            "session_id": result.session_id,
+            "output": result.output,
+            "thread_events": result.thread_events,
+            "usage": result.usage,
+            "usage_by_thread": result.usage_by_thread,
+            "execution": execution,
+        }
+
     if provider is None:
         provider = _make_provider()
     if poll_interval is None:
@@ -337,13 +429,6 @@ async def handle_dispatch(
     if workflow_client is _ENV:
         from workflow_run_client import _make_from_env
         workflow_client = _make_from_env()
-
-    principal = event.get("_principal", "")
-    try:
-        dispatch_execution = event.get("execution") if "execution" in event else None
-        execution = normalize_execution_policy(dispatch_execution)
-    except ValueError as exc:
-        return err(str(exc), failureKind="invalid-execution-policy")
 
     session = DispatchSession(
         task,

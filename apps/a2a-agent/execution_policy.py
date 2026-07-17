@@ -40,7 +40,7 @@ def normalize_execution_policy(raw: Optional[Any]) -> Dict[str, Any]:
             issues.append("execution.maxAdvisorCalls must be between 1 and 2")
         if raw.get("effort") != "high":
             issues.append("execution.effort must be high for advisor mode")
-    elif pattern == "workflow":
+    elif pattern in {"workflow", "managed-agents"}:
         if raw.get("partitionable") is not True:
             issues.append("execution.partitionable must be true")
         if not isinstance(raw.get("scope"), str) or not raw["scope"].strip():
@@ -57,24 +57,40 @@ def normalize_execution_policy(raw: Optional[Any]) -> Dict[str, Any]:
             or not 1 <= agents <= _MAX_AGENTS
         ):
             issues.append("execution.maxAgents must be between 1 and 16")
-        for field in ("plannerModel", "workerModel", "synthesizerModel"):
-            if not _valid_model(raw.get(field)):
-                issues.append(f"execution.{field} is invalid")
-        if raw.get("effort") != "ultracode":
-            issues.append("execution.effort must be ultracode")
+        if pattern == "workflow":
+            for field in ("plannerModel", "workerModel", "synthesizerModel"):
+                if not _valid_model(raw.get(field)):
+                    issues.append(f"execution.{field} is invalid")
+            if raw.get("effort") != "ultracode":
+                issues.append("execution.effort must be ultracode")
+        else:
+            has_agent = isinstance(raw.get("coordinatorAgentId"), str) and bool(raw["coordinatorAgentId"].strip())
+            has_environment = isinstance(raw.get("environmentId"), str) and bool(raw["environmentId"].strip())
+            has_profile = isinstance(raw.get("managedAgentsProfile"), str) and bool(raw["managedAgentsProfile"].strip())
+            if not has_profile and not (has_agent and has_environment):
+                issues.append("managed-agents mode requires a profile or explicit agent references")
+            if has_agent != has_environment:
+                issues.append("execution.coordinatorAgentId and execution.environmentId must be supplied together")
+            version = raw.get("coordinatorAgentVersion")
+            if version is not None and (
+                not isinstance(version, int) or isinstance(version, bool) or version < 1
+            ):
+                issues.append("execution.coordinatorAgentVersion must be a positive integer")
         if not isinstance(raw.get("writes"), bool):
             issues.append("execution.writes must be a boolean")
-        if raw.get("isolation") not in {"none", "worktree"}:
-            issues.append("execution.isolation must be none or worktree")
-        if raw.get("writes") is True and raw.get("isolation") != "worktree":
+        if raw.get("isolation") not in {"none", "worktree", "managed-session"}:
+            issues.append("execution.isolation must be none, worktree, or managed-session")
+        if pattern == "workflow" and raw.get("writes") is True and raw.get("isolation") != "worktree":
             issues.append("writing workflows require execution.isolation=worktree")
+        if pattern == "managed-agents" and raw.get("writes") is True and raw.get("isolation") != "managed-session":
+            issues.append("writing managed-agents runs require execution.isolation=managed-session")
         budget = raw.get("budgetTokens")
         if budget is not None and (
             not isinstance(budget, int) or isinstance(budget, bool) or budget < 1
         ):
             issues.append("execution.budgetTokens must be a positive integer")
     else:
-        issues.append("execution.pattern must be advisor or workflow")
+        issues.append("execution.pattern must be advisor, workflow, or managed-agents")
 
     if issues:
         raise ValueError("; ".join(issues))

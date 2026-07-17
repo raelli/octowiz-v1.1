@@ -4,109 +4,109 @@
     "requirements-discovery": {
       "description": "Explore and challenge repository-backed product requirements",
       "resolvers": [
-        { "provider": "mattpocock-skills", "command": "grill-with-docs", "priority": 1 }
+        { "provider": "mattpocock-skills", "command": "grill-with-docs", "priority": 1, "role": "coordinator" }
       ]
     },
     "plan-validation": {
       "description": "Challenge a plan before implementation begins",
       "resolvers": [
-        { "provider": "mattpocock-skills", "command": "grill-with-docs", "priority": 1 }
+        { "provider": "mattpocock-skills", "command": "grill-with-docs", "priority": 1, "role": "coordinator" }
       ]
     },
     "definition": {
       "description": "Synthesize agreed scope and acceptance criteria into a spec",
       "resolvers": [
-        { "provider": "mattpocock-skills", "command": "to-spec", "priority": 1 }
+        { "provider": "mattpocock-skills", "command": "to-spec", "priority": 1, "role": "coordinator" }
       ]
     },
     "ticket-breakdown": {
       "description": "Split a spec or plan into tracer-bullet tickets with blocking edges",
       "resolvers": [
-        { "provider": "mattpocock-skills", "command": "to-tickets", "priority": 1 }
+        { "provider": "mattpocock-skills", "command": "to-tickets", "priority": 1, "role": "coordinator" }
       ]
     },
     "decision-resolution": {
       "description": "Resolve blocking open questions",
       "resolvers": [
-        { "provider": "mattpocock-skills", "command": "grilling", "priority": 1 }
+        { "provider": "mattpocock-skills", "command": "grilling", "priority": 1, "role": "coordinator" }
       ]
     },
     "prototype": {
       "description": "Build throwaway code to answer one design question",
       "resolvers": [
-        { "provider": "mattpocock-skills", "command": "prototype", "priority": 1 }
+        { "provider": "mattpocock-skills", "command": "prototype", "priority": 1, "role": "worker" }
       ]
     },
     "research": {
       "description": "Investigate a question against primary sources",
       "resolvers": [
-        { "provider": "mattpocock-skills", "command": "research", "priority": 1 }
+        { "provider": "mattpocock-skills", "command": "research", "priority": 1, "role": "worker" }
       ]
     },
     "wayfinding": {
       "description": "Map decisions for a genuinely large multi-session effort",
       "resolvers": [
-        { "provider": "mattpocock-skills", "command": "wayfinder", "priority": 1 }
+        { "provider": "mattpocock-skills", "command": "wayfinder", "priority": 1, "role": "coordinator" }
       ]
     },
     "lean-design-check": {
       "description": "Lean engineering gate evaluation before implementation",
       "resolvers": [
-        { "provider": "octowiz-native", "command": "lean-gate", "priority": 1 }
+        { "provider": "octowiz-native", "command": "lean-gate", "priority": 1, "role": "coordinator" }
       ]
     },
     "implementation": {
       "description": "Implement a scoped spec or ticket using TDD at agreed seams",
       "resolvers": [
-        { "provider": "mattpocock-skills", "command": "implement", "priority": 1 }
+        { "provider": "mattpocock-skills", "command": "implement", "priority": 1, "role": "worker" }
       ]
     },
     "test-driven-development": {
       "description": "Build one concrete behavior through a red-green loop",
       "resolvers": [
-        { "provider": "mattpocock-skills", "command": "tdd", "priority": 1 }
+        { "provider": "mattpocock-skills", "command": "tdd", "priority": 1, "role": "worker" }
       ]
     },
     "diagnosis": {
       "description": "Root-cause analysis of unexpected behavior",
       "resolvers": [
-        { "provider": "mattpocock-skills", "command": "diagnosing-bugs", "priority": 1 }
+        { "provider": "mattpocock-skills", "command": "diagnosing-bugs", "priority": 1, "role": "worker" }
       ]
     },
     "verification": {
       "description": "Run automated checks and collect evidence",
       "resolvers": [
-        { "provider": "octowiz-native", "command": "verify", "priority": 1 }
+        { "provider": "octowiz-native", "command": "verify", "priority": 1, "role": "worker" }
       ]
     },
     "code-review": {
       "description": "Review a diff against repository standards and its originating spec",
       "resolvers": [
-        { "provider": "mattpocock-skills", "command": "code-review", "priority": 1 }
+        { "provider": "mattpocock-skills", "command": "code-review", "priority": 1, "role": "worker" }
       ]
     },
     "architecture-review": {
       "description": "Find concrete opportunities to deepen codebase modules",
       "resolvers": [
-        { "provider": "mattpocock-skills", "command": "improve-codebase-architecture", "priority": 1 }
+        { "provider": "mattpocock-skills", "command": "improve-codebase-architecture", "priority": 1, "role": "worker" }
       ]
     },
     "complexity-review": {
       "description": "Run the native lean complexity-reduction review",
       "resolvers": [
-        { "provider": "octowiz-native", "command": "complexity-review", "priority": 1 }
+        { "provider": "octowiz-native", "command": "complexity-review", "priority": 1, "role": "worker" }
       ]
     },
     "merge-conflict-resolution": {
       "description": "Resolve an in-progress merge or rebase from primary-source intent",
       "resolvers": [
-        { "provider": "mattpocock-skills", "command": "resolving-merge-conflicts", "priority": 1 }
+        { "provider": "mattpocock-skills", "command": "resolving-merge-conflicts", "priority": 1, "role": "worker" }
       ]
     },
     "handoff-or-ship": {
       "description": "Produce a compact handoff before the human chooses handoff or shipping operations",
       "resolvers": [
-        { "provider": "mattpocock-skills", "command": "handoff", "priority": 1 }
+        { "provider": "mattpocock-skills", "command": "handoff", "priority": 1, "role": "coordinator" }
       ]
     },
     "human-decision": {
@@ -118,17 +118,20 @@
     "mattpocock-skills": {
       "type": "skill-pack",
       "required": true,
-      "install": "mattpocock-skills@mattpocock"
+      "install": "mattpocock-skills@mattpocock",
+      "roles": ["coordinator", "worker"]
     },
     "antfu-skills": {
       "type": "skill-pack",
       "required": false,
       "install": "antfu-skills",
-      "when": "vue-nuxt-vite-ecosystem"
+      "when": "vue-nuxt-vite-ecosystem",
+      "roles": ["worker"]
     },
     "octowiz-native": {
       "type": "builtin",
-      "required": true
+      "required": true,
+      "roles": ["coordinator", "worker"]
     }
   }
 }

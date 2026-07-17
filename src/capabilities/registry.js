@@ -19,6 +19,7 @@ const DEFAULT_REGISTRY_PATH = path.resolve(__dirname, '../../skills/registry.jso
  * @property {string} command - command within that provider (e.g. "tdd")
  * @property {number} priority - resolver priority (lower = preferred)
  * @property {string|undefined} when - condition that was satisfied, if any
+ * @property {'coordinator'|'worker'} role - CMA orchestration responsibility
  */
 
 /**
@@ -255,6 +256,7 @@ function resolveCapability(registry, capabilityName, context = {}) {
     command: best.command,
     priority: best.priority ?? 1,
     when: best.when ?? undefined,
+    role: best.role ?? 'worker',
   }
 }
 

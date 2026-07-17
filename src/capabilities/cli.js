@@ -53,8 +53,8 @@ const COMMANDS = {
       return { values, data, human: `${name}: no resolver qualifies in this context` }
     }
 
-    const data = { capability: name, resolved: { provider: resolved.provider, command: resolved.command } }
-    const human = `${name} → ${resolved.provider}:${resolved.command}`
+    const data = { capability: name, resolved: { provider: resolved.provider, command: resolved.command, role: resolved.role } }
+    const human = `${name} → ${resolved.provider}:${resolved.command} [${resolved.role}]`
     return { values, data, human }
   },
 
@@ -67,8 +67,8 @@ const COMMANDS = {
 
     for (const [name, resolved] of all) {
       if (resolved) {
-        data[name] = { provider: resolved.provider, command: resolved.command }
-        lines.push(`${name} → ${resolved.provider}:${resolved.command}`)
+        data[name] = { provider: resolved.provider, command: resolved.command, role: resolved.role }
+        lines.push(`${name} → ${resolved.provider}:${resolved.command} [${resolved.role}]`)
       }
       else {
         data[name] = null

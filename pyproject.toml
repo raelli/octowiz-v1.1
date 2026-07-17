@@ -10,6 +10,7 @@ readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.8"
 dependencies = [
+    "anthropic",
     "httpx>=0.27.0",
 ]
 

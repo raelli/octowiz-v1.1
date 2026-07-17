@@ -43,7 +43,7 @@ describe('octowiz capability CLI', () => {
       const data = JSON.parse(result.stdout)
       expect(data).toEqual({
         capability: 'implementation',
-        resolved: { provider: 'mattpocock-skills', command: 'implement' },
+        resolved: { provider: 'mattpocock-skills', command: 'implement', role: 'worker' },
       })
     })
 
@@ -90,7 +90,11 @@ describe('octowiz capability CLI', () => {
       const result = run(['list', '--json'], cwd)
       expect(result.code).toBe(0)
       const data = JSON.parse(result.stdout)
-      expect(data.implementation).toEqual({ provider: 'mattpocock-skills', command: 'implement' })
+      expect(data.implementation).toEqual({
+        provider: 'mattpocock-skills',
+        command: 'implement',
+        role: 'worker',
+      })
       expect(data['human-decision']).toBeNull()
     })
   })

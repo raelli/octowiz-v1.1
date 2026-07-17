@@ -27,6 +27,7 @@ Octowiz is not an autonomous IDE and not another general-purpose coding agent. I
 | Runtime abstraction | Integrated | Runtime registry, availability checks, repository-local preference, and normalized events exist. |
 | Claude Code execution policy | Integrated | Sequential tasks default to Sonnet with Fable as advisor; bounded fan-out can use Dynamic Workflows with explicit routing and isolation. |
 | Claude Code runtime adapter | Operational | Advisor and workflow policies route through the existing supervisor, hook, and A2A flow. |
+| Claude Managed Agents coordinator | Integrated, opt-in | Persisted coordinator/worker setup, explicit skill roles, session dispatch, delegation events, and per-thread usage are implemented; a Managed Agents environment and hosted skill IDs must be configured. |
 | OpenCode runtime adapter | Stub | Availability probe works; task dispatch returns `deferred`. |
 | Daytona runtime adapter | Stub | API health probe works; task dispatch returns `deferred`. |
 | Multiplayer and autonomous-execution modules | Implemented building blocks | Sessions, ownership, worktrees, conflicts, evidence bundles, leases, and steering exist as modules, but are not yet exposed as a unified CLI and hook-driven workflow. |
@@ -317,6 +318,66 @@ octowiz workflow install integra-migration --scope user
 
 `integra-audit` is read-only and adversarially verifies findings. `integra-migration` gives every writing worker native Claude Code worktree isolation. Installation is always explicit; existing workflow files are preserved unless `--force` is passed.
 
+### Claude Managed Agents coordinator
+
+The `managed-agents` execution pattern is a separate, opt-in runtime path for
+Anthropic's coordinator roster. It does not replace Claude Code advisor or Dynamic
+Workflow execution.
+
+Create the persistent team once. The environment must already exist, and both model
+IDs are explicit so setup never silently changes the coordinator/worker cost profile:
+
+```bash
+python3 apps/a2a-agent/managed_agents_setup.py \
+  --environment-id env_... \
+  --coordinator-model claude-opus-4-7 \
+  --worker-model <worker-model-id> \
+  --skills-json /path/to/managed-agent-skills.json
+```
+
+`--skills-json` maps Octowiz provider IDs to hosted Managed Agents Skill API
+references:
+
+```json
+{
+  "mattpocock-skills": [
+    { "type": "custom", "skill_id": "skill_...", "version": "1" }
+  ],
+  "antfu-skills": [
+    { "type": "custom", "skill_id": "skill_...", "version": "1" }
+  ],
+  "octowiz-native": [
+    { "type": "custom", "skill_id": "skill_...", "version": "1" }
+  ]
+}
+```
+
+Local Claude Code plugin skills are not automatically visible to a hosted Managed
+Agent. Upload/version them through the Managed Agents Skills API first, then supply
+their references during setup. Matt Pocock and Octowiz skills attach to both roles;
+Antfu skills attach only to workers and remain repository-conditional guidance.
+
+Setup stores only non-secret agent, version, model, and environment references in
+`~/.cache/octowiz/managed-agents.json` with mode `0600`.
+`OCTOWIZ_CMA_CONFIG` overrides that path. Runtime dispatch loads this persisted
+profile and creates a new session; it never recreates agents in the request path.
+
+Request a bounded hosted run through execution policy:
+
+```bash
+octowiz state next \
+  --execution managed-agents \
+  --partitionable \
+  --scope "one worker per package" \
+  --verification "run package checks and synthesize evidence" \
+  --max-agents 4
+```
+
+Hosted writes require `isolation=managed-session` and at least one Managed Agents
+session resource. Read-only analysis can run without mounted resources. Dispatch
+results include the coordinator session ID, final synthesis, delegation thread
+events, aggregate usage, and per-thread usage.
+
 ## Persistent engineering state
 
 Octowiz keeps a durable, machine-independent record of what a repository's engineering work is doing: goal, internal workflow state, decisions, open questions, acceptance criteria, lean-gate outcome, and verification evidence.
@@ -438,6 +499,7 @@ Do not treat Stage 5 as end-to-end multiplayer execution until these modules are
 | `OCTOWIZ_IDLE_TIMEOUT_MS` | `600000` | Supervisor idle shutdown delay. |
 | `OCTOWIZ_LEASE_TTL_MS` | `1800000` | Ephemeral supervisor lease expiry. |
 | `OCTOWIZ_RUNTIME_DIR` | `~/.cache/octowiz` | Machine-local state override. |
+| `OCTOWIZ_CMA_CONFIG` | `~/.cache/octowiz/managed-agents.json` | Persistent Managed Agents coordinator/worker references. |
 | `OCTOWIZ_DISPATCH_TIMEOUT` | `600` seconds | Python dispatch ceiling. |
 | `AELLI_BASE_URL` | local development defaults | Base URL for AELLI services. |
 | `AELLI_LITELLM_BASE` | none | LiteLLM A2A gateway base. |

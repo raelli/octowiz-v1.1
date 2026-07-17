@@ -47,6 +47,25 @@ describe('local override schema validation', () => {
     expect(validateLocalOverrides(doc)).toBe(doc)
   })
 
+  it('accepts an explicit coordinator role', () => {
+    const doc = {
+      schemaVersion: '0.1',
+      capabilities: {
+        definition: {
+          resolvers: [
+            {
+              provider: 'my-local-pack',
+              command: 'define',
+              priority: 1,
+              role: 'coordinator',
+            },
+          ],
+        },
+      },
+    }
+    expect(validateLocalOverrides(doc)).toBe(doc)
+  })
+
   it('accepts overrides with optional providers section', () => {
     const doc = {
       schemaVersion: '0.1',
@@ -387,6 +406,34 @@ describe('local override wins resolution', () => {
     expect(resolved.command).toBe('team-tdd')
   })
 
+  it('resolves an explicit coordinator role from a local override', () => {
+    writeOverrides(dir, {
+      schemaVersion: '0.1',
+      providers: {
+        'team-skills': { type: 'skill-pack', required: true },
+      },
+      capabilities: {
+        definition: {
+          resolvers: [
+            {
+              provider: 'team-skills',
+              command: 'team-definition',
+              priority: 1,
+              role: 'coordinator',
+            },
+          ],
+        },
+      },
+    })
+    const registry = loadRegistryWithOverrides({
+      overridesPath: path.join(dir, '.octowiz', 'capabilities.json'),
+    })
+    const resolved = resolveCapability(registry, 'definition', {})
+    expect(resolved.provider).toBe('team-skills')
+    expect(resolved.command).toBe('team-definition')
+    expect(resolved.role).toBe('coordinator')
+  })
+
   it('local replace mode removes default resolvers entirely', () => {
     writeOverrides(dir, {
       schemaVersion: '0.1',
@@ -477,7 +524,11 @@ describe('capability CLI with local overrides', () => {
     const result = run(['list', '--json'], dir)
     expect(result.code).toBe(0)
     const data = JSON.parse(result.stdout)
-    expect(data['security-review']).toEqual({ provider: 'team-skills', command: 'sec-check' })
+    expect(data['security-review']).toEqual({
+      provider: 'team-skills',
+      command: 'sec-check',
+      role: 'worker',
+    })
   })
 
   it('falls back to default registry when no overrides exist', () => {

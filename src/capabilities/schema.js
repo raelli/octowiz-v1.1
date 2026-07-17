@@ -10,6 +10,7 @@ const { ValidationError } = require('../state/errors')
 const REGISTRY_SCHEMA_VERSION = '0.1'
 
 const PROVIDER_TYPES = ['skill-pack', 'builtin']
+const ORCHESTRATION_ROLES = ['coordinator', 'worker']
 
 /**
  * Validate a single resolver entry within a capability.
@@ -24,7 +25,7 @@ function checkResolver(issues, path, resolver, providerIds) {
     return
   }
 
-  const allowed = ['provider', 'command', 'priority', 'when']
+  const allowed = ['provider', 'command', 'priority', 'when', 'role']
   for (const key of Object.keys(resolver)) {
     if (!allowed.includes(key))
       issues.push(`${path}.${key}: unknown field`)
@@ -47,6 +48,9 @@ function checkResolver(issues, path, resolver, providerIds) {
     if (typeof resolver.when !== 'string' || !resolver.when.trim())
       issues.push(`${path}.when: must be a non-empty string when present`)
   }
+
+  if (resolver.role !== undefined && !ORCHESTRATION_ROLES.includes(resolver.role))
+    issues.push(`${path}.role: must be one of ${ORCHESTRATION_ROLES.join(', ')}`)
 }
 
 /**
@@ -94,7 +98,7 @@ function checkProvider(issues, path, provider) {
     return
   }
 
-  const allowed = ['type', 'required', 'install', 'when']
+  const allowed = ['type', 'required', 'install', 'when', 'roles']
   for (const key of Object.keys(provider)) {
     if (!allowed.includes(key))
       issues.push(`${path}.${key}: unknown field`)
@@ -114,6 +118,18 @@ function checkProvider(issues, path, provider) {
   if (provider.when !== undefined) {
     if (typeof provider.when !== 'string' || !provider.when.trim())
       issues.push(`${path}.when: must be a non-empty string when present`)
+  }
+
+  if (provider.roles !== undefined) {
+    if (!Array.isArray(provider.roles) || provider.roles.length === 0) {
+      issues.push(`${path}.roles: must be a non-empty array when present`)
+    }
+    else {
+      for (const role of provider.roles) {
+        if (!ORCHESTRATION_ROLES.includes(role))
+          issues.push(`${path}.roles: contains invalid role ${JSON.stringify(role)}`)
+      }
+    }
   }
 }
 
@@ -295,7 +311,7 @@ function checkLocalResolver(issues, resolverPath, resolver) {
     return
   }
 
-  const allowed = ['provider', 'command', 'priority', 'when']
+  const allowed = ['provider', 'command', 'priority', 'when', 'role']
   for (const key of Object.keys(resolver)) {
     if (!allowed.includes(key))
       issues.push(`${resolverPath}.${key}: unknown field`)
@@ -316,11 +332,15 @@ function checkLocalResolver(issues, resolverPath, resolver) {
     if (typeof resolver.when !== 'string' || !resolver.when.trim())
       issues.push(`${resolverPath}.when: must be a non-empty string when present`)
   }
+
+  if (resolver.role !== undefined && !ORCHESTRATION_ROLES.includes(resolver.role))
+    issues.push(`${resolverPath}.role: must be one of ${ORCHESTRATION_ROLES.join(', ')}`)
 }
 
 module.exports = {
   REGISTRY_SCHEMA_VERSION,
   PROVIDER_TYPES,
+  ORCHESTRATION_ROLES,
   validateRegistry,
   validateLocalOverrides,
 }
