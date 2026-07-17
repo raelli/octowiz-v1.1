@@ -8,6 +8,7 @@
 const fs = require('node:fs')
 const path = require('node:path')
 
+const { ValidationError } = require('../state/errors')
 const { validateRegistry, validateLocalOverrides } = require('./schema')
 
 // Default registry path relative to the project root (one level up from src/).
@@ -94,6 +95,9 @@ function loadLocalOverrides(overridesPath) {
  *   - mode 'replace': local resolvers completely replace base resolvers
  * - New capabilities (not in base) are added as-is.
  * - Local description overrides base description when provided.
+ * - The merged result is re-validated as a full registry, so a local resolver
+ *   referencing a provider that exists in neither the base nor the local
+ *   providers throws here instead of silently never resolving.
  *
  * @param {object} base validated base registry
  * @param {object} overrides validated local overrides
@@ -141,10 +145,22 @@ function mergeLocalOverrides(base, overrides) {
     }
   }
 
-  return {
+  const merged = {
     schemaVersion: base.schemaVersion,
     providers: mergedProviders,
     capabilities: mergedCapabilities,
+  }
+
+  // Local overrides skip provider-reference checks at validation time (they may
+  // legitimately reference base-registry providers); this is where both provider
+  // sets are finally known, so re-validate the merged document.
+  try {
+    return validateRegistry(merged)
+  }
+  catch (err) {
+    if (err instanceof ValidationError)
+      throw new ValidationError(`local overrides do not merge into a valid registry: ${err.message}`, err.details)
+    throw err
   }
 }
 
