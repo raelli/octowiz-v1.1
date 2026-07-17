@@ -166,7 +166,7 @@ describe('findOverlappingFiles', () => {
     execFileSync('git', ['-C', repo, 'add', '.'])
     execFileSync('git', ['-C', repo, 'commit', '-m', 'a', '-q'])
 
-    execFileSync('git', ['-C', repo, 'checkout', 'main', '-q'])
+    execFileSync('git', ['-C', repo, 'checkout', baseBranch, '-q'])
     execFileSync('git', ['-C', repo, 'checkout', '-b', 'b2', '-q'])
     fs.writeFileSync(path.join(repo, 'b.txt'), 'b\n')
     execFileSync('git', ['-C', repo, 'add', '.'])
