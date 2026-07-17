@@ -30,16 +30,6 @@ Octowiz keeps four understandable entry points while using repository evidence t
 
 ### A. Idea and definition
 
-Typical capabilities:
-
-```text
-mattpocock-skills:grill-me
-mattpocock-skills:grill-with-docs
-mattpocock-skills:prototype
-mattpocock-skills:to-prd
-mattpocock-skills:to-issues
-mattpocock-skills:triage
-```
 
 ### B. Plan validation
 
