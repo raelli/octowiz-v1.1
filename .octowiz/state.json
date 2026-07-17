@@ -7,7 +7,7 @@
   "state": "review",
   "status": "active",
   "blockedFrom": null,
-  "goal": "capability resolution: replace hardcoded skill names with abstract capabilities resolved through a registry",
+  "goal": "capability registry core (Session 3.1): resolveCapability(name, context) resolves the best resolver from a static JSON registry, validates on load, and distinguishes required vs optional providers",
   "artifact": {
     "type": "issue",
     "id": "stage-3-capability-registry",
@@ -28,10 +28,10 @@
       "id": "q-1c2237af",
       "question": "Should Stage 3 Sessions 3.2-3.4 gaps found in review (disable-provider enabled:false not implemented; when-clause and/or/not composability not wired into registry resolution; resolved:null vs omitted-key inconsistency between capability-resolve and state-next CLIs; has-typescript condition ignores .ts-file-present branch) become separate GitHub issues, or should the 'capability resolution' goal be narrowed to Session 3.1 scope only (already fully verified)?",
       "blocking": true,
-      "status": "open",
-      "answer": null,
+      "status": "resolved",
+      "answer": "Narrow the goal to Session 3.1 scope only (capability registry core: loader, schema validation, resolver) — already fully verified. Sessions 3.2-3.4 gaps (provider disable enabled:false, when-clause composability wiring, resolved:null vs omitted-key consistency, has-typescript .ts scan) are out of scope for this goal; file as separate follow-up work if/when picked up.",
       "openedAt": "2026-07-17T11:35:45.335Z",
-      "resolvedAt": null
+      "resolvedAt": "2026-07-17T11:43:45.259Z"
     }
   ],
   "acceptanceCriteria": [
@@ -149,7 +149,7 @@
     "reason": null,
     "humanGate": false
   },
-  "revision": 25,
+  "revision": 27,
   "createdAt": "2026-07-16T02:36:29.058Z",
-  "updatedAt": "2026-07-17T11:35:45.335Z"
+  "updatedAt": "2026-07-17T11:43:45.309Z"
 }
