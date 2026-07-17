@@ -4,14 +4,14 @@
     "id": "github:raelli/octowiz-v1.1"
   },
   "phase": "D",
-  "state": "review",
-  "status": "active",
+  "state": "shipped",
+  "status": "done",
   "blockedFrom": null,
   "goal": "capability resolution: replace hardcoded skill names with abstract capabilities resolved through a registry",
   "artifact": {
-    "type": "issue",
-    "id": "stage-3-capability-registry",
-    "url": null
+    "type": "pr",
+    "id": "24",
+    "url": "https://github.com/raelli/octowiz-v1.1/pull/24"
   },
   "decisions": [],
   "openQuestions": [
@@ -28,10 +28,10 @@
       "id": "q-1c2237af",
       "question": "Should Stage 3 Sessions 3.2-3.4 gaps found in review (disable-provider enabled:false not implemented; when-clause and/or/not composability not wired into registry resolution; resolved:null vs omitted-key inconsistency between capability-resolve and state-next CLIs; has-typescript condition ignores .ts-file-present branch) become separate GitHub issues, or should the 'capability resolution' goal be narrowed to Session 3.1 scope only (already fully verified)?",
       "blocking": true,
-      "status": "open",
-      "answer": null,
+      "status": "resolved",
+      "answer": "Separate issues: follow-up gaps tracked in GitHub issue #27. User directive (2026-07-17) was to ship the capability-resolution goal after the merge-validation fix (PR #24, merged as bd498b5); goal is not narrowed — Session 3.1 scope is verified and the sole spec finding from the second review (override provider refs unvalidated at merge time) was fixed in #24.",
       "openedAt": "2026-07-17T11:35:45.335Z",
-      "resolvedAt": null
+      "resolvedAt": "2026-07-17T11:47:42.065Z"
     }
   ],
   "acceptanceCriteria": [
@@ -135,6 +135,25 @@
           "ref": "Two-axis review (Standards+Spec) of 372b484^..372b484 vs docs/implementation-plan-stages-3-4-5.md. All 5 tracked Session-3.1 ACs confirmed correctly implemented. Review also surfaced non-blocking follow-ups outside tracked scope: Session 3.4 'disable a provider (enabled:false)' AC not implemented; Session 3.2 when-clause composability (and/or/not) not wired into registry resolution, JS-only; Session 3.3 resolved:null vs omitted-key inconsistency between capability-resolve CLI and state-next CLI; has-typescript condition ignores .ts-file-present branch of its own spec line; latent priority ?? Infinity vs ?? 1 fallback inconsistency (dormant, no current registry entry omits priority)",
           "note": null,
           "recordedAt": "2026-07-17T11:19:36.576Z"
+        },
+        {
+          "id": "evidence-f6afb293",
+          "status": "passed",
+          "ref": "PR #24 second two-axis review of e26fe39...d109992: sole spec finding (mergeLocalOverrides never performed the deferred provider-reference check) fixed in bd498b5 with red-green regression tests + e2e CLI verification; standards judgement calls folded into issue #27 context",
+          "note": null,
+          "recordedAt": "2026-07-17T11:47:42.158Z"
+        }
+      ]
+    },
+    "ship": {
+      "status": "passed",
+      "items": [
+        {
+          "id": "evidence-ab348271",
+          "status": "passed",
+          "ref": "PR #24 squash-merged to main as bd498b5 (2026-07-17), CI green (lint-diagnostics, node 22/24, python); follow-ups tracked as issue #27",
+          "note": null,
+          "recordedAt": "2026-07-17T11:47:42.202Z"
         }
       ]
     }
@@ -149,7 +168,7 @@
     "reason": null,
     "humanGate": false
   },
-  "revision": 25,
+  "revision": 31,
   "createdAt": "2026-07-16T02:36:29.058Z",
-  "updatedAt": "2026-07-17T11:35:45.335Z"
+  "updatedAt": "2026-07-17T11:47:42.293Z"
 }
