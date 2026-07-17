@@ -80,12 +80,30 @@ class TestRepoScan(TempCase):
         self.assertEqual(scan.stack, "python")
         self.assertFalse(_antfu_gap(scan, None))
 
-    def test_agent_file_priority_and_skills_section(self):
+    def test_agent_file_priority_and_setup_files(self):
         (self.cwd / "CLAUDE.md").write_text("# Claude")
         (self.cwd / "AGENTS.md").write_text("## Agent skills\n- mattpocock")
+        agents_dir = self.cwd / "docs" / "agents"
+        agents_dir.mkdir(parents=True)
+        (agents_dir / "issue-tracker.md").write_text("# Issue tracker\n")
+        (agents_dir / "domain.md").write_text("# Domain\n")
         scan = scan_repo(self.cwd)
         self.assertEqual(scan.agent_file, "AGENTS.md")
-        self.assertTrue(scan.agent_has_skills_section)
+        self.assertTrue(scan.mattpocock_setup_files)
+
+    def test_heading_without_generated_files_is_not_setup(self):
+        (self.cwd / "AGENTS.md").write_text("## Agent skills\n- mattpocock")
+        self.assertFalse(scan_repo(self.cwd).mattpocock_setup_files)
+
+    def test_github_repo_requires_triage_labels(self):
+        agents_dir = self.cwd / "docs" / "agents"
+        agents_dir.mkdir(parents=True)
+        (agents_dir / "issue-tracker.md").write_text("# Issue tracker\n")
+        (agents_dir / "domain.md").write_text("# Domain\n")
+        with patch("packages.memory_client.env._has_github_remote", return_value=True):
+            self.assertFalse(scan_repo(self.cwd).mattpocock_setup_files)
+            (agents_dir / "triage-labels.md").write_text("# Triage labels\n")
+            self.assertTrue(scan_repo(self.cwd).mattpocock_setup_files)
 
 
 class TestLiveCheck(TempCase):
@@ -112,6 +130,10 @@ class TestLiveCheck(TempCase):
         save_machine_state(machine, self.machine_state_path)
         save_repo_state(RepoState(antfu_setup=False), self.cwd)
         (self.cwd / "AGENTS.md").write_text("## Agent skills\n- mattpocock")
+        agents_dir = self.cwd / "docs" / "agents"
+        agents_dir.mkdir(parents=True)
+        (agents_dir / "issue-tracker.md").write_text("# Issue tracker\n")
+        (agents_dir / "domain.md").write_text("# Domain\n")
         (self.cwd / "pyproject.toml").write_text("[project]\nname='test'")
 
         with patch.dict(os.environ, {

@@ -22,25 +22,25 @@ _SAMPLE_MANIFEST = {
     "owner": {"name": "https://github.com/raelli", "email": "support@integrahub.de"},
     "plugins": [
         {
-            "name": "superpowers",
-            "source": {"source": "github", "repo": "obra/superpowers"},
+            "name": "antfu-skills",
+            "source": {"source": "github", "repo": "antfu/skills"},
             "version": "1.0.0",
-            "description": "Composable coding-agent workflow.",
+            "description": "Optional TypeScript and Vue conventions.",
             "keywords": ["coding-agent", "skills"],
             "category": "Coding",
         },
         {
-            "name": "mattpo-skills",
-            "source": {"source": "github", "repo": "obra/mattpo-skills"},
-            "version": "2.3.1",
+            "name": "mattpocock-skills",
+            "source": {"source": "github", "repo": "mattpocock/skills"},
+            "version": "1.1.0",
             "description": "Matt Pocock TypeScript skills.",
             "keywords": ["typescript"],
             "category": "Development",
         },
         {
             "name": "octowiz",
-            "source": {"source": "github", "repo": "raelli/octowiz"},
-            "version": "0.9.0",
+            "source": {"source": "github", "repo": "raelli/octowiz-v1.1"},
+            "version": "1.1.0-alpha.1",
             "description": "AELLI's coding alter-ego.",
             "keywords": ["a2a", "agent"],
             "category": "Development",
@@ -200,8 +200,8 @@ class TestListPlugins(unittest.TestCase):
             plugins = list_plugins()
 
         names = [p["name"] for p in plugins]
-        self.assertIn("superpowers", names)
-        self.assertIn("mattpo-skills", names)
+        self.assertIn("antfu-skills", names)
+        self.assertIn("mattpocock-skills", names)
         self.assertIn("octowiz", names)
 
     def test_returns_empty_for_empty_manifest(self):

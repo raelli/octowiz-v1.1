@@ -171,7 +171,8 @@ python3 -m pip install -r apps/a2a-agent/requirements.txt
 ### 2. Install the required workflow pack
 
 ```bash
-claude plugins install mattpocock-skills
+claude plugin marketplace add mattpocock/skills
+claude plugin install mattpocock-skills@mattpocock
 ```
 
 Antfu Skills are optional. Their absence must never block setup.
@@ -339,10 +340,13 @@ A/B/C/D stays the human-facing vocabulary. Internally, work moves through explic
 
 ```text
 explore -> define -> plan -> implement -> verify -> review -> ready-to-ship -> shipped
-                                 ^  \                    /
-                                 |   \-> diagnose ------/   verify/review can return to implement
-any active state <-> blocked          blocked returns only to its previous state
+                        \               ^  \                    /
+                         \-> slice ----/    \-> diagnose ------/   verify/review can return to implement
+any active state <-> blocked                     blocked returns only to its previous state
 ```
+
+`slice` is optional — a multi-session build routes `plan -> slice -> implement` to break
+work into tracer-bullet tickets first; a small change goes `plan -> implement` directly.
 
 Guards fail closed with exact unmet preconditions. Every waiver requires a reason.
 
@@ -358,7 +362,7 @@ The full model lives in [`docs/engineering-state-model.md`](docs/engineering-sta
 
 ## Capability model
 
-Octowiz routes abstract engineering capabilities instead of hardcoding one skill command into the state machine. The registry currently covers requirements discovery, definition, plan validation, decision resolution, lean design, implementation, diagnosis, verification, code review, handoff, and human decisions.
+Octowiz routes abstract engineering capabilities instead of hardcoding one skill command into the state machine. The registry currently covers requirements discovery, plan validation, definition, ticket breakdown, decision resolution, prototype, research, wayfinding, lean design, implementation, test-driven development, diagnosis, verification, code review, architecture review, complexity review, merge-conflict resolution, handoff, and human decisions.
 
 Resolution can use observable repository conditions such as documentation presence, tests, TypeScript, Python, pnpm workspaces, and the Vue/Nuxt/Vite ecosystem.
 

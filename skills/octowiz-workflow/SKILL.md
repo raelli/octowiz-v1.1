@@ -31,6 +31,11 @@ node "$CLAUDE_PLUGIN_ROOT/hooks/scripts/local.js" ensure
 
 Run the setup skill only for genuine configuration gaps. Superpowers and Antfu are never hard setup requirements.
 
+Matt Pocock repository setup is complete when `docs/agents/issue-tracker.md` and
+`docs/agents/domain.md` exist. `docs/agents/triage-labels.md` is required only when
+the `triage` skill is installed. An `## Agent skills` heading by itself is not
+sufficient evidence that setup completed.
+
 ## Read current state
 
 Prefer a valid persistent state document when available:
@@ -73,6 +78,16 @@ octowiz-cache get --role <routing|planner|implementer|reviewer> --namespace "${O
 
 Continue with the built-in workflow when memory is unavailable.
 
+## Invocation ownership
+
+Most resolved Matt Pocock commands (`grill-with-docs`, `grill-me`, `to-spec`, `to-tickets`,
+`wayfinder`, `implement`, `improve-codebase-architecture`, `handoff`, `triage`) are
+user-invoked only — no skill, including this one, may fire them directly. Present the
+resolved slash command and ask the human to run it. Only `tdd`, `diagnosing-bugs`,
+`prototype`, `research`, `domain-modeling`, `codebase-design`, `code-review`,
+`resolving-merge-conflicts`, and `grilling` are model-invoked and may be reached for
+directly when the resolved provider is `mattpocock-skills`.
+
 ## User-facing phases
 
 Keep the four understandable entry points, but infer and recommend one from state and repository evidence. The user may override the recommendation.
@@ -84,10 +99,30 @@ Use when the problem, outcome, constraints, or major decisions remain unclear.
 Preferred capability sequence:
 
 1. `requirements-discovery` — challenges and sharpens the user's idea
-2. `requirements-discovery` (with docs context) when `CONTEXT.md`, ADRs, or substantial domain documentation exist
-3. Prototype only to test a risky technical assumption
-4. `definition` — produces a PRD or issue breakdown
-5. Triage when multiple issues need priority ordering
+2. `prototype` — only when a runnable artifact must answer one design question (state/logic
+   or UI); throwaway code, one run command, in-memory state, captured on a throwaway
+   branch with an issue pointer, never merged as-is
+3. `definition` — synthesizes the agreed conversation into a spec
+4. `ticket-breakdown` — only for a multi-session build; creates tracer-bullet tickets with
+   blocking edges (or expand–contract batches for a single wide mechanical refactor)
+
+For a genuinely huge effort whose route cannot fit in one session, use `wayfinding`
+before definition. It produces decision tickets, not implementation deliverables; it
+resolves at most one non-research ticket per session (research tickets may run in
+parallel on throwaway `research/<name>` branches). When the route becomes clear,
+return to `definition`, then `ticket-breakdown`.
+
+`research` spins up a background agent to investigate a question against primary
+sources only (official docs, source code, specs, first-party APIs) and leaves one
+cited Markdown file in the repository — use it to feed `requirements-discovery` or
+`definition`, not as a substitute for them.
+
+Use triage only for raw incoming bugs, requests, or external pull requests (per
+`docs/agents/issue-tracker.md`'s "PRs as a request surface" flag). It is a full state
+machine over `needs-triage`/`needs-info`/`ready-for-agent`/`ready-for-human`/`wontfix`,
+not mere priority ordering — it verifies claims, checks for redundant or previously
+rejected work, and only grills when the request needs fleshing out. Tickets created by
+`ticket-breakdown` are already agent-ready and must not be triaged again.
 
 Do not force every step. Reuse and amend existing artifacts instead of generating duplicates. Record accepted decisions, open questions, goals, and artifacts in persistent engineering state when available.
 
@@ -95,7 +130,10 @@ Resolve actual provider commands via the capability registry:
 
 ```bash
 octowiz capability resolve requirements-discovery --json
+octowiz capability resolve prototype --json
 octowiz capability resolve definition --json
+octowiz capability resolve ticket-breakdown --json
+octowiz capability resolve wayfinding --json
 ```
 
 ### B. Plan validation
@@ -106,13 +144,16 @@ Preferred capability sequence:
 
 1. `plan-validation` — challenges the plan against repository context
 2. `decision-resolution` — resolves unresolved decisions
-3. `definition` — update or create the PRD and issue breakdown
+3. `definition` — creates or updates the spec when one does not already exist
+4. `ticket-breakdown` — only when the accepted work spans multiple fresh contexts
 
 Explicitly identify assumptions, irreversible decisions, missing acceptance criteria, architecture conflicts, and required human gates. Persist accepted outcomes rather than relying on conversation history.
 
 ```bash
 octowiz capability resolve plan-validation --json
 octowiz capability resolve decision-resolution --json
+octowiz capability resolve definition --json
+octowiz capability resolve ticket-breakdown --json
 ```
 
 ### C. Implementation and diagnosis
@@ -123,7 +164,7 @@ Before adding code, load and apply `references/lean-engineering.md`. Record the 
 
 Octowiz owns runtime orchestration directly:
 
-- select one vertical slice
+- select one vertical slice (one ticket, or the smallest complete slice of the spec)
 - verify acceptance criteria
 - prepare or recommend a branch/worktree through normal Git operations
 - keep the active scope small
@@ -133,14 +174,19 @@ Octowiz owns runtime orchestration directly:
 
 Invoke capabilities for methodology:
 
-1. `implementation` — TDD-driven implementation of the smallest complete slice
+1. `implementation` — drives a red-green `test-driven-development` loop at pre-agreed
+   seams, then commits the work to the current branch before handing off to `code-review`
 2. `diagnosis` — root-cause analysis when behavior differs from expectation
 3. `verification` — collect automated evidence
+
+A slice is not complete until its commit exists on the current branch; verification
+evidence must reference that commit.
 
 Resolve provider commands dynamically:
 
 ```bash
 octowiz capability resolve implementation --json
+octowiz capability resolve test-driven-development --json
 octowiz capability resolve diagnosis --json
 ```
 
@@ -152,13 +198,19 @@ Use when implementation is materially complete.
 
 Preferred capability sequence:
 
-1. `code-review` — review against requirements and wider architecture
-2. Inspect the diff against requirements and architecture
-3. Run the complexity-reduction review from `references/lean-engineering.md`
-4. `verification` — collect all automated evidence
-5. `handoff-or-ship` — produce compact handoff or prepare a pull request
+1. `code-review` — two-axis (Standards + Spec) review of the diff since a fixed point
+   (commit, branch, tag, or merge-base); ask for the fixed point when it is not already
+   known, confirm it resolves and the diff is non-empty before reviewing
+2. Run the complexity-reduction review from `references/lean-engineering.md`
+3. `verification` — collect all automated evidence
+4. `handoff-or-ship` — produce a compact handoff document, or hand the ready-to-ship
+   state to a human for the actual merge/release decision
 
 The complexity pass complements normal review. It must not delete accepted behavior, security controls, accessibility, compatibility promises, or required evidence.
+
+`handoff` only ever writes a temporary continuation document (to the OS temp directory,
+never the workspace) with a suggested-skills section; it never prepares a PR, merges, or
+ships. PR creation, merge, and release are separate human-gated Octowiz operations.
 
 Resolve provider commands dynamically:
 
@@ -227,9 +279,12 @@ A completion claim without matching evidence remains unverified.
 
 ## Optional Antfu capability pack
 
-The `antfu-skills` provider is registered in the capability registry with the condition `vue-nuxt-vite-ecosystem`. It becomes available automatically when the repository has Vue, Nuxt, Vite, Vitest, pnpm workspaces, UnoCSS, or VueUse dependencies.
+The `antfu-skills` provider is registered as an optional provider for Vue, Nuxt, Vite,
+Vitest, pnpm workspace, UnoCSS, and VueUse repositories. The default registry does not
+route any capability through Antfu.
 
-When the condition is satisfied, Antfu resolvers participate in capability resolution with appropriate priority. Use `octowiz capability list --json` to see which capabilities route through Antfu in the current repository context.
+Repositories may opt into Antfu guidance with `.octowiz/capabilities.json` overrides.
+Use `octowiz capability list --json` to inspect the effective repository routing.
 
 Antfu provides stack-specific implementation and tooling guidance only. It must not influence lifecycle routing and its absence must not block the workflow.
 
@@ -239,7 +294,7 @@ Before invoking a skill, state:
 
 ```text
 Recommended phase: <A|B|C|D>
-Internal state: <explore|define|plan|implement|diagnose|verify|review|blocked|ready-to-ship|shipped>
+Internal state: <explore|define|plan|slice|implement|diagnose|verify|review|blocked|ready-to-ship|shipped>
 Evidence: <brief state, repository, and request signals>
 Next capability: <abstract capability name from octowiz state next>
 Resolved to: <provider:command from octowiz state next --json .resolved>

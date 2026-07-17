@@ -22,12 +22,12 @@ def _run(coro):
 _SAMPLE_MANIFEST = {
     "name": "IntegraHub",
     "plugins": [
-        {"name": "superpowers", "version": "1.0.0", "category": "Coding",
-         "source": {"source": "github", "repo": "obra/superpowers"}},
-        {"name": "mattpo-skills", "version": "2.3.1", "category": "Development",
-         "source": {"source": "github", "repo": "obra/mattpo-skills"}},
-        {"name": "octowiz", "version": "0.9.0", "category": "Development",
-         "source": {"source": "github", "repo": "raelli/octowiz"}},
+        {"name": "antfu-skills", "version": "1.0.0", "category": "Coding",
+         "source": {"source": "github", "repo": "antfu/skills"}},
+        {"name": "mattpocock-skills", "version": "1.1.0", "category": "Development",
+         "source": {"source": "github", "repo": "mattpocock/skills"}},
+        {"name": "octowiz", "version": "1.1.0-alpha.1", "category": "Development",
+         "source": {"source": "github", "repo": "raelli/octowiz-v1.1"}},
     ],
 }
 
@@ -68,14 +68,14 @@ class TestMarketplaceInfoResolve(unittest.TestCase):
         with patch("marketplace_client.manifest.get_manifest", return_value=_SAMPLE_MANIFEST):
             result = _run(handle_marketplace_info({
                 "operation": "resolve",
-                "dependencies": ["superpowers", "mattpo-skills"],
+                "dependencies": ["antfu-skills", "mattpocock-skills"],
             }))
 
         self.assertEqual(result["status"], "ok")
         self.assertIn("resolved", result)
         resolved_names = [r["name"] for r in result["resolved"]]
-        self.assertIn("superpowers", resolved_names)
-        self.assertIn("mattpo-skills", resolved_names)
+        self.assertIn("antfu-skills", resolved_names)
+        self.assertIn("mattpocock-skills", resolved_names)
 
     def test_resolve_reports_missing_dep(self):
         from capabilities.marketplace_info import handle_marketplace_info
@@ -83,7 +83,7 @@ class TestMarketplaceInfoResolve(unittest.TestCase):
         with patch("marketplace_client.manifest.get_manifest", return_value=_SAMPLE_MANIFEST):
             result = _run(handle_marketplace_info({
                 "operation": "resolve",
-                "dependencies": ["superpowers", "does-not-exist"],
+                "dependencies": ["antfu-skills", "does-not-exist"],
             }))
 
         self.assertEqual(result["status"], "ok")
@@ -110,7 +110,7 @@ class TestMarketplaceInfoResolve(unittest.TestCase):
                    side_effect=httpx.RequestError("connection refused")):
             result = _run(handle_marketplace_info({
                 "operation": "resolve",
-                "dependencies": ["superpowers"],
+                "dependencies": ["antfu-skills"],
             }))
 
         self.assertEqual(result["status"], "error")
@@ -152,7 +152,7 @@ class TestMarketplaceInfoDiscover(unittest.TestCase):
 
         self.assertEqual(result["status"], "ok")
         names = [p["name"] for p in result["plugins"]]
-        self.assertIn("superpowers", names)
+        self.assertIn("antfu-skills", names)
         self.assertNotIn("octowiz", names)
 
     def test_discover_default_operation_is_discover(self):
@@ -187,7 +187,7 @@ class TestMarketplaceInfoCompatibility(unittest.TestCase):
         result = _run(handle_marketplace_info({
             "operation": "compat",
             "checks": [
-                {"name": "superpowers", "required": "1.0.0", "available": "1.0.0"},
+                {"name": "antfu-skills", "required": "1.0.0", "available": "1.0.0"},
             ],
         }))
 
@@ -200,7 +200,7 @@ class TestMarketplaceInfoCompatibility(unittest.TestCase):
         result = _run(handle_marketplace_info({
             "operation": "compat",
             "checks": [
-                {"name": "superpowers", "required": "2.0.0", "available": "1.0.0"},
+                {"name": "antfu-skills", "required": "2.0.0", "available": "1.0.0"},
             ],
         }))
 

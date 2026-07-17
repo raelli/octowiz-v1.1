@@ -57,7 +57,7 @@ function computeNextAction(doc, context) {
     return { capability: null, reason: 'work is shipped; initialize a new goal to continue', humanGate: false }
 
   if (!doc.goal)
-    return { capability: 'requirements-discovery', reason: 'no goal is set', humanGate: false }
+    return { capability: 'requirements-discovery', reason: 'no goal is set; the user must start requirements discovery', humanGate: true }
 
   const blocking = doc.openQuestions.filter(q => q.status === 'open' && q.blocking)
   if (blocking.length > 0) {
@@ -73,11 +73,13 @@ function computeNextAction(doc, context) {
 
   switch (doc.state) {
     case 'explore':
-      return { capability: 'definition', reason: 'a goal exists; define scope and acceptance criteria', humanGate: false }
+      return { capability: 'definition', reason: 'a goal exists; ask the user to create the spec', humanGate: true }
     case 'define':
-      return { capability: 'plan-validation', reason: 'definition exists; validate the plan before implementation', humanGate: false }
+      return { capability: 'plan-validation', reason: 'definition exists; ask the user to validate the plan before implementation', humanGate: true }
     case 'plan':
-      return { capability: 'implementation', reason: 'plan is in place; begin implementation', humanGate: false }
+      return { capability: 'implementation', reason: 'plan is in place; the user must start implementation', humanGate: true }
+    case 'slice':
+      return { capability: 'ticket-breakdown', reason: 'plan is in place and slicing was requested; ask the user to create tracer-bullet tickets', humanGate: true }
     case 'diagnose':
       return { capability: 'diagnosis', reason: 'a diagnosis is in progress; resolve the root cause before implementing further', humanGate: false }
     case 'implement': {
@@ -85,7 +87,7 @@ function computeNextAction(doc, context) {
         return { capability: 'diagnosis', reason: 'tests are failing', humanGate: false }
       if (context.cwd && hasWorkingTreeChanges(context.cwd))
         return { capability: 'verification', reason: 'implementation has changed files and no current verification evidence', humanGate: false }
-      return { capability: 'implementation', reason: 'implementation is active with no changed files observed', humanGate: false }
+      return { capability: 'implementation', reason: 'implementation is active with no changed files observed; the user must resume implementation', humanGate: true }
     }
     case 'verify': {
       const unsatisfied = REQUIRED_CHECK_KINDS.filter(kind => !evidenceSatisfied(doc.evidence[kind]))

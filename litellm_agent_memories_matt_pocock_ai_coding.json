@@ -20,8 +20,9 @@
         "engineering-manager"
       ],
       "priority": "high",
-      "version": 1,
-      "created_at": "2026-05-15"
+      "version": 2,
+      "created_at": "2026-05-15",
+      "updated_at": "2026-07-17"
     }
   },
   {
@@ -45,8 +46,9 @@
         "implementer"
       ],
       "priority": "high",
-      "version": 1,
-      "created_at": "2026-05-15"
+      "version": 2,
+      "created_at": "2026-05-15",
+      "updated_at": "2026-07-17"
     }
   },
   {
@@ -70,8 +72,9 @@
         "tech-lead"
       ],
       "priority": "high",
-      "version": 1,
-      "created_at": "2026-05-15"
+      "version": 2,
+      "created_at": "2026-05-15",
+      "updated_at": "2026-07-17"
     }
   },
   {
@@ -94,8 +97,9 @@
         "orchestrator"
       ],
       "priority": "high",
-      "version": 1,
-      "created_at": "2026-05-15"
+      "version": 2,
+      "created_at": "2026-05-15",
+      "updated_at": "2026-07-17"
     }
   },
   {
@@ -118,8 +122,9 @@
         "orchestrator"
       ],
       "priority": "high",
-      "version": 1,
-      "created_at": "2026-05-15"
+      "version": 2,
+      "created_at": "2026-05-15",
+      "updated_at": "2026-07-17"
     }
   },
   {
@@ -142,8 +147,9 @@
         "implementer"
       ],
       "priority": "high",
-      "version": 1,
-      "created_at": "2026-05-15"
+      "version": 2,
+      "created_at": "2026-05-15",
+      "updated_at": "2026-07-17"
     }
   },
   {
@@ -166,8 +172,9 @@
         "orchestrator"
       ],
       "priority": "high",
-      "version": 1,
-      "created_at": "2026-05-15"
+      "version": 2,
+      "created_at": "2026-05-15",
+      "updated_at": "2026-07-17"
     }
   },
   {
@@ -190,8 +197,9 @@
         "tech-lead"
       ],
       "priority": "high",
-      "version": 1,
-      "created_at": "2026-05-15"
+      "version": 2,
+      "created_at": "2026-05-15",
+      "updated_at": "2026-07-17"
     }
   },
   {
@@ -213,8 +221,9 @@
         "orchestrator"
       ],
       "priority": "high",
-      "version": 1,
-      "created_at": "2026-05-15"
+      "version": 2,
+      "created_at": "2026-05-15",
+      "updated_at": "2026-07-17"
     }
   },
   {
@@ -237,8 +246,9 @@
         "product-agent"
       ],
       "priority": "high",
-      "version": 1,
-      "created_at": "2026-05-15"
+      "version": 2,
+      "created_at": "2026-05-15",
+      "updated_at": "2026-07-17"
     }
   },
   {
@@ -261,8 +271,9 @@
         "implementer"
       ],
       "priority": "high",
-      "version": 1,
-      "created_at": "2026-05-15"
+      "version": 2,
+      "created_at": "2026-05-15",
+      "updated_at": "2026-07-17"
     }
   },
   {
@@ -285,8 +296,9 @@
         "implementer"
       ],
       "priority": "medium",
-      "version": 1,
-      "created_at": "2026-05-15"
+      "version": 2,
+      "created_at": "2026-05-15",
+      "updated_at": "2026-07-17"
     }
   },
   {
@@ -309,8 +321,9 @@
         "orchestrator"
       ],
       "priority": "medium",
-      "version": 1,
-      "created_at": "2026-05-15"
+      "version": 2,
+      "created_at": "2026-05-15",
+      "updated_at": "2026-07-17"
     }
   },
   {
@@ -334,8 +347,9 @@
         "qa-agent"
       ],
       "priority": "medium",
-      "version": 1,
-      "created_at": "2026-05-15"
+      "version": 2,
+      "created_at": "2026-05-15",
+      "updated_at": "2026-07-17"
     }
   },
   {
@@ -358,8 +372,9 @@
         "reviewer"
       ],
       "priority": "medium",
-      "version": 1,
-      "created_at": "2026-05-15"
+      "version": 2,
+      "created_at": "2026-05-15",
+      "updated_at": "2026-07-17"
     }
   },
   {
@@ -384,19 +399,19 @@
         "reviewer"
       ],
       "priority": "medium",
-      "version": 1,
-      "created_at": "2026-05-15"
+      "version": 2,
+      "created_at": "2026-05-15",
+      "updated_at": "2026-07-17"
     }
   },
   {
     "key": "team:allspark:playbook:ai-coding-workflow:skill-sources",
-    "value": "# External Skill Sources for AI Coding Workflow\n\nUse these external skill libraries as optional retrieval targets when they match the current workflow step. Do not inject every skill source into every turn; retrieve by task phase and agent role.\n\nRecommended routing:\n- Alignment and requirements: Matt Pocock `grill-me`, `grill-with-docs`, `to-prd`; Superpowers `brainstorming`, `writing-plans`.\n- Issue slicing and planning: Matt Pocock `to-issues`, `triage`; Superpowers `writing-plans`, `using-git-worktrees`.\n- Implementation: Matt Pocock `tdd`, `diagnose`, `prototype`; Superpowers `test-driven-development`, `systematic-debugging`, `executing-plans`, `subagent-driven-development`.\n- Review and QA: Matt Pocock `zoom-out`, `improve-codebase-architecture`; Superpowers `requesting-code-review`, `verification-before-completion`, `finishing-a-development-branch`.\n- Meta skill work: Matt Pocock `write-a-skill`; Superpowers `writing-skills`.\n\nPrimary rule:\nTreat these repos as reusable skill catalogs that reinforce the local playbook. Prefer the local memory rule when there is conflict, and use external skills to deepen the relevant phase rather than broaden scope.",
+    "value": "# External Skill Source for AI Coding Workflow\n\nUse the Matt Pocock skill library as an optional retrieval target when it matches the current workflow step. Do not inject the full catalog into every turn; retrieve by capability and invocation ownership.\n\nRecommended routing:\n- Alignment and requirements: `grill-me`, `grill-with-docs`, `to-spec`.\n- Ticket slicing and planning: `to-tickets`, `triage`, `wayfinder`, `codebase-design`.\n- Implementation: `implement`, with model-invoked `tdd`, `diagnosing-bugs`, `prototype`, and `research` as needed.\n- Review and architecture: `code-review`, `improve-codebase-architecture`, `domain-modeling`.\n- Continuation and teaching: `handoff`, `teach`, `writing-great-skills`.\n\nPrimary rule:\nTreat the repository as a reusable skill catalog that reinforces the local playbook. Prefer the local memory rule when there is conflict, honor user-invoked versus model-invoked ownership, and use external skills to deepen the relevant phase rather than broaden scope.",
     "metadata": {
       "title": "External Skill Sources for AI Coding Workflow",
       "source": "Curated GitHub skill repositories",
       "source_urls": [
-        "https://github.com/mattpocock/skills",
-        "https://github.com/obra/superpowers"
+        "https://github.com/mattpocock/skills"
       ],
       "prepared_for": "LiteLLM /v1/memory",
       "scope_recommendation": "team",
@@ -414,13 +429,14 @@
         "orchestrator"
       ],
       "priority": "high",
-      "version": 1,
-      "created_at": "2026-05-15"
+      "version": 2,
+      "created_at": "2026-05-15",
+      "updated_at": "2026-07-17"
     }
   },
   {
     "key": "team:allspark:skills:matt-pocock:ai-engineering",
-    "value": "# Matt Pocock Skills — AI Engineering Practices\n\nSource: https://github.com/mattpocock/skills\n\nRepository purpose:\nSmall, composable agent skills for real engineering work rather than uncontrolled vibe coding. The skills are designed to preserve human control while fixing common coding-agent failure modes.\n\nBest fit in this memory set:\n- `grill-me` and `grill-with-docs` strengthen the Grill-Me Alignment Interview and shared-domain-language practices.\n- `to-prd` maps conversation context into a destination document after alignment.\n- `to-issues` maps PRDs/plans into independently grabbable vertical-slice issues.\n- `tdd` reinforces red/green/refactor and protects feedback-loop quality.\n- `diagnose` adds a disciplined debugging loop: reproduce, minimize, hypothesize, instrument, fix, regression-test.\n- `improve-codebase-architecture` and `zoom-out` support deep-module design, architectural review, and broader system context.\n- `prototype` supports throwaway design exploration, especially for state/business-logic questions or UI variants.\n- `handoff` supports compact context transfer between agents or sessions.\n\nUse when:\nA task needs stronger alignment, clearer PRD/issue generation, TDD discipline, debugging structure, architecture improvement, or concise handoff.\n\nDo not use when:\nThe current local memory already gives enough guidance for a tiny mechanical task; avoid loading the whole repo into context by default.",
+    "value": "# Matt Pocock Skills — AI Engineering Practices\n\nSource: https://github.com/mattpocock/skills\nPinned provider contract: release 1.1.0, tree 9603c1cc8118d08bc1b3bf34cf714f62178dea3b\n\nRepository purpose:\nSmall, composable agent skills for real engineering work rather than uncontrolled vibe coding. The skills preserve human control while fixing common coding-agent failure modes.\n\nBest fit in this memory set:\n- `grill-me` and `grill-with-docs` strengthen alignment and plan validation.\n- `to-spec` maps aligned context into a destination specification.\n- `to-tickets` maps accepted specifications into independently grabbable vertical-slice tickets.\n- `wayfinder` maps unfamiliar repository structure before planning or implementation.\n- `implement` owns scoped implementation and drives model-invoked `tdd` where appropriate.\n- `diagnosing-bugs` provides disciplined root-cause analysis.\n- `code-review` and `improve-codebase-architecture` support fixed-point review and architectural improvement.\n- `prototype`, `research`, `domain-modeling`, and `codebase-design` support focused exploration.\n- `handoff` produces temporary continuation context; it does not ship or merge.\n\nInvocation ownership:\nUser-invoked skills must be suggested or explicitly selected by the user. Model-invoked skills may be selected automatically when their capability matches the task.\n\nUse when:\nA task needs stronger alignment, specification or ticket generation, implementation discipline, debugging structure, architecture improvement, or concise handoff.\n\nDo not use when:\nThe local memory already gives enough guidance for a tiny mechanical task; avoid loading the whole catalog by default.",
     "metadata": {
       "title": "Matt Pocock Skills — AI Engineering Practices",
       "source": "mattpocock/skills",
@@ -442,38 +458,9 @@
         "orchestrator"
       ],
       "priority": "high",
-      "version": 1,
-      "created_at": "2026-05-15"
-    }
-  },
-  {
-    "key": "team:allspark:skills:obra-superpowers:agent-methodology",
-    "value": "# Obra Superpowers — Agentic Development Methodology\n\nSource: https://github.com/obra/superpowers\n\nRepository purpose:\nA composable skills framework and software development methodology for coding agents. It emphasizes asking before coding, chunked design approval, explicit implementation plans, true red/green TDD, YAGNI/DRY, subagent-driven execution, review, and verification before completion.\n\nBest fit in this memory set:\n- `brainstorming` strengthens pre-implementation alignment and design exploration.\n- `writing-plans` maps approved designs into small executable tasks with concrete verification.\n- `using-git-worktrees` supports isolated implementation branches and clean baselines.\n- `subagent-driven-development`, `dispatching-parallel-agents`, and `executing-plans` reinforce AFK implementation loops and parallel-agent workflows.\n- `test-driven-development` reinforces the local TDD feedback-loop rule.\n- `systematic-debugging` and `verification-before-completion` reinforce evidence-based fixes and prevent premature completion claims.\n- `requesting-code-review` and `receiving-code-review` support fresh-context review and review-comment resolution.\n- `finishing-a-development-branch` supports final test verification, merge/PR decisions, and cleanup.\n- `writing-skills` is relevant when creating or adapting new reusable skills.\n\nUse when:\nA task needs a stricter end-to-end agent operating methodology, especially for multi-step implementation, autonomous work, parallel agents, test-first changes, or final verification.\n\nDo not use when:\nThe task is a simple lookup or one-step mechanical edit; avoid turning every request into a full methodology run.",
-    "metadata": {
-      "title": "Obra Superpowers — Agentic Development Methodology",
-      "source": "obra/superpowers",
-      "source_url": "https://github.com/obra/superpowers",
-      "prepared_for": "LiteLLM /v1/memory",
-      "scope_recommendation": "team",
-      "tags": [
-        "skills",
-        "superpowers",
-        "methodology",
-        "tdd",
-        "subagents",
-        "review",
-        "verification"
-      ],
-      "agent_roles": [
-        "planner",
-        "implementer",
-        "reviewer",
-        "qa-agent",
-        "orchestrator"
-      ],
-      "priority": "high",
-      "version": 1,
-      "created_at": "2026-05-15"
+      "version": 2,
+      "created_at": "2026-05-15",
+      "updated_at": "2026-07-17"
     }
   },
   {
@@ -494,8 +481,9 @@
         "planner"
       ],
       "priority": "high",
-      "version": 1,
-      "created_at": "2026-05-15"
+      "version": 2,
+      "created_at": "2026-05-15",
+      "updated_at": "2026-07-17"
     }
   },
   {
@@ -516,8 +504,9 @@
         "implementer"
       ],
       "priority": "high",
-      "version": 1,
-      "created_at": "2026-05-15"
+      "version": 2,
+      "created_at": "2026-05-15",
+      "updated_at": "2026-07-17"
     }
   },
   {
@@ -538,8 +527,9 @@
         "reviewer"
       ],
       "priority": "high",
-      "version": 1,
-      "created_at": "2026-05-15"
+      "version": 2,
+      "created_at": "2026-05-15",
+      "updated_at": "2026-07-17"
     }
   },
   {
@@ -560,8 +550,9 @@
         "qa-agent"
       ],
       "priority": "medium",
-      "version": 1,
-      "created_at": "2026-05-15"
+      "version": 2,
+      "created_at": "2026-05-15",
+      "updated_at": "2026-07-17"
     }
   },
   {
@@ -584,13 +575,14 @@
         "platform-engineer"
       ],
       "priority": "high",
-      "version": 1,
-      "created_at": "2026-05-15"
+      "version": 2,
+      "created_at": "2026-05-15",
+      "updated_at": "2026-07-17"
     }
   },
   {
     "key": "team:allspark:config:retrieval-contract",
-    "value": "{\"entry_points\": {\"A_fresh\": [\"team:allspark:playbook:ai-coding-workflow:overview\", \"team:allspark:playbook:ai-coding-workflow:grill-me-alignment\", \"team:allspark:playbook:ai-coding-workflow:context-smart-zone\", \"team:allspark:skills:matt-pocock:ai-engineering\", \"team:allspark:skills:obra-superpowers:agent-methodology\", \"team:allspark:skills:integrahub:skills-hub\"], \"B_stress_test\": [\"team:allspark:playbook:ai-coding-workflow:grill-me-alignment\", \"team:allspark:playbook:ai-coding-workflow:prd-destination-document\", \"team:allspark:skills:matt-pocock:ai-engineering\"], \"C_implement\": [\"team:allspark:playbook:ai-coding-workflow:ralph-loop\", \"team:allspark:playbook:ai-coding-workflow:tdd-feedback-loops\", \"team:allspark:playbook:ai-coding-workflow:hitl-vs-afk\", \"team:allspark:playbook:ai-coding-workflow:deep-modules\", \"team:allspark:skills:matt-pocock:ai-engineering\", \"team:allspark:skills:obra-superpowers:agent-methodology\"], \"D_review\": [\"team:allspark:playbook:ai-coding-workflow:fresh-context-review\", \"team:allspark:playbook:ai-coding-workflow:push-pull-standards\", \"team:allspark:skills:obra-superpowers:agent-methodology\"]}}",
+    "value": "{\"entry_points\":{\"A_fresh\":[\"team:allspark:playbook:ai-coding-workflow:overview\",\"team:allspark:playbook:ai-coding-workflow:grill-me-alignment\",\"team:allspark:playbook:ai-coding-workflow:context-smart-zone\",\"team:allspark:skills:matt-pocock:ai-engineering\",\"team:allspark:skills:integrahub:skills-hub\"],\"B_stress_test\":[\"team:allspark:playbook:ai-coding-workflow:grill-me-alignment\",\"team:allspark:playbook:ai-coding-workflow:prd-destination-document\",\"team:allspark:skills:matt-pocock:ai-engineering\"],\"C_implement\":[\"team:allspark:playbook:ai-coding-workflow:ralph-loop\",\"team:allspark:playbook:ai-coding-workflow:tdd-feedback-loops\",\"team:allspark:playbook:ai-coding-workflow:hitl-vs-afk\",\"team:allspark:playbook:ai-coding-workflow:deep-modules\",\"team:allspark:skills:matt-pocock:ai-engineering\"],\"D_review\":[\"team:allspark:playbook:ai-coding-workflow:fresh-context-review\",\"team:allspark:playbook:ai-coding-workflow:push-pull-standards\"]}}",
     "metadata": {
       "title": "Octowiz Retrieval Contract",
       "prepared_for": "LiteLLM /v1/memory",
@@ -606,15 +598,16 @@
         "coordinator"
       ],
       "priority": "high",
-      "version": 1,
-      "created_at": "2026-05-17"
+      "version": 2,
+      "created_at": "2026-05-17",
+      "updated_at": "2026-07-17"
     }
   },
   {
     "key": "team:allspark:skills:integrahub:skills-hub",
-    "value": "# integrahub Skills Hub — Skill Distribution Gateway\n\nSource: https://llm.integrahub.de\n\nThe integrahub Skills Hub is a LiteLLM Skills Gateway that registers and serves Claude Code skills from multiple upstream repositories through a single public endpoint. Skills are public and require no API key.\n\nInstall as a Claude Code marketplace:\n```json\n{\n  \"extraKnownMarketplaces\": {\n    \"litellm\": {\n      \"source\": \"url\",\n      \"url\": \"https://llm.integrahub.de/claude-code/marketplace.json\"\n    }\n  }\n}\n```\n\nAvailable skill packages:\n- superpowers (obra/superpowers) — agentic development methodology: brainstorming, writing-plans, using-git-worktrees, test-driven-development, executing-plans, requesting-code-review, verification-before-completion, finishing-a-development-branch\n- mattpocock-skills (mattpocock/skills) — AI engineering practices: grill-me, grill-with-docs, to-prd, to-issues, triage, tdd, prototype, diagnose, zoom-out, improve-codebase-architecture, handoff\n- antfu-skills — TypeScript/Vue tooling conventions\n\nMCPs and AI Models at llm.integrahub.de require an API key. Skills do not.\n\nUse when: An agent needs to surface the marketplace install path to a developer who has not yet configured extraKnownMarketplaces.",
+    "value": "# Integrahub Skills Hub — Skill Distribution Gateway\n\nSource: https://llm.integrahub.de\n\nThe Integrahub Skills Hub is a LiteLLM Skills Gateway that registers and serves Claude Code skills from multiple upstream repositories through a single public endpoint. Skills are public and require no API key.\n\nInstall as a Claude Code marketplace:\n```json\n{\n  \"extraKnownMarketplaces\": {\n    \"litellm\": {\n      \"source\": \"url\",\n      \"url\": \"https://llm.integrahub.de/claude-code/marketplace.json\"\n    }\n  }\n}\n```\n\nAvailable skill packages used by Octowiz:\n- `mattpocock-skills` (`mattpocock/skills`) — current AI engineering capabilities including `to-spec`, `to-tickets`, `implement`, `diagnosing-bugs`, `code-review`, `wayfinder`, and `handoff`.\n- `antfu-skills` — optional TypeScript/Vue tooling conventions enabled only through repository capability overrides.\n\nMCPs and AI models at llm.integrahub.de require an API key. Skills do not.\n\nUse when: an agent needs to surface the marketplace install path to a developer who has not configured extraKnownMarketplaces.",
     "metadata": {
-      "title": "integrahub Skills Hub — Skill Distribution Gateway",
+      "title": "Integrahub Skills Hub — Skill Distribution Gateway",
       "source": "integrahub",
       "source_url": "https://llm.integrahub.de",
       "prepared_for": "LiteLLM /v1/memory",
@@ -633,8 +626,9 @@
         "orchestrator"
       ],
       "priority": "high",
-      "version": 1,
-      "created_at": "2026-05-17"
+      "version": 2,
+      "created_at": "2026-05-17",
+      "updated_at": "2026-07-17"
     }
   }
 ]

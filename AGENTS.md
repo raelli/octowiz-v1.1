@@ -2,7 +2,7 @@
 
 ### Issue tracker
 
-Issues live in GitHub Issues for raelli/octowiz. See `docs/agents/issue-tracker.md`.
+Issues live in GitHub Issues for raelli/octowiz-v1.1. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

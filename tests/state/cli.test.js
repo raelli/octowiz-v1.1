@@ -48,8 +48,7 @@ describe('octowiz state CLI', () => {
     const next = run(['next', '--json'], repo)
     expect(JSON.parse(next.stdout)).toMatchObject({
       capability: 'requirements-discovery',
-      reason: 'no goal is set',
-      humanGate: false,
+      humanGate: true,
     })
 
     run(['set-goal', 'ship', 'it'], repo)
@@ -62,6 +61,14 @@ describe('octowiz state CLI', () => {
     const result = run(['show', '--json'], repo)
     expect(result.code).toBe(1)
     expect(JSON.parse(result.stderr).error.code).toBe('E_NOT_INITIALIZED')
+  })
+
+  it('fails closed when a repository capability override is malformed', () => {
+    run(['init'], repo)
+    fs.writeFileSync(path.join(repo, '.octowiz', 'capabilities.json'), '{ invalid')
+    const result = run(['next', '--json'], repo)
+    expect(result.code).toBe(1)
+    expect(JSON.parse(result.stderr).error.code).toBe('E_REGISTRY')
   })
 
   it('guard failures list every unmet precondition', () => {
@@ -194,8 +201,9 @@ describe('octowiz state CLI', () => {
       expect(data.capability).toBe('requirements-discovery')
       expect(data.resolved).toEqual({
         provider: 'mattpocock-skills',
-        command: 'grill-me',
+        command: 'grill-with-docs',
       })
+      expect(data.humanGate).toBe(true)
       expect(data.execution.pattern).toBe('advisor')
     })
 
@@ -214,8 +222,9 @@ describe('octowiz state CLI', () => {
       expect(data.capability).toBe('implementation')
       expect(data.resolved).toEqual({
         provider: 'mattpocock-skills',
-        command: 'tdd',
+        command: 'implement',
       })
+      expect(data.humanGate).toBe(true)
     })
 
     it('omits resolved field for human-decision (no resolvers)', () => {
@@ -239,7 +248,7 @@ describe('octowiz state CLI', () => {
       run(['init'], repo)
       const result = run(['next'], repo)
       expect(result.code).toBe(0)
-      expect(result.stdout).toContain('resolved: mattpocock-skills:grill-me')
+      expect(result.stdout).toContain('resolved: mattpocock-skills:grill-with-docs')
     })
 
     it('shows no resolved line in human output when capability has no resolver', () => {

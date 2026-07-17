@@ -1,4 +1,8 @@
 # **Octowiz Engineering Runtime Plan v1**
+> **Historical architecture plan:** Examples and repository coordinates in this
+> document record the original v1 design. They are not active runtime, routing, or
+> setup contracts. Use `README.md`, `docs/engineering-state-model.md`,
+> `skills/registry.json`, and `skills/octowiz-workflow/SKILL.md` for current behavior.
 
 ## **1\. Zweck dieses Plans**
 

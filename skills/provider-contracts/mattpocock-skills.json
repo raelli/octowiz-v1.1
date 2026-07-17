@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "0.1",
+  "source": {
+    "repository": "https://github.com/mattpocock/skills",
+    "ref": "main",
+    "treeSha": "9603c1cc8118d08bc1b3bf34cf714f62178dea3b",
+    "latestRelease": "v1.1.0",
+    "pluginManifestVersion": "1.2.0",
+    "capturedAt": "2026-07-17"
+  },
+  "commands": [
+    "ask-matt",
+    "code-review",
+    "codebase-design",
+    "diagnosing-bugs",
+    "domain-modeling",
+    "grill-me",
+    "grill-with-docs",
+    "grilling",
+    "handoff",
+    "implement",
+    "improve-codebase-architecture",
+    "prototype",
+    "research",
+    "resolving-merge-conflicts",
+    "setup-matt-pocock-skills",
+    "tdd",
+    "teach",
+    "to-spec",
+    "to-tickets",
+    "triage",
+    "wayfinder",
+    "writing-great-skills"
+  ]
+}

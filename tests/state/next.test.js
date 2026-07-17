@@ -21,7 +21,7 @@ describe('state next resolver', () => {
   it('recommends requirements-discovery without a goal', () => {
     store.init(repo)
     const next = resolveNextAction(store.read(repo))
-    expect(next).toMatchObject({ capability: 'requirements-discovery', reason: 'no goal is set', humanGate: false })
+    expect(next).toMatchObject({ capability: 'requirements-discovery', humanGate: true })
     expect(next.execution.pattern).toBe('advisor')
   })
 
@@ -39,6 +39,20 @@ describe('state next resolver', () => {
     store.mutate(repo, d => operations.setGoal(d, 'g'))
     store.mutate(repo, d => operations.addCriterion(d, { statement: 'works', id: 'ac-1' }))
     expect(resolveNextAction(store.read(repo)).capability).toBe('lean-design-check')
+  })
+
+  it('recommends ticket-breakdown once slicing is explicitly requested from plan', () => {
+    store.init(repo)
+    store.mutate(repo, d => operations.setGoal(d, 'g'))
+    store.mutate(repo, d => operations.linkArtifact(d, { type: 'issue', id: 'issue-1' }))
+    store.mutate(repo, d => operations.addCriterion(d, { statement: 'works', id: 'ac-1' }))
+    store.mutate(repo, d => operations.recordLeanGate(d, { status: 'passed', selectedRung: 'minimal-new-code', decision: 'build it' }))
+    store.mutate(repo, d => transitions.transitionTo(d, 'define'))
+    store.mutate(repo, d => transitions.transitionTo(d, 'plan'))
+    store.mutate(repo, d => transitions.transitionTo(d, 'slice'))
+    const next = resolveNextAction(store.read(repo))
+    expect(next.capability).toBe('ticket-breakdown')
+    expect(next.humanGate).toBe(true)
   })
 
   describe('in implement', () => {

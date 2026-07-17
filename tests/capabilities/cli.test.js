@@ -34,7 +34,7 @@ describe('octowiz capability CLI', () => {
     it('resolves a known capability', () => {
       const result = run(['resolve', 'implementation'], cwd)
       expect(result.code).toBe(0)
-      expect(result.stdout).toContain('mattpocock-skills:tdd')
+      expect(result.stdout).toContain('mattpocock-skills:implement')
     })
 
     it('resolves a known capability with --json', () => {
@@ -43,7 +43,7 @@ describe('octowiz capability CLI', () => {
       const data = JSON.parse(result.stdout)
       expect(data).toEqual({
         capability: 'implementation',
-        resolved: { provider: 'mattpocock-skills', command: 'tdd' },
+        resolved: { provider: 'mattpocock-skills', command: 'implement' },
       })
     })
 
@@ -82,7 +82,7 @@ describe('octowiz capability CLI', () => {
     it('lists all capabilities with their resolution', () => {
       const result = run(['list'], cwd)
       expect(result.code).toBe(0)
-      expect(result.stdout).toContain('implementation → mattpocock-skills:tdd')
+      expect(result.stdout).toContain('implementation → mattpocock-skills:implement')
       expect(result.stdout).toContain('human-decision → (unresolved)')
     })
 
@@ -90,7 +90,7 @@ describe('octowiz capability CLI', () => {
       const result = run(['list', '--json'], cwd)
       expect(result.code).toBe(0)
       const data = JSON.parse(result.stdout)
-      expect(data.implementation).toEqual({ provider: 'mattpocock-skills', command: 'tdd' })
+      expect(data.implementation).toEqual({ provider: 'mattpocock-skills', command: 'implement' })
       expect(data['human-decision']).toBeNull()
     })
   })

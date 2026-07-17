@@ -27,7 +27,7 @@ describe('event bus', () => {
       sessionId: 's1',
       capability: 'implementation',
       provider: 'mp',
-      command: 'tdd',
+      command: 'implement',
     }))
 
     expect(received).toHaveLength(1)
@@ -174,7 +174,7 @@ describe('factory helpers', () => {
       repositoryId: 'r1',
       capability: 'implementation',
       provider: 'mattpocock-skills',
-      command: 'tdd',
+      command: 'implement',
       execution: { pattern: 'advisor' },
     })
     expect(validateEvent(event)).toEqual([])

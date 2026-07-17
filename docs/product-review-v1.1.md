@@ -157,7 +157,7 @@ Example:
 ```json
 {
   "session": "cc-123",
-  "repo": "raelli/octowiz",
+  "repo": "raelli/octowiz-v1.1",
   "phase": "implementation",
   "goal": "ephemeral local supervisor",
   "artifact": "issue-42",

@@ -21,6 +21,8 @@
     "bin/",
     "hooks/",
     "index.js",
+    "skills/provider-contracts/",
+    "skills/registry.json",
     "src/",
     "workflows/"
   ],

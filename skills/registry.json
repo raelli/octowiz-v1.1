@@ -2,30 +2,51 @@
   "schemaVersion": "0.1",
   "capabilities": {
     "requirements-discovery": {
-      "description": "Explore and challenge product requirements",
+      "description": "Explore and challenge repository-backed product requirements",
       "resolvers": [
-        { "provider": "mattpocock-skills", "command": "grill-me", "priority": 1 },
-        { "provider": "mattpocock-skills", "command": "grill-with-docs", "priority": 2, "when": "docs-exist" }
+        { "provider": "mattpocock-skills", "command": "grill-with-docs", "priority": 1 }
       ]
     },
     "plan-validation": {
       "description": "Challenge a plan before implementation begins",
       "resolvers": [
-        { "provider": "mattpocock-skills", "command": "grill-with-docs", "priority": 1, "when": "docs-exist" },
-        { "provider": "mattpocock-skills", "command": "grill-me", "priority": 2 }
+        { "provider": "mattpocock-skills", "command": "grill-with-docs", "priority": 1 }
       ]
     },
     "definition": {
-      "description": "Define scope and acceptance criteria from a goal",
+      "description": "Synthesize agreed scope and acceptance criteria into a spec",
       "resolvers": [
-        { "provider": "mattpocock-skills", "command": "to-prd", "priority": 1 },
-        { "provider": "mattpocock-skills", "command": "to-issues", "priority": 2 }
+        { "provider": "mattpocock-skills", "command": "to-spec", "priority": 1 }
+      ]
+    },
+    "ticket-breakdown": {
+      "description": "Split a spec or plan into tracer-bullet tickets with blocking edges",
+      "resolvers": [
+        { "provider": "mattpocock-skills", "command": "to-tickets", "priority": 1 }
       ]
     },
     "decision-resolution": {
       "description": "Resolve blocking open questions",
       "resolvers": [
-        { "provider": "mattpocock-skills", "command": "grill-me", "priority": 1 }
+        { "provider": "mattpocock-skills", "command": "grilling", "priority": 1 }
+      ]
+    },
+    "prototype": {
+      "description": "Build throwaway code to answer one design question",
+      "resolvers": [
+        { "provider": "mattpocock-skills", "command": "prototype", "priority": 1 }
+      ]
+    },
+    "research": {
+      "description": "Investigate a question against primary sources",
+      "resolvers": [
+        { "provider": "mattpocock-skills", "command": "research", "priority": 1 }
+      ]
+    },
+    "wayfinding": {
+      "description": "Map decisions for a genuinely large multi-session effort",
+      "resolvers": [
+        { "provider": "mattpocock-skills", "command": "wayfinder", "priority": 1 }
       ]
     },
     "lean-design-check": {
@@ -35,7 +56,13 @@
       ]
     },
     "implementation": {
-      "description": "TDD implementation of a scoped slice",
+      "description": "Implement a scoped spec or ticket using TDD at agreed seams",
+      "resolvers": [
+        { "provider": "mattpocock-skills", "command": "implement", "priority": 1 }
+      ]
+    },
+    "test-driven-development": {
+      "description": "Build one concrete behavior through a red-green loop",
       "resolvers": [
         { "provider": "mattpocock-skills", "command": "tdd", "priority": 1 }
       ]
@@ -43,7 +70,7 @@
     "diagnosis": {
       "description": "Root-cause analysis of unexpected behavior",
       "resolvers": [
-        { "provider": "mattpocock-skills", "command": "diagnose", "priority": 1 }
+        { "provider": "mattpocock-skills", "command": "diagnosing-bugs", "priority": 1 }
       ]
     },
     "verification": {
@@ -53,14 +80,31 @@
       ]
     },
     "code-review": {
-      "description": "Review implementation against requirements and architecture",
+      "description": "Review a diff against repository standards and its originating spec",
       "resolvers": [
-        { "provider": "mattpocock-skills", "command": "zoom-out", "priority": 1 },
-        { "provider": "octowiz-native", "command": "complexity-review", "priority": 2 }
+        { "provider": "mattpocock-skills", "command": "code-review", "priority": 1 }
+      ]
+    },
+    "architecture-review": {
+      "description": "Find concrete opportunities to deepen codebase modules",
+      "resolvers": [
+        { "provider": "mattpocock-skills", "command": "improve-codebase-architecture", "priority": 1 }
+      ]
+    },
+    "complexity-review": {
+      "description": "Run the native lean complexity-reduction review",
+      "resolvers": [
+        { "provider": "octowiz-native", "command": "complexity-review", "priority": 1 }
+      ]
+    },
+    "merge-conflict-resolution": {
+      "description": "Resolve an in-progress merge or rebase from primary-source intent",
+      "resolvers": [
+        { "provider": "mattpocock-skills", "command": "resolving-merge-conflicts", "priority": 1 }
       ]
     },
     "handoff-or-ship": {
-      "description": "Produce a compact handoff or prepare a pull request",
+      "description": "Produce a compact handoff before the human chooses handoff or shipping operations",
       "resolvers": [
         { "provider": "mattpocock-skills", "command": "handoff", "priority": 1 }
       ]
@@ -74,7 +118,7 @@
     "mattpocock-skills": {
       "type": "skill-pack",
       "required": true,
-      "install": "mattpocock-skills"
+      "install": "mattpocock-skills@mattpocock"
     },
     "antfu-skills": {
       "type": "skill-pack",

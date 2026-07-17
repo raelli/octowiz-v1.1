@@ -29,7 +29,8 @@ ls ~/.claude/plugins/cache/*/mattpocock-skills/ 2>/dev/null | head -1
 When missing:
 
 ```bash
-claude plugins install mattpocock-skills
+claude plugin marketplace add mattpocock/skills
+claude plugin install mattpocock-skills@mattpocock
 ```
 
 ## 2. Repository profile
@@ -40,7 +41,10 @@ Only recommend Antfu Skills when the repository actually uses relevant technolog
 
 ## 3. Matt Pocock repository setup
 
-When an agent instructions file exists but lacks `## Agent skills`, invoke:
+`setup-matt-pocock-skills` is user-invoked; Octowiz cannot run it. Setup is complete
+when `docs/agents/issue-tracker.md` and `docs/agents/domain.md` exist (and
+`docs/agents/triage-labels.md` for a GitHub-backed repository) — not merely when
+`## Agent skills` is present. When any required file is missing, ask the user to run:
 
 ```text
 /mattpocock-skills:setup-matt-pocock-skills

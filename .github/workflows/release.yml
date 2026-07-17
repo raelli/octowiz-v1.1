@@ -60,10 +60,10 @@ jobs:
             -H "Content-Type: application/json" \
             -d "{
               \"name\": \"octowiz\",
-              \"source\": {\"source\": \"github\", \"repo\": \"raelli/octowiz\"},
+              \"source\": {\"source\": \"github\", \"repo\": \"raelli/octowiz-v1.1\"},
               \"version\": \"$VERSION\",
               \"description\": \"A skill-backed memory stack for coding agents.\",
-              \"keywords\": [\"claude-code\", \"mattpocock\", \"superpowers\", \"antfu-skill\"],
+              \"keywords\": [\"claude-code\", \"mattpocock\", \"antfu-skills\", \"integrahub\"],
               \"category\": \"Development\"
             }" | tee /tmp/result.json
           STATUS=$(jq -r '.status // empty' /tmp/result.json)

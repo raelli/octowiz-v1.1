@@ -20,15 +20,15 @@ function validRegistry() {
     schemaVersion: '0.1',
     capabilities: {
       'implementation': {
-        description: 'TDD implementation of a scoped slice',
+        description: 'Implementation of a scoped slice',
         resolvers: [
-          { provider: 'mattpocock-skills', command: 'tdd', priority: 1 },
+          { provider: 'mattpocock-skills', command: 'implement', priority: 1 },
         ],
       },
       'diagnosis': {
         description: 'Root-cause analysis',
         resolvers: [
-          { provider: 'mattpocock-skills', command: 'diagnose', priority: 1 },
+          { provider: 'mattpocock-skills', command: 'diagnosing-bugs', priority: 1 },
           { provider: 'antfu-skills', command: 'debug-vue', priority: 2, when: 'vue-nuxt-vite-ecosystem' },
         ],
       },
@@ -183,7 +183,7 @@ describe('capabilities/registry — resolveCapability', () => {
     const result = resolveCapability(reg, 'implementation')
     expect(result).toEqual({
       provider: 'mattpocock-skills',
-      command: 'tdd',
+      command: 'implement',
       priority: 1,
       when: undefined,
     })
@@ -201,7 +201,7 @@ describe('capabilities/registry — resolveCapability', () => {
     // diagnosis has mattpocock (required, priority 1) and antfu (optional, priority 2, when: vue)
     const result = resolveCapability(reg, 'diagnosis', { satisfiedConditions: new Set() })
     expect(result.provider).toBe('mattpocock-skills')
-    expect(result.command).toBe('diagnose')
+    expect(result.command).toBe('diagnosing-bugs')
   })
 
   it('includes conditional resolver when condition is satisfied', () => {
@@ -217,7 +217,7 @@ describe('capabilities/registry — resolveCapability', () => {
     const custom = validRegistry()
     custom.capabilities.diagnosis.resolvers = [
       { provider: 'antfu-skills', command: 'debug-vue', priority: 1, when: 'vue-nuxt-vite-ecosystem' },
-      { provider: 'mattpocock-skills', command: 'diagnose', priority: 2 },
+      { provider: 'mattpocock-skills', command: 'diagnosing-bugs', priority: 2 },
     ]
     const ctx = { satisfiedConditions: new Set(['vue-nuxt-vite-ecosystem']) }
     const result = resolveCapability(custom, 'diagnosis', ctx)
@@ -229,12 +229,12 @@ describe('capabilities/registry — resolveCapability', () => {
     const custom = validRegistry()
     custom.capabilities.diagnosis.resolvers = [
       { provider: 'antfu-skills', command: 'debug-vue', priority: 1, when: 'vue-nuxt-vite-ecosystem' },
-      { provider: 'mattpocock-skills', command: 'diagnose', priority: 2 },
+      { provider: 'mattpocock-skills', command: 'diagnosing-bugs', priority: 2 },
     ]
     // No conditions satisfied — antfu is optional and its when is not met
     const result = resolveCapability(custom, 'diagnosis', { satisfiedConditions: new Set() })
     expect(result.provider).toBe('mattpocock-skills')
-    expect(result.command).toBe('diagnose')
+    expect(result.command).toBe('diagnosing-bugs')
   })
 
   it('resolver with explicit availableProviders overrides', () => {
@@ -351,12 +351,20 @@ describe('capabilities/registry — default skills/registry.json', () => {
       'requirements-discovery',
       'plan-validation',
       'definition',
+      'ticket-breakdown',
       'decision-resolution',
+      'prototype',
+      'research',
+      'wayfinding',
       'lean-design-check',
       'implementation',
+      'test-driven-development',
       'diagnosis',
       'verification',
       'code-review',
+      'architecture-review',
+      'complexity-review',
+      'merge-conflict-resolution',
       'handoff-or-ship',
       'human-decision',
     ]
@@ -371,6 +379,47 @@ describe('capabilities/registry — default skills/registry.json', () => {
         expect(reg.providers[resolver.provider]).toBeDefined()
       }
     }
+  })
+
+  it('uses only commands shipped by the pinned Matt Pocock provider contract', () => {
+    const contractPath = path.resolve(__dirname, '../../skills/provider-contracts/mattpocock-skills.json')
+    const contract = JSON.parse(fs.readFileSync(contractPath, 'utf8'))
+    const shippedCommands = new Set(contract.commands)
+
+    const mattResolvers = Object.entries(reg.capabilities)
+      .flatMap(([capability, definition]) => definition.resolvers
+        .filter(resolver => resolver.provider === 'mattpocock-skills')
+        .map(resolver => ({ capability, command: resolver.command })))
+
+    for (const resolver of mattResolvers)
+      expect(shippedCommands.has(resolver.command)).toBe(true)
+  })
+
+  it('maps core lifecycle capabilities to current Matt Pocock commands', () => {
+    const expected = {
+      'requirements-discovery': 'grill-with-docs',
+      'plan-validation': 'grill-with-docs',
+      'definition': 'to-spec',
+      'ticket-breakdown': 'to-tickets',
+      'decision-resolution': 'grilling',
+      'implementation': 'implement',
+      'diagnosis': 'diagnosing-bugs',
+      'code-review': 'code-review',
+      'handoff-or-ship': 'handoff',
+    }
+
+    for (const [capability, command] of Object.entries(expected))
+      expect(resolveCapability(reg, capability)?.command).toBe(command)
+  })
+
+  it('does not retain removed pre-1.1 Matt Pocock command names', () => {
+    const removedCommands = new Set(['to-prd', 'to-plan', 'to-issues', 'diagnose', 'zoom-out'])
+    const commands = Object.values(reg.capabilities)
+      .flatMap(capability => capability.resolvers)
+      .filter(resolver => resolver.provider === 'mattpocock-skills')
+      .map(resolver => resolver.command)
+
+    expect(commands.filter(command => removedCommands.has(command))).toEqual([])
   })
 
   it('required providers are available and resolve at least one capability', () => {

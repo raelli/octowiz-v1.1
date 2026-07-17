@@ -513,6 +513,14 @@ class TestRoutingRoleConfigNamespace(unittest.TestCase):
             f"routing config key must use team:{{namespace}}: prefix, got {config_keys[0]!r}",
         )
 
+    def test_active_roles_do_not_fetch_superpowers_memory(self):
+        for role in octowiz_cache.ROLE_REGISTRY:
+            keys = octowiz_cache.ROLE_REGISTRY.get_keys(role, "allspark")
+            self.assertFalse(
+                any("superpowers" in key for key in keys),
+                f"{role!r} still fetches a Superpowers memory",
+            )
+
 
 # ---------------------------------------------------------------------------
 # MemorySource Protocol — DictMemorySource test double

@@ -135,13 +135,11 @@ ROLE_REGISTRY = RoleRegistry({
         "team:{namespace}:playbook:ai-coding-workflow:tdd-feedback-loops",
         "team:{namespace}:playbook:ai-coding-workflow:ralph-loop",
         "team:{namespace}:skills:matt-pocock:ai-engineering",
-        "team:{namespace}:skills:obra-superpowers:agent-methodology",
         "agent:implementer:memory:ai-coding-workflow",
     ],
     "reviewer": [
         "team:{namespace}:playbook:ai-coding-workflow:fresh-context-review",
         "team:{namespace}:playbook:ai-coding-workflow:push-pull-standards",
-        "team:{namespace}:skills:obra-superpowers:agent-methodology",
         "agent:reviewer:memory:ai-coding-workflow",
     ],
     # reserved — not yet wired to a coordinator workflow option
@@ -153,7 +151,6 @@ ROLE_REGISTRY = RoleRegistry({
     "routing": [
         "team:{namespace}:config:retrieval-contract",
         "team:{namespace}:skills:matt-pocock:ai-engineering",
-        "team:{namespace}:skills:obra-superpowers:agent-methodology",
     ],
 })
 
