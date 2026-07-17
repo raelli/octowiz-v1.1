@@ -3,8 +3,8 @@
   "repository": {
     "id": "github:raelli/octowiz-v1.1"
   },
-  "phase": "C",
-  "state": "implement",
+  "phase": "D",
+  "state": "review",
   "status": "active",
   "blockedFrom": null,
   "goal": "capability resolution: replace hardcoded skill names with abstract capabilities resolved through a registry",
@@ -14,47 +14,76 @@
     "url": null
   },
   "decisions": [],
-  "openQuestions": [],
+  "openQuestions": [
+    {
+      "id": "q-066b3d4b",
+      "question": "Should Stage 3 Sessions 3.2-3.4 gaps found in review (disable-provider enabled:false not implemented; when-clause and/or/not composability not wired into registry resolution; resolved:null vs omitted-key inconsistency between capability-resolve and state-next CLIs; has-typescript condition ignores .ts-file-present branch) become separate GitHub issues, or should the 'capability resolution' goal be narrowed to Session 3.1 scope only (already fully verified)?",
+      "blocking": false,
+      "status": "resolved",
+      "answer": "Superseded — reopened as a blocking question (was incorrectly opened non-blocking; a PR reviewer flagged that this let 'octowiz state next' route to handoff-or-ship despite unresolved scope)",
+      "openedAt": "2026-07-17T11:19:50.740Z",
+      "resolvedAt": "2026-07-17T11:35:45.288Z"
+    },
+    {
+      "id": "q-1c2237af",
+      "question": "Should Stage 3 Sessions 3.2-3.4 gaps found in review (disable-provider enabled:false not implemented; when-clause and/or/not composability not wired into registry resolution; resolved:null vs omitted-key inconsistency between capability-resolve and state-next CLIs; has-typescript condition ignores .ts-file-present branch) become separate GitHub issues, or should the 'capability resolution' goal be narrowed to Session 3.1 scope only (already fully verified)?",
+      "blocking": true,
+      "status": "open",
+      "answer": null,
+      "openedAt": "2026-07-17T11:35:45.335Z",
+      "resolvedAt": null
+    }
+  ],
   "acceptanceCriteria": [
     {
       "id": "ac-be4c30ca",
       "statement": "resolveCapability(name, context) returns best resolver or null",
-      "status": "pending",
-      "evidenceRefs": [],
+      "status": "passed",
+      "evidenceRefs": [
+        "src/capabilities/registry.js:resolveCapability; verified: resolveCapability(registry,'implementation',{}) returns resolver, unknown name returns null"
+      ],
       "waiverReason": null,
-      "updatedAt": "2026-07-16T02:36:54.120Z"
+      "updatedAt": "2026-07-17T11:12:36.368Z"
     },
     {
       "id": "ac-02a5a53b",
       "statement": "unknown capabilities return null, not an error",
-      "status": "pending",
-      "evidenceRefs": [],
+      "status": "passed",
+      "evidenceRefs": [
+        "verified: resolveCapability(registry,'totally-made-up-capability',{}) === null"
+      ],
       "waiverReason": null,
-      "updatedAt": "2026-07-16T02:36:54.166Z"
+      "updatedAt": "2026-07-17T11:12:36.415Z"
     },
     {
       "id": "ac-4c701160",
       "statement": "registry validates on load; malformed registries throw at startup",
-      "status": "pending",
-      "evidenceRefs": [],
+      "status": "passed",
+      "evidenceRefs": [
+        "src/capabilities/schema.js:validateRegistry; verified: malformed registry ({providers:'not-an-object'}) throws at load"
+      ],
       "waiverReason": null,
-      "updatedAt": "2026-07-16T02:36:54.211Z"
+      "updatedAt": "2026-07-17T11:12:36.461Z"
     },
     {
       "id": "ac-41ac4f5b",
       "statement": "provider availability checked: required vs optional",
-      "status": "pending",
-      "evidenceRefs": [],
+      "status": "passed",
+      "evidenceRefs": [
+        "src/capabilities/registry.js:requiredProviders; verified: mattpocock-skills required=true, antfu-skills required=false"
+      ],
       "waiverReason": null,
-      "updatedAt": "2026-07-16T02:36:54.254Z"
+      "updatedAt": "2026-07-17T11:12:36.505Z"
     },
     {
       "id": "ac-5339f779",
       "statement": "all capability names from src/state/next.js have registry entries",
-      "status": "pending",
-      "evidenceRefs": [],
+      "status": "passed",
+      "evidenceRefs": [
+        "verified: all 12 capability names referenced in src/state/next.js resolve against skills/registry.json, 0 missing"
+      ],
       "waiverReason": null,
-      "updatedAt": "2026-07-16T02:36:54.299Z"
+      "updatedAt": "2026-07-17T11:12:36.551Z"
     }
   ],
   "leanGate": {
@@ -70,20 +99,44 @@
   },
   "evidence": {
     "tests": {
-      "status": "pending",
-      "items": []
+      "status": "passed",
+      "items": [
+        {
+          "id": "evidence-4404df6f",
+          "status": "passed",
+          "ref": "jest: 43 suites, 718 tests, 0 failures (tests/capabilities/*.test.js + full suite)",
+          "note": null,
+          "recordedAt": "2026-07-17T11:12:45.277Z"
+        }
+      ]
     },
     "lint": {
-      "status": "pending",
-      "items": []
+      "status": "passed",
+      "items": [
+        {
+          "id": "evidence-e35e7a5c",
+          "status": "passed",
+          "ref": "eslint . : 0 errors, 52 pre-existing jsdoc warnings unrelated to capability-registry work",
+          "note": null,
+          "recordedAt": "2026-07-17T11:12:45.323Z"
+        }
+      ]
     },
     "types": {
       "status": "not-configured",
       "items": []
     },
     "review": {
-      "status": "pending",
-      "items": []
+      "status": "passed",
+      "items": [
+        {
+          "id": "evidence-ee20b99e",
+          "status": "passed",
+          "ref": "Two-axis review (Standards+Spec) of 372b484^..372b484 vs docs/implementation-plan-stages-3-4-5.md. All 5 tracked Session-3.1 ACs confirmed correctly implemented. Review also surfaced non-blocking follow-ups outside tracked scope: Session 3.4 'disable a provider (enabled:false)' AC not implemented; Session 3.2 when-clause composability (and/or/not) not wired into registry resolution, JS-only; Session 3.3 resolved:null vs omitted-key inconsistency between capability-resolve CLI and state-next CLI; has-typescript condition ignores .ts-file-present branch of its own spec line; latent priority ?? Infinity vs ?? 1 fallback inconsistency (dormant, no current registry entry omits priority)",
+          "note": null,
+          "recordedAt": "2026-07-17T11:19:36.576Z"
+        }
+      ]
     }
   },
   "complexityReview": {
@@ -96,7 +149,7 @@
     "reason": null,
     "humanGate": false
   },
-  "revision": 12,
+  "revision": 25,
   "createdAt": "2026-07-16T02:36:29.058Z",
-  "updatedAt": "2026-07-16T02:37:22.240Z"
+  "updatedAt": "2026-07-17T11:35:45.335Z"
 }
