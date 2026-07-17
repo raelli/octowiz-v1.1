@@ -7,11 +7,11 @@ How the engineering skills should consume this repo's domain documentation when 
 - **`CONTEXT.md`** at the repo root
 - **`docs/adr/`** — read ADRs that touch the area you're about to work in.
 
-If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The producer skill (`/grill-with-docs`) creates them lazily when terms or decisions actually get resolved.
+If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The active discipline (`/domain-modeling`, driven inline by `/grill-with-docs`) creates them lazily when terms or decisions actually get resolved.
 
 ## File structure
 
-Single-context repo:
+This repo uses a single-context layout — one root `CONTEXT.md` and `docs/adr/`:
 
 ```
 /
@@ -21,6 +21,11 @@ Single-context repo:
 │   └── ...
 └── src/
 ```
+
+If this repository later splits into multiple bounded contexts (e.g. a monorepo with
+independent packages), switch to a root `CONTEXT-MAP.md` pointing at per-context
+`CONTEXT.md` files and context-scoped `docs/adr/` directories, and update this file to
+record that choice.
 
 ## Use the glossary's vocabulary
 

@@ -1,4 +1,9 @@
 # Octowiz Stages 3–5: Multi-Session Implementation Plan
+> **Historical plan:** This document records the original stages 3–5 design and is not
+> an active routing contract. Command examples below predate the pinned Matt Pocock
+> skills 1.1 provider contract. Use `skills/registry.json`,
+> `skills/provider-contracts/mattpocock-skills.json`, and
+> `skills/octowiz-workflow/SKILL.md` for current behavior.
 
 ## Overview
 

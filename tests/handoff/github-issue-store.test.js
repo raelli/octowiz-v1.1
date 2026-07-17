@@ -5,10 +5,10 @@ describe('gitHubIssueStore', () => {
     const calls = []
     const store = new GitHubIssueStore((args) => {
       calls.push(args)
-      return 'https://github.com/raelli/octowiz/issues/123\n'
+      return 'https://github.com/raelli/octowiz-v1.1/issues/123\n'
     })
-    const ref = await store.store('handoff', '## Context\nStuff here', { repo: 'raelli/octowiz' })
-    expect(ref).toBe('https://github.com/raelli/octowiz/issues/123')
+    const ref = await store.store('handoff', '## Context\nStuff here', { repo: 'raelli/octowiz-v1.1' })
+    expect(ref).toBe('https://github.com/raelli/octowiz-v1.1/issues/123')
     expect(calls[0]).toContain('issue')
     expect(calls[0]).toContain('create')
     expect(calls[0]).toContain('--label')
@@ -28,7 +28,7 @@ describe('gitHubIssueStore', () => {
         return '# Handoff content\nHello'
       return 'https://github.com/r/r/issues/1\n'
     })
-    const content = await store.fetch('https://github.com/raelli/octowiz/issues/123')
+    const content = await store.fetch('https://github.com/raelli/octowiz-v1.1/issues/123')
     expect(content).toContain('Handoff content')
   })
 

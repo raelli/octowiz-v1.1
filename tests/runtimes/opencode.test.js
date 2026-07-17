@@ -98,7 +98,7 @@ describe('opencode adapter stub', () => {
       const adapter = createOpenCodeAdapter()
       const result = await adapter.dispatch({
         capability: 'implementation',
-        command: 'tdd',
+        command: 'implement',
         provider: 'mattpocock-skills',
         context: {},
       })
@@ -111,7 +111,7 @@ describe('opencode adapter stub', () => {
       const adapter = createOpenCodeAdapter()
       const result = await adapter.dispatch({
         capability: 'diagnosis',
-        command: 'diagnose',
+        command: 'diagnosing-bugs',
         provider: 'test',
         context: {},
       })

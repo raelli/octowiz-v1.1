@@ -6,7 +6,7 @@
 
 Implementation deltas against the proposal below:
 
-- The internal state list shipped smaller than the illustrative table: `explore, define, plan, implement, diagnose, verify, review, blocked, ready-to-ship, shipped`. `design/slice/ready` collapse into `plan`; `ship/handoff` became `ready-to-ship/shipped`.
+- The internal state list shipped smaller than the illustrative table: `explore, define, plan, slice, implement, diagnose, verify, review, blocked, ready-to-ship, shipped`. `design/ready` collapse into `plan`; `slice` is kept as an explicit optional step before `implement` so ticket-breakdown (`to-tickets`) has a state to attach to; `ship/handoff` became `ready-to-ship/shipped`.
 - `blocked` remembers its origin in `blockedFrom` and can only return there.
 - Session data (the `sessions` array in the canonical example) was **removed from repository state entirely** — it lives in the machine-local runtime store at `~/.cache/octowiz/<repository-id>/runtime.json`, together with PIDs, leases, and absolute paths. Repository state is validated to reject all machine-specific data.
 - `repository` keeps only the machine-independent `id`; `root`, `branch`, and `head` are observed facts, not persisted state.
@@ -310,13 +310,13 @@ Skills should consume and update state through capabilities rather than owning t
 
 Examples:
 
-- `grill-me` updates open questions and decisions
-- `to-prd` attaches or creates the primary artifact
-- `to-issues` creates vertical slices and dependencies
-- `tdd` supplies implementation methodology
-- `diagnose` records hypotheses, observations, and resolved root cause
-- `zoom-out` creates architecture findings
-- `handoff` renders a compact projection of current state
+- `grilling` / `grill-with-docs` update open questions and decisions
+- `to-spec` attaches or creates the primary artifact
+- `to-tickets` creates vertical slices and their blocking edges
+- `tdd` supplies implementation methodology inside `implement`
+- `diagnosing-bugs` records hypotheses, observations, and resolved root cause
+- `code-review` and `improve-codebase-architecture` create review and architecture findings
+- `handoff` renders a compact projection of current state (to a temporary file only)
 
 Octowiz owns state validation, transition policy, persistence, evidence, and lifecycle routing.
 

@@ -485,6 +485,6 @@ describe('capability CLI with local overrides', () => {
     expect(result.code).toBe(0)
     const data = JSON.parse(result.stdout)
     expect(data.resolved.provider).toBe('mattpocock-skills')
-    expect(data.resolved.command).toBe('tdd')
+    expect(data.resolved.command).toBe('implement')
   })
 })

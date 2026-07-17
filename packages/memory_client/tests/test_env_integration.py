@@ -52,6 +52,12 @@ class TestFirstRunIntegration(unittest.TestCase):
         machine.litellm["routing_verified_at"] = _now_iso()
         save_machine_state(machine, self.machine_state_path)
 
+    def create_mattpocock_setup_files(self):
+        agents_dir = self.cwd / "docs" / "agents"
+        agents_dir.mkdir(parents=True)
+        (agents_dir / "issue-tracker.md").write_text("# Issue tracker\n")
+        (agents_dir / "domain.md").write_text("# Domain\n")
+
     def test_fresh_environment_requires_only_matt_pocock(self):
         (self.cwd / "pyproject.toml").write_text("[project]\nname='myapp'")
         result = self.check()
@@ -67,6 +73,7 @@ class TestFirstRunIntegration(unittest.TestCase):
         self.install_required_plugins()
         self.configure_clean_machine()
         (self.cwd / "AGENTS.md").write_text("## Agent skills\n- mattpocock\n")
+        self.create_mattpocock_setup_files()
         (self.cwd / "pyproject.toml").write_text("[project]\nname='myapp'")
 
         result = self.check({
@@ -110,6 +117,7 @@ class TestFirstRunIntegration(unittest.TestCase):
         machine.litellm["routing_verified_at"] = stale.strftime("%Y-%m-%dT%H:%M:%SZ")
         save_machine_state(machine, self.machine_state_path)
         (self.cwd / "AGENTS.md").write_text("## Agent skills\n- mattpocock\n")
+        self.create_mattpocock_setup_files()
         (self.cwd / "pyproject.toml").write_text("[project]\nname='myapp'")
 
         result = self.check({

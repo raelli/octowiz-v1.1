@@ -279,8 +279,8 @@ const COMMANDS = {
       const overridesPath = path.resolve(cwd, '.octowiz', 'capabilities.json')
       registry = loadRegistryWithOverrides({ overridesPath })
     }
-    catch {
-      // Registry unavailable — resolution will be skipped
+    catch (error) {
+      throw new StateError('E_REGISTRY', `capability registry could not be loaded: ${error.message}`)
     }
     const { getExecutionDefaults } = require('../runtimes/selection')
     let executionRequest

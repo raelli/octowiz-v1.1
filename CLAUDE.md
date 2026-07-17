@@ -23,4 +23,4 @@ nr lint --fix      # lint with auto-fix (via ni)
 
 ### Issue tracker
 
-Issues live in GitHub Issues (`raelli/octowiz`).
+Issues live in GitHub Issues (`raelli/octowiz-v1.1`).

@@ -13,7 +13,8 @@ const { ACTIVE_STATES, STATE_TO_PHASE } = require('./schema')
 const TRANSITIONS = {
   'explore': ['define'],
   'define': ['plan'],
-  'plan': ['implement'],
+  'plan': ['slice', 'implement'],
+  'slice': ['implement'],
   'implement': ['verify', 'diagnose'],
   'diagnose': ['implement'],
   'verify': ['implement', 'review'],
@@ -65,20 +66,26 @@ function evidenceGroupSatisfied(group) {
 // `context.cwd` lets the implement -> verify guard observe the repository;
 // `context.waiveActivityCheck` is the explicit escape hatch for fully
 // committed work, and requires a reason at the CLI layer.
+function implementationReadinessGuard(doc) {
+  const failures = []
+  if (!doc.goal)
+    failures.push('a goal must be set (octowiz state set-goal)')
+  if (!doc.artifact)
+    failures.push('a primary artifact must be linked or explicitly waived (octowiz state link-artifact)')
+  if (doc.acceptanceCriteria.length === 0)
+    failures.push('at least one acceptance criterion is required (octowiz state add-criterion)')
+  const blocking = blockingOpenQuestions(doc)
+  if (blocking.length > 0)
+    failures.push(`unresolved blocking questions: ${blocking.map(q => q.id).join(', ')}`)
+  return failures
+}
+
 const GUARDS = {
-  'plan->implement': (doc) => {
-    const failures = []
-    if (!doc.goal)
-      failures.push('a goal must be set (octowiz state set-goal)')
-    if (!doc.artifact)
-      failures.push('a primary artifact must be linked or explicitly waived (octowiz state link-artifact)')
-    if (doc.acceptanceCriteria.length === 0)
-      failures.push('at least one acceptance criterion is required (octowiz state add-criterion)')
-    const blocking = blockingOpenQuestions(doc)
-    if (blocking.length > 0)
-      failures.push(`unresolved blocking questions: ${blocking.map(q => q.id).join(', ')}`)
-    return failures
-  },
+  // Ticket breakdown (mattpocock-skills: to-tickets) is an optional slicing
+  // step for multi-session work; both the direct plan -> implement path and
+  // the plan -> slice -> implement path require the same readiness facts.
+  'plan->implement': implementationReadinessGuard,
+  'slice->implement': implementationReadinessGuard,
 
   'implement->verify': (doc, context) => {
     if (context.waiveActivityCheck)

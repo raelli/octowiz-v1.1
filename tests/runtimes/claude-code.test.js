@@ -156,7 +156,7 @@ describe('claude code adapter', () => {
       const adapter = createClaudeCodeAdapter()
       const task = {
         capability: 'implementation',
-        command: 'tdd',
+        command: 'implement',
         provider: 'mattpocock-skills',
         context: { cwd: '/repo', state: 'implement' },
       }
@@ -164,11 +164,11 @@ describe('claude code adapter', () => {
 
       expect(validateTaskResult(result)).toEqual([])
       expect(result.status).toBe('completed')
-      expect(result.summary).toContain('mattpocock-skills:tdd')
+      expect(result.summary).toContain('mattpocock-skills:implement')
       expect(result.summary).toContain('implementation')
       expect(result.evidence.capability).toBe('implementation')
       expect(result.evidence.provider).toBe('mattpocock-skills')
-      expect(result.evidence.command).toBe('tdd')
+      expect(result.evidence.command).toBe('implement')
       expect(result.evidence.execution).toMatchObject({
         pattern: 'advisor',
         executorModel: 'sonnet',
@@ -180,7 +180,7 @@ describe('claude code adapter', () => {
       const adapter = createClaudeCodeAdapter()
       const result = await adapter.dispatch({
         capability: 'diagnosis',
-        command: 'diagnose',
+        command: 'diagnosing-bugs',
         provider: 'mattpocock-skills',
         context: {},
       })

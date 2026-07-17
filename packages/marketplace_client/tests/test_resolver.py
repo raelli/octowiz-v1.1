@@ -12,22 +12,22 @@ sys.path.insert(0, _PKG_DIR)
 _SAMPLE_MANIFEST = {
     "name": "IntegraHub",
     "plugins": [
-        {"name": "superpowers", "version": "1.0.0", "category": "Coding",
+        {"name": "antfu-skills", "version": "1.0.0", "category": "Coding",
          "keywords": ["coding-agent", "skills"],
-         "source": {"source": "github", "repo": "obra/superpowers"}},
-        {"name": "mattpo-skills", "version": "2.3.1", "category": "Development",
+         "source": {"source": "github", "repo": "antfu/skills"}},
+        {"name": "mattpocock-skills", "version": "1.1.0", "category": "Development",
          "keywords": ["typescript"],
-         "source": {"source": "github", "repo": "obra/mattpo-skills"}},
-        {"name": "octowiz", "version": "0.9.0", "category": "Development",
+         "source": {"source": "github", "repo": "mattpocock/skills"}},
+        {"name": "octowiz", "version": "1.1.0-alpha.1", "category": "Development",
          "keywords": ["a2a", "agent"],
-         "source": {"source": "github", "repo": "raelli/octowiz"}},
+         "source": {"source": "github", "repo": "raelli/octowiz-v1.1"}},
         {"name": "context7", "version": "1.5.0", "category": "Development",
          "keywords": ["context", "mcp"],
          "source": {"source": "github", "repo": "upstash/context7-mcp"}},
     ],
 }
 
-_PLUGIN_JSON_DEPS = ["superpowers", "mattpo-skills"]
+_PLUGIN_JSON_DEPS = ["antfu-skills", "mattpocock-skills"]
 
 
 class TestResolveDependencies(unittest.TestCase):
@@ -40,13 +40,13 @@ class TestResolveDependencies(unittest.TestCase):
 
         self.assertEqual(len(result.resolved), 2)
         names = [r.name for r in result.resolved]
-        self.assertIn("superpowers", names)
-        self.assertIn("mattpo-skills", names)
+        self.assertIn("antfu-skills", names)
+        self.assertIn("mattpocock-skills", names)
 
     def test_missing_dep_reported_as_unresolved(self):
         from marketplace_client.resolver import resolve_dependencies
 
-        result = resolve_dependencies(["superpowers", "nonexistent-skill"], _SAMPLE_MANIFEST)
+        result = resolve_dependencies(["antfu-skills", "nonexistent-skill"], _SAMPLE_MANIFEST)
 
         self.assertEqual(len(result.resolved), 1)
         self.assertIn("nonexistent-skill", result.unresolved)
@@ -54,10 +54,10 @@ class TestResolveDependencies(unittest.TestCase):
     def test_resolved_entry_has_version_and_source(self):
         from marketplace_client.resolver import resolve_dependencies
 
-        result = resolve_dependencies(["superpowers"], _SAMPLE_MANIFEST)
+        result = resolve_dependencies(["antfu-skills"], _SAMPLE_MANIFEST)
 
         entry = result.resolved[0]
-        self.assertEqual(entry.name, "superpowers")
+        self.assertEqual(entry.name, "antfu-skills")
         self.assertEqual(entry.version, "1.0.0")
         self.assertIsNotNone(entry.source)
 
@@ -123,7 +123,7 @@ class TestSkillDiscovery(unittest.TestCase):
         result = discover_skills(_SAMPLE_MANIFEST, category="Coding")
 
         names = [r["name"] for r in result]
-        self.assertIn("superpowers", names)
+        self.assertIn("antfu-skills", names)
         self.assertNotIn("octowiz", names)
 
     def test_discover_by_keyword(self):
@@ -133,8 +133,8 @@ class TestSkillDiscovery(unittest.TestCase):
 
         names = [r["name"] for r in result]
         self.assertIn("octowiz", names)
-        self.assertNotIn("superpowers", names)
-        self.assertNotIn("mattpo-skills", names)
+        self.assertNotIn("antfu-skills", names)
+        self.assertNotIn("mattpocock-skills", names)
 
     def test_discover_all_returns_all(self):
         from marketplace_client.resolver import discover_skills
@@ -157,20 +157,20 @@ class TestLifecycleStates(unittest.TestCase):
     def test_initial_state_is_available(self):
         from marketplace_client.resolver import ArtifactLifecycle, LifecycleState
 
-        lc = ArtifactLifecycle("superpowers", "1.0.0")
+        lc = ArtifactLifecycle("antfu-skills", "1.0.0")
         self.assertEqual(lc.state, LifecycleState.AVAILABLE)
 
     def test_install_transitions_to_installed(self):
         from marketplace_client.resolver import ArtifactLifecycle, LifecycleState
 
-        lc = ArtifactLifecycle("superpowers", "1.0.0")
+        lc = ArtifactLifecycle("antfu-skills", "1.0.0")
         lc.install()
         self.assertEqual(lc.state, LifecycleState.INSTALLED)
 
     def test_pin_after_install_transitions_to_pinned(self):
         from marketplace_client.resolver import ArtifactLifecycle, LifecycleState
 
-        lc = ArtifactLifecycle("superpowers", "1.0.0")
+        lc = ArtifactLifecycle("antfu-skills", "1.0.0")
         lc.install()
         lc.pin()
         self.assertEqual(lc.state, LifecycleState.PINNED)
@@ -178,7 +178,7 @@ class TestLifecycleStates(unittest.TestCase):
     def test_disable_after_install(self):
         from marketplace_client.resolver import ArtifactLifecycle, LifecycleState
 
-        lc = ArtifactLifecycle("superpowers", "1.0.0")
+        lc = ArtifactLifecycle("antfu-skills", "1.0.0")
         lc.install()
         lc.disable()
         self.assertEqual(lc.state, LifecycleState.DISABLED)
@@ -186,7 +186,7 @@ class TestLifecycleStates(unittest.TestCase):
     def test_rollback_from_installed_to_available(self):
         from marketplace_client.resolver import ArtifactLifecycle, LifecycleState
 
-        lc = ArtifactLifecycle("superpowers", "1.0.0")
+        lc = ArtifactLifecycle("antfu-skills", "1.0.0")
         lc.install()
         lc.rollback()
         self.assertEqual(lc.state, LifecycleState.AVAILABLE)
@@ -194,14 +194,14 @@ class TestLifecycleStates(unittest.TestCase):
     def test_cannot_pin_before_install(self):
         from marketplace_client.resolver import ArtifactLifecycle
 
-        lc = ArtifactLifecycle("superpowers", "1.0.0")
+        lc = ArtifactLifecycle("antfu-skills", "1.0.0")
         with self.assertRaises(RuntimeError):
             lc.pin()
 
     def test_cannot_rollback_if_not_installed(self):
         from marketplace_client.resolver import ArtifactLifecycle
 
-        lc = ArtifactLifecycle("superpowers", "1.0.0")
+        lc = ArtifactLifecycle("antfu-skills", "1.0.0")
         with self.assertRaises(RuntimeError):
             lc.rollback()
 

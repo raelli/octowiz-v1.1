@@ -49,7 +49,7 @@ class RepoState:
 @dataclass
 class RepoScan:
     agent_file: Optional[str]
-    agent_has_skills_section: bool
+    mattpocock_setup_files: bool
     stack: str
     has_context_md: bool
     has_adr: bool
@@ -150,11 +150,14 @@ def _detect_agent_file(cwd: Path) -> Optional[str]:
     return None
 
 
-def _has_skills_section(cwd: Path, agent_file: str) -> bool:
-    try:
-        return "## Agent skills" in (cwd / agent_file).read_text(errors="replace")
-    except OSError:
-        return False
+def _has_mattpocock_setup_files(cwd: Path, has_github_remote: bool) -> bool:
+    required = [
+        cwd / "docs" / "agents" / "issue-tracker.md",
+        cwd / "docs" / "agents" / "domain.md",
+    ]
+    if has_github_remote:
+        required.append(cwd / "docs" / "agents" / "triage-labels.md")
+    return all(path.is_file() for path in required)
 
 
 def _detect_stack(cwd: Path) -> str:
@@ -189,13 +192,14 @@ def _has_github_remote(cwd: Path) -> bool:
 
 def scan_repo(cwd: Path) -> RepoScan:
     agent_file = _detect_agent_file(cwd)
+    has_github_remote = _has_github_remote(cwd)
     return RepoScan(
         agent_file=agent_file,
-        agent_has_skills_section=_has_skills_section(cwd, agent_file) if agent_file else False,
+        mattpocock_setup_files=_has_mattpocock_setup_files(cwd, has_github_remote),
         stack=_detect_stack(cwd),
         has_context_md=(cwd / "CONTEXT.md").exists(),
         has_adr=(cwd / "docs" / "adr").is_dir(),
-        has_github_remote=_has_github_remote(cwd),
+        has_github_remote=has_github_remote,
     )
 
 
@@ -272,7 +276,7 @@ def run_live_check(
     scan = scan_repo(cwd)
     if scan.agent_file is None and "agent_file" not in dismissed:
         advisory_gaps.append("agent_file")
-    if scan.agent_file is not None and not scan.agent_has_skills_section:
+    if scan.agent_file is not None and not scan.mattpocock_setup_files:
         if "mattpo_skills_setup" not in dismissed:
             advisory_gaps.append("mattpo_skills_setup")
     if _antfu_gap(scan, repo_state) and "antfu_optional" not in dismissed:

@@ -77,6 +77,22 @@ describe('state transitions', () => {
       expect(store.read(repo).state).toBe('plan')
     })
 
+    it('plan -> slice -> implement carries the same readiness guard as the direct path', () => {
+      store.init(repo)
+      store.mutate(repo, doc => transitions.transitionTo(doc, 'define'))
+      store.mutate(repo, doc => transitions.transitionTo(doc, 'plan'))
+      store.mutate(repo, doc => transitions.transitionTo(doc, 'slice'))
+
+      expect(() => store.mutate(repo, doc => transitions.transitionTo(doc, 'implement')))
+        .toThrow(GuardError)
+
+      store.mutate(repo, doc => operations.setGoal(doc, 'g'))
+      store.mutate(repo, doc => operations.linkArtifact(doc, { type: 'issue', id: 'issue-1' }))
+      store.mutate(repo, doc => operations.addCriterion(doc, { statement: 'works', id: 'ac-1' }))
+      const doc = store.mutate(repo, d => transitions.transitionTo(d, 'implement'))
+      expect(doc.state).toBe('implement')
+    })
+
     it('plan -> implement is blocked by open blocking questions but not non-blocking ones', () => {
       store.init(repo)
       store.mutate(repo, doc => operations.setGoal(doc, 'g'))

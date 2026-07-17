@@ -1,6 +1,6 @@
 # Issue tracker: GitHub
 
-Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for all operations.
+Issues, specs, and tickets for this repo live as GitHub issues. Use the `gh` CLI for all operations.
 
 ## Conventions
 
@@ -13,6 +13,11 @@ Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for all op
 
 Infer the repo from `git remote -v` — `gh` does this automatically when run inside a clone.
 
+## PRs as a request surface
+
+`no`. External pull requests are not included in triage discovery. An explicitly named
+PR may still be triaged on request.
+
 ## When a skill says "publish to the issue tracker"
 
 Create a GitHub issue.
@@ -20,3 +25,12 @@ Create a GitHub issue.
 ## When a skill says "fetch the relevant ticket"
 
 Run `gh issue view <number> --comments`.
+
+## Wayfinding operations
+
+- **The map** is a GitHub issue labelled `wayfinder:map`.
+- **Tickets** are child issues of the map, linked with GitHub's native sub-issue relationship.
+- **Blocking edges** use GitHub's native issue-to-issue blocking relationship where available; otherwise record them in a `## Blocked by` section in the ticket body.
+- **Claim** a ticket by assigning it to the driving developer before starting work.
+- **Frontier** = open, unblocked, unassigned child issues of the map.
+- **Resolve** a ticket by recording its answer as a comment, then closing it and adding one line to the map's "Decisions so far" section.

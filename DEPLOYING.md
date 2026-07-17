@@ -81,5 +81,5 @@ For a manual upsert:
 curl -sX POST https://llm.integrahub.de/claude-code/plugins \
   -H "Authorization: Bearer $LITELLM_MASTER_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"name":"octowiz","version":"<version>","url":"https://github.com/raelli/octowiz"}'
+  -d '{"name":"octowiz","version":"<version>","url":"https://github.com/raelli/octowiz-v1.1"}'
 ```

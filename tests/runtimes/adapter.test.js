@@ -303,7 +303,7 @@ describe('runtime types', () => {
     it('accepts a valid envelope', () => {
       const envelope = createTaskEnvelope({
         capability: 'implementation',
-        command: 'tdd',
+        command: 'implement',
         provider: 'mattpocock-skills',
         context: { cwd: '/repo' },
       })
@@ -440,7 +440,7 @@ describe('runtime types', () => {
     it('createTaskEnvelope produces valid envelopes', () => {
       const envelope = createTaskEnvelope({
         capability: 'diagnosis',
-        command: 'diagnose',
+        command: 'diagnosing-bugs',
         provider: 'mattpocock-skills',
         context: { state: 'implement' },
       })
