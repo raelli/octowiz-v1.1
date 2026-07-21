@@ -4,16 +4,18 @@ Octowiz ships as a Claude Code plugin via the IntegraHub Marketplace. There is n
 
 Marketplace URL: `https://llm.integrahub.de/claude-code/marketplace.json`
 
+**Marketplace entry name: `octowiz-aellvanse`.** The plain `octowiz` entry belongs to
+[`raelli/octowiz`](https://github.com/raelli/octowiz) (the 0.9.x memory-stack plugin)
+and must never be upserted from this repo.
+
 ---
 
 ## How it works
 
-1. A new version is merged to `main` and tagged `v<semver>`.
-2. The [`release.yml`](.github/workflows/release.yml) workflow fires on the tag push, builds the release, then upserts the new version directly into the LiteLLM marketplace database via the `POST /claude-code/plugins` endpoint.
-3. The marketplace JSON reflects the new version immediately after the workflow completes.
+1. The [`release.yml`](.github/workflows/release.yml) workflow is started manually (`workflow_dispatch`); it bumps the version, pushes the tag, then upserts the new version directly into the LiteLLM marketplace database via the `POST /claude-code/plugins` endpoint. Alternatively, merge a version bump to `main` and push a `v<semver>` tag by hand.
+2. The [`marketplace-sync.yml`](.github/workflows/marketplace-sync.yml) workflow is a safety net that fires on any manually pushed `v*` tag not covered by the release flow, performing the same upsert.
+3. The marketplace JSON reflects the new version immediately after either workflow completes.
 4. Claude Code users update by running `/plugin update` — their local CLI checks the marketplace, downloads the new version, and restarts the hook runner.
-
-The [`marketplace-sync.yml`](.github/workflows/marketplace-sync.yml) workflow is a safety net that fires on any manually pushed `v*` tag not covered by the release flow.
 
 ---
 
@@ -40,7 +42,7 @@ Run through this before tagging. Every item must be green before the PR merges.
 - [ ] Marketplace reflects the new version:
   ```bash
   curl -s https://llm.integrahub.de/claude-code/marketplace.json \
-    | python3 -c "import sys,json; [print(p['name'], p['version']) for p in json.load(sys.stdin) if p['name']=='octowiz']"
+    | jq -r '.plugins[] | select(.name=="octowiz-aellvanse") | "\(.name) \(.version)"'
   ```
 - [ ] `/plugin update` in Claude Code installs the new version without error
 - [ ] Hook tags in the terminal show the expected `[--*] HH:MM:SS [octowiz - <action>]` format
