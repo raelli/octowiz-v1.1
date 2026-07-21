@@ -70,7 +70,7 @@ function trimTrailingSlash(url) {
  * Join a base URL and path segment with exactly one slash.
  * @param {string} base absolute base URL
  * @param {string} segment path segment (with or without leading slash)
- * @returns {string}
+ * @returns {string} The resulting value.
  */
 function joinUrlPath(base, segment) {
   return `${trimTrailingSlash(base)}/${String(segment).replace(/^\/+/, '')}`

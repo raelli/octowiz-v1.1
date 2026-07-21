@@ -12,22 +12,22 @@ const SIGNATURE_ALGORITHM = 'hmac-sha256'
 
 /**
  * @typedef {object} EvidenceBundle
- * @property {string} bundleVersion
- * @property {string} repositoryId
+ * @property {string} bundleVersion The bundleVersion value.
+ * @property {string} repositoryId The repositoryId value.
  * @property {string} commit - short SHA
  * @property {string} commitSha256 - SHA-256 hash of the full commit SHA
  * @property {string} session - session id that produced the evidence
  * @property {string} runtime - runtime adapter id
  * @property {string} timestamp - ISO-8601
- * @property {Array<{kind: string, status: string, ref: string}>} evidence
- * @property {Array<{id: string, status: string}>} criteria
- * @property {{algorithm: string, keyId: string, value: string}|null} signature
+ * @property {Array<{kind: string, status: string, ref: string}>} evidence Collected engineering evidence.
+ * @property {Array<{id: string, status: string}>} criteria Evaluated acceptance criteria.
+ * @property {{algorithm: string, keyId: string, value: string}|null} signature Optional bundle signature.
  */
 
 /**
  * Get the current HEAD commit SHA for a repository.
  * @param {string} cwd
- * @returns {string}
+ * @returns {string} The resulting value.
  */
 function getCurrentCommit(cwd) {
   return execFileSync('git', ['rev-parse', 'HEAD'], { cwd, encoding: 'utf8' }).trim()
@@ -54,7 +54,7 @@ function sha256(input) {
  * @param {Array<{id: string, status: string}>} [options.criteria]
  * @param {string} [options.signingKey] HMAC key for signing (null = unsigned)
  * @param {string} [options.keyId] key identifier for the signature
- * @returns {EvidenceBundle}
+ * @returns {EvidenceBundle} The resulting value.
  */
 function createBundle({
   repositoryId,
@@ -103,7 +103,7 @@ function createBundle({
  * @param {object} bundle
  * @param {string} key
  * @param {string} keyId
- * @returns {{algorithm: string, keyId: string, value: string}}
+ * @returns {{algorithm: string, keyId: string, value: string}} The generated signature.
  */
 function signBundle(bundle, key, keyId = 'local-machine-key') {
   const payload = JSON.stringify({ ...bundle, signature: null })
@@ -122,7 +122,7 @@ function signBundle(bundle, key, keyId = 'local-machine-key') {
  * @param {object} [options]
  * @param {string} [options.cwd] repository root for commit verification
  * @param {string} [options.signingKey] key for signature verification
- * @returns {{ valid: boolean, issues: string[] }}
+ * @returns {{ valid: boolean, issues: string[] }} The verification result.
  */
 function verifyBundle(bundle, { cwd, signingKey } = {}) {
   const issues = []
