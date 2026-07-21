@@ -88,6 +88,13 @@ resolved slash command and ask the human to run it. Only `tdd`, `diagnosing-bugs
 `resolving-merge-conflicts`, and `grilling` are model-invoked and may be reached for
 directly when the resolved provider is `mattpocock-skills`.
 
+## Model routing (opt-in)
+
+When the environment sets `OCTOWIZ_MULTIMODEL=1` and the Codex CLI resolves
+(`command -v codex`), load `references/model-routing.md` and apply its tier table to
+every delegation for the rest of the session. Without the flag, run every phase on the
+session model.
+
 ## User-facing phases
 
 Keep the four understandable entry points, but infer and recommend one from state and repository evidence. The user may override the recommendation.
