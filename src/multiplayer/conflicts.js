@@ -24,7 +24,7 @@ const { execFileSync } = require('node:child_process')
  *
  * @param {object} [options]
  * @param {boolean} [options.strict] if true, conflicts block; if false, advisory only
- * @returns {ConflictDetector}
+ * @returns {ConflictDetector} The resulting value.
  */
 function createConflictDetector({ strict = false } = {}) {
   /** @type {Map<string, Set<string>>} file → set of session ids */
@@ -55,7 +55,7 @@ function createConflictDetector({ strict = false } = {}) {
    * Check for file-level overlaps between sessions.
    * Returns files that have been modified by more than one session.
    *
-   * @returns {FileConflict[]}
+   * @returns {FileConflict[]} The resulting value.
    */
   function detectOverlaps() {
     const conflicts = []
@@ -69,7 +69,7 @@ function createConflictDetector({ strict = false } = {}) {
   /**
    * Check if a specific session's modifications conflict with others.
    * @param {string} sessionId
-   * @returns {FileConflict[]}
+   * @returns {FileConflict[]} The resulting value.
    */
   function conflictsForSession(sessionId) {
     const conflicts = []
@@ -130,7 +130,7 @@ function createConflictDetector({ strict = false } = {}) {
   /**
    * Get all files modified by a specific session.
    * @param {string} sessionId
-   * @returns {string[]}
+   * @returns {string[]} The resulting value.
    */
   function filesForSession(sessionId) {
     const files = []
@@ -160,7 +160,7 @@ function createConflictDetector({ strict = false } = {}) {
  * @param {string} repoRoot
  * @param {string} source source branch/ref
  * @param {string} target target branch/ref
- * @returns {MergeConflict[]}
+ * @returns {MergeConflict[]} The resulting value.
  */
 function checkMergeConflicts(repoRoot, source, target) {
   try {

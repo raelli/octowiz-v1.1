@@ -15,7 +15,7 @@ function evidenceSatisfied(group) {
  * when no registry is in context or no resolver qualifies.
  * @param {string|null} capabilityName
  * @param {object} context
- * @returns {{ provider: string, command: string }|null}
+ * @returns {{ provider: string, command: string }|null} The resolved capability, if available.
  */
 function tryResolve(capabilityName, context) {
   if (!capabilityName || !context.registry)

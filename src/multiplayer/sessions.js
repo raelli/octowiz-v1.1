@@ -12,7 +12,7 @@ const DEFAULT_HEARTBEAT_TTL_MS = 300_000 // 5 minutes
 
 /**
  * @typedef {object} SessionEntry
- * @property {string} sessionId
+ * @property {string} sessionId The sessionId value.
  * @property {string} runtime - runtime adapter id
  * @property {string} actor - 'human-assisted' | 'autonomous' | 'hybrid'
  * @property {string|null} worktree - worktree path or null for main tree
@@ -20,14 +20,14 @@ const DEFAULT_HEARTBEAT_TTL_MS = 300_000 // 5 minutes
  * @property {string|null} ownedTask - task id being worked on
  * @property {string} startedAt - ISO-8601
  * @property {string} lastHeartbeat - ISO-8601
- * @property {'active'|'stale'|'ended'} status
+ * @property {'active'|'stale'|'ended'} status The status value.
  */
 
 /**
  * @typedef {object} SessionLedger
- * @property {string} repositoryId
- * @property {SessionEntry[]} sessions
- * @property {string} updatedAt
+ * @property {string} repositoryId The repositoryId value.
+ * @property {SessionEntry[]} sessions The sessions value.
+ * @property {string} updatedAt The updatedAt value.
  */
 
 /**
@@ -37,7 +37,7 @@ const DEFAULT_HEARTBEAT_TTL_MS = 300_000 // 5 minutes
  * @param {string} options.repositoryId
  * @param {string} [options.storePath] explicit path (for testing); defaults to cache dir
  * @param {number} [options.heartbeatTtlMs] TTL before a session is considered stale
- * @returns {SessionLedgerManager}
+ * @returns {SessionLedgerManager} The resulting value.
  */
 function createSessionLedger({ repositoryId, storePath, heartbeatTtlMs = DEFAULT_HEARTBEAT_TTL_MS }) {
   const filePath = storePath ?? _defaultStorePath(repositoryId)
@@ -69,7 +69,8 @@ function createSessionLedger({ repositoryId, storePath, heartbeatTtlMs = DEFAULT
    * @param {string} [entry.actor]
    * @param {string|null} [entry.worktree]
    * @param {string|null} [entry.ownedTask]
-   * @returns {SessionEntry}
+   * @param {string[]|null} [entry.ownedFiles]
+   * @returns {SessionEntry} The resulting value.
    */
   function register({ sessionId, runtime = 'claude-code', actor = 'human-assisted', worktree = null, ownedTask = null, ownedFiles = null }) {
     const doc = _read()
@@ -140,7 +141,7 @@ function createSessionLedger({ repositoryId, storePath, heartbeatTtlMs = DEFAULT
 
   /**
    * Get all active sessions.
-   * @returns {SessionEntry[]}
+   * @returns {SessionEntry[]} The resulting value.
    */
   function activeSessions() {
     const doc = _read()
@@ -150,7 +151,7 @@ function createSessionLedger({ repositoryId, storePath, heartbeatTtlMs = DEFAULT
 
   /**
    * Get all sessions (including stale).
-   * @returns {SessionEntry[]}
+   * @returns {SessionEntry[]} The resulting value.
    */
   function allSessions() {
     const doc = _read()
@@ -161,7 +162,7 @@ function createSessionLedger({ repositoryId, storePath, heartbeatTtlMs = DEFAULT
   /**
    * Find a session by id.
    * @param {string} sessionId
-   * @returns {SessionEntry|null}
+   * @returns {SessionEntry|null} The resulting value.
    */
   function getSession(sessionId) {
     const doc = _read()

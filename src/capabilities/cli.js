@@ -30,7 +30,7 @@ function parse(argv, options = {}) {
 /**
  * Load the merged registry (default + local overrides if present at cwd).
  * @param {string} cwd
- * @returns {object}
+ * @returns {object} The resulting value.
  */
 function loadMergedRegistry(cwd) {
   const overridesPath = path.resolve(cwd, '.octowiz', 'capabilities.json')

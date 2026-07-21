@@ -76,7 +76,8 @@ class TestRunSandboxedValidation(unittest.TestCase):
         self.assertEqual(result["status"], "error")
 
     def test_relative_cwd_returns_error(self):
-        result = self._call({"task": "run tests", "cwd": "relative/path"})
+        with patch("shutil.which", return_value=None):
+            result = self._call({"task": "run tests", "cwd": "relative/path"})
         self.assertEqual(result["status"], "error")
         self.assertIn("absolute", result["message"])
 
