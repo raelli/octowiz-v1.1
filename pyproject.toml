@@ -31,5 +31,5 @@ octowiz-cache = "packages.memory_client.cli:main"
 testpaths = ["packages", "providers", "tests", "apps/claude_code_bridge"]
 addopts = "--import-mode=importlib"
 filterwarnings = [
-    "ignore:Using `httpx` with `starlette.testclient` is deprecated:starlette.exceptions.StarletteDeprecationWarning",
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated:UserWarning:fastapi\\.testclient",
 ]
