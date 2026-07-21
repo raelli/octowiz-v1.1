@@ -5,12 +5,21 @@ workers do the token-heavy legwork in their own context windows and return disti
 reports. The raw bulk a worker reads or writes never enters the coordinator's context —
 that separation is the entire cost story.
 
+## Regulated-data guard (ADR-0001)
+
+Every tier below is a hosted provider. Before applying this table, classify the task's
+inputs: medical, legal/privileged, patent, or residency-restricted data routes through
+the local-only path defined in
+`docs/adr/0001-regulated-data-must-not-flow-through-hosted-managed-agent-paths.md`
+(DeepSeek 32B + local RAG; Qwen3.6 27B for drafts) — a hard block on every hosted tier,
+not a preference. This table governs general coding and architecture work only.
+
 ## Tier table
 
 | Tier | Model | Thinking | Reached via | Owns |
 |---|---|---|---|---|
 | Coordinator | Claude Fable 5 (the session model — set via `/model`) | session default; think hard at human gates | main loop | phase routing, briefs, synthesis, state mutations, human gates |
-| Advisor | `gpt-5.6-sol` (Codex default in `~/.codex/config.toml`) | `model_reasoning_effort=high` | `codex:rescue` skill or `codex-rescue` agent | second opinions at gates: plan validation (phase B), diagnosis stuck after two failed hypotheses, pre-ship review (phase D) |
+| Advisor | `gpt-5.6-sol` (Codex) | `model_reasoning_effort=high` | `codex exec -m gpt-5.6-sol -s read-only -C <repo>`; prefer the `codex:rescue` skill / `codex-rescue` agent when the openai-codex plugin is installed | second opinions at gates: plan validation (phase B), diagnosis stuck after two failed hypotheses, pre-ship review (phase D) |
 | Implementer | Claude Sonnet 5 | inherit (Workflow: `effort:'high'` for hard slices) | Agent tool with `model: "sonnet"`; Workflow `agent(…, {model:'sonnet'})` | coding one scoped slice with full repo tools |
 | Implementer | `gpt-5.6-terra` (Codex) | `model_reasoning_effort=medium` | `codex exec -m gpt-5.6-terra -s workspace-write -C <repo>` | coding one scoped slice when a cross-model implementation or comparison pass is wanted |
 | Sweeper | `gpt-5.6-luna` (Codex) | `model_reasoning_effort=low` | `codex exec -m gpt-5.6-luna -s read-only -C <repo>` | coverage-shaped legwork: log triage, doc reading, codebase sweeps, dependency audits |
