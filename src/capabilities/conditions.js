@@ -16,7 +16,7 @@ const path = require('node:path')
  * True when the repository has substantial documentation:
  * CONTEXT.md, docs/adr/, or a docs/ directory with at least one .md file.
  * @param {ConditionContext} ctx
- * @returns {boolean}
+ * @returns {boolean} The resulting value.
  */
 function docsExist(ctx) {
   if (ctx.fileExists('CONTEXT.md'))
@@ -40,7 +40,7 @@ function docsExist(ctx) {
  * True when the repository is part of the Vue/Nuxt/Vite ecosystem.
  * Checks package.json dependencies and devDependencies for relevant packages.
  * @param {ConditionContext} ctx
- * @returns {boolean}
+ * @returns {boolean} The resulting value.
  */
 function vueNuxtViteEcosystem(ctx) {
   const pkg = ctx.packageJson
@@ -63,7 +63,7 @@ function vueNuxtViteEcosystem(ctx) {
  * True when the repository has a test setup: test directory, or a test/spec
  * script in package.json.
  * @param {ConditionContext} ctx
- * @returns {boolean}
+ * @returns {boolean} The resulting value.
  */
 function hasTests(ctx) {
   if (ctx.fileExists('tests') || ctx.fileExists('test') || ctx.fileExists('__tests__'))
@@ -78,7 +78,7 @@ function hasTests(ctx) {
 /**
  * True when the repository uses TypeScript: tsconfig.json exists.
  * @param {ConditionContext} ctx
- * @returns {boolean}
+ * @returns {boolean} The resulting value.
  */
 function hasTypescript(ctx) {
   return ctx.fileExists('tsconfig.json') || ctx.fileExists('tsconfig.base.json')
@@ -87,7 +87,7 @@ function hasTypescript(ctx) {
 /**
  * True when the repository has Python tooling: pyproject.toml or requirements.txt.
  * @param {ConditionContext} ctx
- * @returns {boolean}
+ * @returns {boolean} The resulting value.
  */
 function hasPython(ctx) {
   return ctx.fileExists('pyproject.toml') || ctx.fileExists('requirements.txt') || ctx.fileExists('setup.py')
@@ -96,7 +96,7 @@ function hasPython(ctx) {
 /**
  * True when the repository is a pnpm workspace.
  * @param {ConditionContext} ctx
- * @returns {boolean}
+ * @returns {boolean} The resulting value.
  */
 function pnpmWorkspace(ctx) {
   return ctx.fileExists('pnpm-workspace.yaml') || ctx.fileExists('pnpm-workspace.yml')
@@ -119,7 +119,7 @@ const CONDITIONS = {
 /**
  * Compose conditions with AND: all must be true.
  * @param {...string} names condition names
- * @returns {(ctx: ConditionContext) => boolean}
+ * @returns {(ctx: ConditionContext) => boolean} The resulting value.
  */
 function and(...names) {
   return ctx => names.every(name => evaluateCondition(name, ctx))
@@ -128,7 +128,7 @@ function and(...names) {
 /**
  * Compose conditions with OR: at least one must be true.
  * @param {...string} names condition names
- * @returns {(ctx: ConditionContext) => boolean}
+ * @returns {(ctx: ConditionContext) => boolean} The resulting value.
  */
 function or(...names) {
   return ctx => names.some(name => evaluateCondition(name, ctx))
@@ -137,7 +137,7 @@ function or(...names) {
 /**
  * Negate a condition.
  * @param {string} name condition name
- * @returns {(ctx: ConditionContext) => boolean}
+ * @returns {(ctx: ConditionContext) => boolean} The resulting value.
  */
 function not(name) {
   return ctx => !evaluateCondition(name, ctx)
@@ -150,7 +150,7 @@ function not(name) {
  * (fail-open for optional resolvers, fail-closed for enabling features).
  * @param {string} name
  * @param {ConditionContext} ctx
- * @returns {boolean}
+ * @returns {boolean} The resulting value.
  */
 function evaluateCondition(name, ctx) {
   const fn = CONDITIONS[name]
@@ -169,7 +169,7 @@ function evaluateCondition(name, ctx) {
  * of satisfied condition names. This is the primary integration point — pass
  * the result as `satisfiedConditions` to `resolveCapability()`.
  * @param {ConditionContext} ctx
- * @returns {Set<string>}
+ * @returns {Set<string>} The resulting value.
  */
 function evaluateAll(ctx) {
   const satisfied = new Set()
@@ -193,7 +193,7 @@ function evaluateAll(ctx) {
  * Build a ConditionContext from a repository root path. Reads package.json
  * once; fileExists uses synchronous stat for simplicity and reliability.
  * @param {string} cwd absolute path to repository root
- * @returns {ConditionContext}
+ * @returns {ConditionContext} The resulting value.
  */
 function buildContext(cwd) {
   let packageJson = null

@@ -17,7 +17,7 @@
  * @param {object} options
  * @param {ReturnType<import('./sessions').createSessionLedger>} options.ledger
  * @param {boolean} [options.strict] if true, conflicts throw; if false, they warn
- * @returns {OwnershipManager}
+ * @returns {OwnershipManager} The resulting value.
  */
 function createOwnershipManager({ ledger, strict = false }) {
   /**
@@ -26,7 +26,7 @@ function createOwnershipManager({ ledger, strict = false }) {
    *
    * @param {string} sessionId
    * @param {string[]} files - relative file paths to claim
-   * @returns {{ claimed: string[], conflicts: OwnershipConflict[] }}
+   * @returns {{ claimed: string[], conflicts: OwnershipConflict[] }} The claim result.
    * @throws {Error} in strict mode when conflicts exist
    */
   function claimFiles(sessionId, files) {
@@ -94,7 +94,7 @@ function createOwnershipManager({ ledger, strict = false }) {
   /**
    * Get the owner of a specific file.
    * @param {string} file
-   * @returns {{ sessionId: string, runtime: string } | null}
+   * @returns {{ sessionId: string, runtime: string } | null} The owner, if present.
    */
   function getFileOwner(file) {
     const sessions = ledger.activeSessions()
@@ -125,7 +125,7 @@ function createOwnershipManager({ ledger, strict = false }) {
    *
    * @param {string} sessionId
    * @param {string[]} files
-   * @returns {OwnershipConflict[]}
+   * @returns {OwnershipConflict[]} The resulting value.
    */
   function checkConflicts(sessionId, files) {
     const sessions = ledger.activeSessions()

@@ -194,7 +194,7 @@ function loadRegistryWithOverrides({ registryPath, overridesPath } = {}) {
  * @param {object} providerDef provider definition from the registry
  * @param {string} providerId provider identifier
  * @param {ResolutionContext} context
- * @returns {boolean}
+ * @returns {boolean} The resulting value.
  */
 function isProviderAvailable(providerDef, providerId, context) {
   // Explicitly listed as available — always trust
@@ -221,7 +221,7 @@ function isProviderAvailable(providerDef, providerId, context) {
  *
  * @param {object} resolver
  * @param {ResolutionContext} context
- * @returns {boolean}
+ * @returns {boolean} The resulting value.
  */
 function isResolverEligible(resolver, context) {
   if (!resolver.when)
@@ -242,7 +242,7 @@ function isResolverEligible(resolver, context) {
  * @param {object} registry validated registry document
  * @param {string} capabilityName abstract capability name
  * @param {ResolutionContext} [context]
- * @returns {ResolvedCapability|null}
+ * @returns {ResolvedCapability|null} The resulting value.
  */
 function resolveCapability(registry, capabilityName, context = {}) {
   const capability = registry.capabilities[capabilityName]
@@ -282,7 +282,7 @@ function resolveCapability(registry, capabilityName, context = {}) {
  *
  * @param {object} registry validated registry document
  * @param {ResolutionContext} [context]
- * @returns {Map<string, ResolvedCapability|null>}
+ * @returns {Map<string, ResolvedCapability|null>} The resulting value.
  */
 function resolveAll(registry, context = {}) {
   const results = new Map()
@@ -313,7 +313,7 @@ function unresolvedCapabilities(registry, context = {}) {
 /**
  * Get the list of required providers that should be installed.
  * @param {object} registry validated registry document
- * @returns {{ id: string, install: string }[]}
+ * @returns {{ id: string, install: string }[]} Required provider descriptors.
  */
 function requiredProviders(registry) {
   return Object.entries(registry.providers)
@@ -329,7 +329,7 @@ function requiredProviders(registry) {
  * @param {object} registry validated registry document
  * @param {string} capabilityName
  * @param {string} cwd repository root path
- * @returns {ResolvedCapability|null}
+ * @returns {ResolvedCapability|null} The resulting value.
  */
 function resolveWithConditions(registry, capabilityName, cwd) {
   const { buildContext, evaluateAll } = require('./conditions')
@@ -342,7 +342,7 @@ function resolveWithConditions(registry, capabilityName, cwd) {
  * High-level: resolve all capabilities with conditions evaluated from a repo.
  * @param {object} registry
  * @param {string} cwd
- * @returns {Map<string, ResolvedCapability|null>}
+ * @returns {Map<string, ResolvedCapability|null>} The resulting value.
  */
 function resolveAllWithConditions(registry, cwd) {
   const { buildContext, evaluateAll } = require('./conditions')

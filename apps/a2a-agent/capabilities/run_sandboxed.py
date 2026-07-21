@@ -50,6 +50,8 @@ async def handle_run_sandboxed(
         return err("task must not start with '-'")
     if container_provider not in _VALID_CONTAINER_PROVIDERS:
         return err(f"unsupported container_provider: {container_provider!r}")
+    if not os.path.isabs(cwd):
+        return err(f"cwd must be an absolute path: {cwd!r}")
     if not shutil.which(container_provider):
         return err(f"{container_provider} not available")
     if branch is not None:
