@@ -19,7 +19,10 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Upsert octowiz in IntegraHub marketplace
+      # The marketplace entry name is octowiz-aellvanse — the plain "octowiz"
+      # entry belongs to raelli/octowiz (the 0.9.x memory-stack plugin) and
+      # must never be upserted from this repo.
+      - name: Upsert octowiz-aellvanse in IntegraHub marketplace
         env:
           LITELLM_MASTER_KEY: ${{ secrets.LITELLM_MASTER_KEY }}
           VERSION: ${{ steps.version.outputs.version }}
@@ -28,11 +31,12 @@ jobs:
             -H "Authorization: Bearer $LITELLM_MASTER_KEY" \
             -H "Content-Type: application/json" \
             -d "{
-              \"name\": \"octowiz\",
+              \"name\": \"octowiz-aellvanse\",
               \"source\": {\"source\": \"github\", \"repo\": \"raelli/octowiz-v1.1\"},
               \"version\": \"$VERSION\",
-              \"description\": \"A skill-backed memory stack for coding agents.\",
-              \"keywords\": [\"claude-code\", \"mattpocock\", \"antfu-skills\", \"integrahub\"],
+              \"description\": \"Coding doctrine for real engineering. The skills help observe the current engineering situation, recommends the next useful phase, assembles context, and routes work through a real engineering workflow.\",
+              \"author\": {\"name\": \"razu\"},
+              \"keywords\": [\"engineering\", \"coding skills\", \"workflows\", \"ddd\", \"coding doctrine\"],
               \"category\": \"Development\"
             }" | tee /tmp/result.json
           STATUS=$(jq -r '.status // empty' /tmp/result.json)
@@ -40,4 +44,4 @@ jobs:
             echo "Marketplace upsert failed: $(cat /tmp/result.json)" >&2
             exit 1
           fi
-          echo "Marketplace updated: octowiz $VERSION"
+          echo "Marketplace updated: octowiz-aellvanse $VERSION"
