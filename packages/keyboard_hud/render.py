@@ -13,9 +13,9 @@ except Exception:  # pragma: no cover
 
 SCREEN_W, SCREEN_H = 135, 240
 
-# Octowiz brand purple (ANSI 38;5;135 ~ #8B5CF6) for the WORKING state.
+# Octowiz brand purple (ANSI 256 color 135 = #af5fff) for the WORKING state.
 THEME = {
-    "working":   ((124, 58, 237), (255, 255, 255), (185, 150, 255), "WORKING"),
+    "working":   ((175, 95, 255), (255, 255, 255), (205, 165, 255), "WORKING"),
     "done":      ((20, 150, 60),  (255, 255, 255), (120, 240, 150), "DONE"),
     "attention": ((210, 40, 40),  (255, 255, 255), (255, 150, 150), "NEEDS YOU"),
     "error":     ((200, 90, 0),   (255, 255, 255), (255, 190, 110), "FAILED"),
