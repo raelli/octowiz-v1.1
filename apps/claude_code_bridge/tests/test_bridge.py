@@ -632,3 +632,30 @@ class TestGitModifiedFiles(unittest.TestCase):
         mock_result.stdout = ""
         with unittest.mock.patch("subprocess.run", return_value=mock_result):
             self.assertEqual(_git_modified_files("/repo"), [])
+
+
+# repo root on path so the keyboard-hud package resolves when patching its notify()
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+
+
+class TestKeyboardSink(unittest.TestCase):
+    """The opt-in AULA S75 keyboard HUD sink (OCTOWIZ_KEYBOARD)."""
+
+    def test_sink_invoked_with_raw_data_when_opted_in(self):
+        seen = {}
+        with unittest.mock.patch(
+            "packages.keyboard_hud.notify",
+            side_effect=lambda d: seen.setdefault("data", d),
+        ):
+            # Notification has no _build_event mapping -> main returns before any network call.
+            code, _ = _run_main(
+                _hook_data(hook="Notification", message="Claude needs your input"),
+                env={"OCTOWIZ_KEYBOARD": "1"},
+            )
+        self.assertEqual(code, 0)
+        self.assertEqual(seen.get("data", {}).get("hook_event_name"), "Notification")
+
+    def test_sink_not_invoked_when_opted_out(self):
+        with unittest.mock.patch("packages.keyboard_hud.notify") as notify:
+            _run_main(_hook_data(hook="Notification", message="x"), env={"OCTOWIZ_KEYBOARD": ""})
+            notify.assert_not_called()
