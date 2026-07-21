@@ -83,6 +83,17 @@ class TestNotifyGating(unittest.TestCase):
             directive = spawn.call_args[0][0]
             self.assertEqual(directive["state"], "working")
 
+    def test_dispatch_attaches_monotonic_seq(self):
+        with unittest.mock.patch.dict(os.environ, {"OCTOWIZ_KEYBOARD": "1"}, clear=False), \
+             unittest.mock.patch.object(notifier, "_spawn") as spawn:
+            notify(_data("UserPromptSubmit", prompt="one"))
+            notify(_data("Stop"))
+            seqs = [c.args[0]["_seq"] for c in spawn.call_args_list]
+            self.assertEqual(len(seqs), 2)
+            self.assertTrue(all(isinstance(s, int) and s > 0 for s in seqs))
+            # non-decreasing (clock granularity may yield equal seqs; equal still applies)
+            self.assertLessEqual(seqs[0], seqs[1])
+
     def test_no_dispatch_for_unmapped_event(self):
         with unittest.mock.patch.dict(os.environ, {"OCTOWIZ_KEYBOARD": "1"}, clear=False), \
              unittest.mock.patch.object(notifier, "_spawn") as spawn:

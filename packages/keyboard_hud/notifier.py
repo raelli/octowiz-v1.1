@@ -17,6 +17,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 _PURPLE = "\033[38;5;135m"
@@ -113,6 +114,9 @@ def notify(data):
         if directive is None:
             _log("kb: skip (no mapping for %s)" % data.get("hook_event_name", "?"))
             return
+        # Dispatch-order sequence: detached updaters may acquire the keyboard lock out of
+        # startup order; apply.py uses this to drop directives older than the last applied.
+        directive["_seq"] = time.time_ns()
         _spawn(directive)
         _log("kb: dispatched state=%s screen=%s" % (directive["state"], directive["screen"]))
     except Exception as exc:  # never break the developer's session

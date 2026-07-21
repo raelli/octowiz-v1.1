@@ -14,8 +14,17 @@ import sys
 import tempfile
 import time
 
-_LOCK = os.path.join(tempfile.gettempdir(), "octowiz_kbd.lock")
-_STATE = os.path.join(tempfile.gettempdir(), "octowiz_kbd.state.json")
+def _user_tag():
+    """Per-user filename tag: uid on POSIX, username on Windows. Keeps the state/lock
+    files private per user on shared temp dirs and avoids cross-user collisions."""
+    if hasattr(os, "getuid"):
+        return str(os.getuid())
+    u = os.environ.get("USERNAME") or os.environ.get("USER") or "user"
+    return "".join(c for c in u if c.isalnum()) or "user"
+
+
+_LOCK = os.path.join(tempfile.gettempdir(), "octowiz_kbd_%s.lock" % _user_tag())
+_STATE = os.path.join(tempfile.gettempdir(), "octowiz_kbd_%s.state.json" % _user_tag())
 
 
 def _acquire(timeout=3.0):
@@ -23,7 +32,7 @@ def _acquire(timeout=3.0):
     deadline = time.time() + timeout
     while time.time() < deadline:
         try:
-            fd = os.open(_LOCK, os.O_CREAT | os.O_EXCL | os.O_RDWR)
+            fd = os.open(_LOCK, os.O_CREAT | os.O_EXCL | os.O_RDWR, 0o600)
             return fd
         except FileExistsError:
             # stale lock older than 15s -> reclaim
@@ -57,7 +66,9 @@ def _last_state():
 
 def _save_state(d):
     try:
-        with open(_STATE, "w", encoding="utf-8") as f:
+        # 0600: the saved title can contain prompt text — keep it unreadable to other users
+        fd = os.open(_STATE, os.O_CREAT | os.O_WRONLY | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(d, f)
     except Exception:
         pass
@@ -149,32 +160,49 @@ def main(argv):
     state = d.get("state", "idle")
     title = d.get("title", "")
     want_screen = bool(d.get("screen"))
+    seq = d.get("_seq") or 0
 
     fd = _acquire()
     if fd is None:
         return 0  # another update in flight; drop this one (fire-and-forget)
     try:
+        last = _last_state()
+        # Drop out-of-order directives: process startup + lock acquisition don't preserve
+        # dispatch order, so an older event (e.g. Notification) must not land after a newer
+        # one (e.g. Stop) and leave a stale state on the keyboard.
+        if seq and seq < last.get("seq", 0):
+            return 0
+
         from packages.keyboard_hud.driver import AulaS75, available
         if not available():
             return 0
-        # only re-render the screen if it actually changed
-        last = _last_state()
-        screen_changed = want_screen and (last.get("state") != state or last.get("title") != title)
+
+        screen_desc = None
+        if want_screen:
+            stats = d.get("stats") or {}
+            transcript = d.get("_transcript", "")
+            if transcript:
+                try:
+                    stats = {**metrics(transcript), **stats}  # explicit stats win
+                except Exception:
+                    pass  # card just shows fewer rows
+            screen_desc = {"state": state, "title": title, "stats": stats,
+                           "footer": d.get("footer")}
+        # re-render only when something the card actually shows changed
+        screen_changed = want_screen and last.get("screen") != screen_desc
 
         with AulaS75(open_lcd=screen_changed, verbose=False) as kb:
             kb.signal(state)
             if screen_changed:
                 from packages.keyboard_hud.render import render_hud
-                stats = d.get("stats") or {}
-                transcript = d.get("_transcript", "")
-                if transcript:
-                    try:
-                        stats = {**metrics(transcript), **stats}  # explicit stats win
-                    except Exception:
-                        pass  # card just shows fewer rows
-                img = render_hud(state, title, stats=stats, footer=d.get("footer"))
+                img = render_hud(state, title, stats=screen_desc["stats"],
+                                 footer=screen_desc["footer"])
                 kb.lcd_show_image(img)
-        _save_state({"state": state, "title": title})
+
+        # "screen" records what is actually displayed — lights-only updates keep the
+        # previous record so they can never mask a pending screen change.
+        _save_state({"seq": max(seq, last.get("seq", 0)),
+                     "screen": screen_desc if screen_changed else last.get("screen")})
     except Exception:
         pass  # never crash a detached updater
     finally:
