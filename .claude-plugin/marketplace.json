@@ -1,0 +1,14 @@
+{
+  "name": "octowiz-dev",
+  "owner": {
+    "name": "IntegraHub",
+    "email": "support@integrahub.de"
+  },
+  "plugins": [
+    {
+      "name": "octowiz",
+      "source": "./",
+      "description": "Octowiz Engineering Control Plane — local development install from the working tree."
+    }
+  ]
+}
