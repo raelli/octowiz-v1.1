@@ -88,12 +88,22 @@ resolved slash command and ask the human to run it. Only `tdd`, `diagnosing-bugs
 `resolving-merge-conflicts`, and `grilling` are model-invoked and may be reached for
 directly when the resolved provider is `mattpocock-skills`.
 
-## Model routing (opt-in)
+## Model routing
 
-When the environment sets `OCTOWIZ_MULTIMODEL=1` and the Codex CLI resolves
-(`command -v codex`), load `references/model-routing.md` and apply its tier table to
-every delegation for the rest of the session. Without the flag, run every phase on the
-session model.
+The regulated-data guard (ADR-0001) applies unconditionally, before any feature gate:
+classify the task's inputs first. Medical, legal/privileged, patent, or
+residency-restricted data never flows through a hosted path — not the session model,
+not any delegated tier — regardless of `OCTOWIZ_MULTIMODEL`. Route it through the
+local-only path defined in
+`docs/adr/0001-regulated-data-must-not-flow-through-hosted-managed-agent-paths.md`
+(DeepSeek 32B + local RAG; Qwen3.6 27B for drafts). When that local path is
+unavailable, stop and tell the user; never fall back to a hosted route.
+
+Multi-model tiers are opt-in and govern non-regulated work only: when the environment
+sets `OCTOWIZ_MULTIMODEL=1` and the Codex CLI resolves (`command -v codex`), load
+`references/model-routing.md` and apply its tier table to every delegation for the
+rest of the session. Without the flag, run every non-regulated phase on the session
+model.
 
 ## User-facing phases
 
