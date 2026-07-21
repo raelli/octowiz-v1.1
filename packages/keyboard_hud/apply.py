@@ -7,6 +7,7 @@ Spawned by notifier._spawn in its own process so the ~0.7s screen upload never b
 Claude Code hook. Best-effort cross-process lock serialises access to the single keyboard;
 change-detection avoids re-uploading an unchanged screen. Always exits 0.
 """
+import datetime
 import json
 import os
 import sys
@@ -62,6 +63,81 @@ def _save_state(d):
         pass
 
 
+def _fmt_tokens(n):
+    """5500 -> '5.5k', 112000 -> '112k', 2_400_000 -> '2.4M', 950 -> '950'."""
+    if n >= 1_000_000:
+        return ("%.1fM" % (n / 1_000_000)).replace(".0M", "M")
+    if n >= 1000:
+        return ("%.1fk" % (n / 1000)).replace(".0k", "k")
+    return str(n)
+
+
+def _fmt_elapsed(seconds):
+    """581 -> '9:41', 3725 -> '1:02:05'."""
+    s = max(0, int(seconds))
+    h, rem = divmod(s, 3600)
+    m, sec = divmod(rem, 60)
+    return ("%d:%02d:%02d" % (h, m, sec)) if h else ("%d:%02d" % (m, sec))
+
+
+def metrics(transcript_path, now=None):
+    """Sum live session metrics from a Claude Code transcript JSONL.
+
+    Returns up to {"Tokens": "112k", "Elapsed": "9:41"} — best-effort: a missing file,
+    malformed lines, or absent usage/timestamp fields just omit the affected row.
+    Never raises.
+    """
+    out = {}
+    try:
+        with open(transcript_path, "r", encoding="utf-8", errors="replace") as f:
+            lines = f.read().splitlines()
+    except OSError:
+        return out
+
+    total, saw_usage, earliest = 0, False, None
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(entry, dict):
+            continue
+
+        ts = entry.get("timestamp")
+        if isinstance(ts, str) and ts:
+            try:
+                dt = datetime.datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=datetime.timezone.utc)
+                if earliest is None or dt < earliest:
+                    earliest = dt
+            except ValueError:
+                pass
+
+        if entry.get("type") != "assistant":
+            continue
+        msg = entry.get("message")
+        usage = msg.get("usage") if isinstance(msg, dict) else None
+        if not isinstance(usage, dict):
+            continue
+        for key in ("input_tokens", "output_tokens",
+                    "cache_creation_input_tokens", "cache_read_input_tokens"):
+            v = usage.get(key, 0)
+            if isinstance(v, (int, float)):
+                total += int(v)
+        saw_usage = True
+
+    if saw_usage:
+        out["Tokens"] = _fmt_tokens(total)
+    if earliest is not None:
+        now = now or datetime.datetime.now(datetime.timezone.utc)
+        out["Elapsed"] = _fmt_elapsed((now - earliest).total_seconds())
+    return out
+
+
 def main(argv):
     if len(argv) < 2:
         return 0
@@ -89,7 +165,14 @@ def main(argv):
             kb.signal(state)
             if screen_changed:
                 from packages.keyboard_hud.render import render_hud
-                img = render_hud(state, title, stats=d.get("stats"), footer=d.get("footer"))
+                stats = d.get("stats") or {}
+                transcript = d.get("_transcript", "")
+                if transcript:
+                    try:
+                        stats = {**metrics(transcript), **stats}  # explicit stats win
+                    except Exception:
+                        pass  # card just shows fewer rows
+                img = render_hud(state, title, stats=stats, footer=d.get("footer"))
                 kb.lcd_show_image(img)
         _save_state({"state": state, "title": title})
     except Exception:

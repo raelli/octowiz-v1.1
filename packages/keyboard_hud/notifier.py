@@ -56,28 +56,35 @@ def map_event(data):
     now = datetime.datetime.now().strftime("%H:%M")
     foot = ("%s · %s" % (repo, now)) if repo else now
 
+    directive = None
     if hook == "Notification":
         msg = data.get("message") or "Needs your input"
-        return {"state": "attention", "title": _short(msg), "stats": {}, "footer": foot, "screen": True}
+        directive = {"state": "attention", "title": _short(msg), "stats": {}, "footer": foot, "screen": True}
 
-    if hook == "UserPromptSubmit":
-        return {"state": "working", "title": _short(data.get("prompt", "") or "Working…"),
-                "stats": {}, "footer": foot, "screen": True}
+    elif hook == "UserPromptSubmit":
+        directive = {"state": "working", "title": _short(data.get("prompt", "") or "Working…"),
+                     "stats": {}, "footer": foot, "screen": True}
 
-    if hook == "PostToolUse":
+    elif hook == "PostToolUse":
         ti = data.get("tool_input", {}) or {}
         path = ti.get("file_path") or ti.get("notebook_path") or ""
         title = os.path.basename(path) if path else (data.get("tool_name", "") or "Working…")
         # High-frequency event: update lights only, skip the screen upload.
-        return {"state": "working", "title": _short(title), "stats": {}, "footer": foot, "screen": False}
+        directive = {"state": "working", "title": _short(title), "stats": {}, "footer": foot, "screen": False}
 
-    if hook == "SessionStart":
-        return {"state": "idle", "title": repo or "Session started", "stats": {}, "footer": foot, "screen": True}
+    elif hook == "SessionStart":
+        directive = {"state": "idle", "title": repo or "Session started", "stats": {}, "footer": foot, "screen": True}
 
-    if hook in ("Stop", "SessionEnd"):
-        return {"state": "idle", "title": "Your turn", "stats": {}, "footer": foot, "screen": True}
+    elif hook in ("Stop", "SessionEnd"):
+        directive = {"state": "idle", "title": "Your turn", "stats": {}, "footer": foot, "screen": True}
 
-    return None
+    if directive is None:
+        return None
+    if directive["screen"]:
+        # Private key (not a display field): lets the detached updater derive live session
+        # metrics from the transcript without any file IO on this hot path.
+        directive["_transcript"] = data.get("transcript_path", "")
+    return directive
 
 
 def _spawn(directive):

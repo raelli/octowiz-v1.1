@@ -51,6 +51,22 @@ class TestMapEvent(unittest.TestCase):
     def test_footer_contains_repo_basename(self):
         self.assertIn("myrepo", map_event(_data("Stop"))["footer"])
 
+    def test_screen_events_pass_transcript_through(self):
+        for hook, extra in (("Notification", {"message": "hi"}),
+                            ("UserPromptSubmit", {"prompt": "go"}),
+                            ("SessionStart", {}),
+                            ("Stop", {})):
+            d = map_event(_data(hook, transcript_path="/tmp/t.jsonl", **extra))
+            self.assertEqual(d["_transcript"], "/tmp/t.jsonl", hook)
+
+    def test_screen_events_transcript_defaults_empty(self):
+        self.assertEqual(map_event(_data("Stop"))["_transcript"], "")
+
+    def test_posttooluse_has_no_transcript_key(self):
+        d = map_event(_data("PostToolUse", tool_name="Edit",
+                            tool_input={"file_path": "a.py"}, transcript_path="/tmp/t.jsonl"))
+        self.assertNotIn("_transcript", d)  # lights-only: no metrics needed
+
 
 class TestNotifyGating(unittest.TestCase):
     def test_skips_when_opt_out(self):
