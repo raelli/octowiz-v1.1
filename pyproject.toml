@@ -16,6 +16,9 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=7"]
+# AULA S75 Pro keyboard HUD sink (packages/keyboard_hud). Optional — the bridge only imports
+# these inside a detached process when OCTOWIZ_KEYBOARD is enabled.
+keyboard = ["hidapi", "Pillow"]
 
 [tool.setuptools.packages.find]
 where = ["."]

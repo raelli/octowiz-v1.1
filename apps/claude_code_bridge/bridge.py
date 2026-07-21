@@ -276,6 +276,19 @@ def main() -> int:
         _verbose_log(f"could not parse stdin: {exc}")
         return 0
 
+    # Optional AULA S75 keyboard HUD sink (opt-in via OCTOWIZ_KEYBOARD).
+    # Fired before the network calls so status shows without waiting on AELLI; dispatches to a
+    # detached process so it never blocks, and never raises. Does not touch the AELLI event.
+    if os.environ.get("OCTOWIZ_KEYBOARD", "").lower() in ("1", "true", "yes", "on"):
+        try:
+            _root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+            if _root not in sys.path:
+                sys.path.insert(0, _root)
+            from packages.keyboard_hud import notify as _kb_notify
+            _kb_notify(data)
+        except Exception as exc:  # pragma: no cover - defensive
+            _verbose_log(f"keyboard sink skipped: {exc}")
+
     event = _build_event(data)
     if event is None:
         return 0
