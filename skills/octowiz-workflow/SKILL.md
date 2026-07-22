@@ -1,12 +1,12 @@
 ---
 name: octowiz
 description: >
-  Octowiz engineering workflow coordinator. Inspect repository, persistent engineering state,
-  and session evidence; recommend the correct development phase; and route primarily through
-  Matt Pocock Skills. Use at the start of feature discovery, plan validation, implementation,
-  debugging, review, simplification, verification, or handoff. Apply the native lean engineering
-  gate before implementation and during review. Antfu Skills may be used only when repository
-  signals show that a Vue, Nuxt, Vite, Vitest, pnpm, UnoCSS, or related capability is relevant.
+  Octowiz — the engineering control plane: read persistent state (.octowiz/state.json),
+  recommend the lifecycle phase, and route capabilities to providers. Fire at the START of
+  any engineering session in a repository with Octowiz state — before planning or editing —
+  and when resuming a master-plan phase or orchestration lane, when the user asks what's
+  next or where the work stands, or when another skill needs lifecycle routing, a state
+  read, or a state transition.
 ---
 
 # Octowiz Workflow Coordinator
@@ -109,6 +109,15 @@ model.
 
 Keep the four understandable entry points, but infer and recommend one from state and repository evidence. The user may override the recommendation.
 
+Every capability named in the phases below resolves through the registry — one
+command, one source of truth:
+
+```bash
+octowiz capability resolve <name> --json   # or take .resolved from `octowiz state next --json`
+```
+
+Invoke only provider commands the registry resolves.
+
 ### A. Idea and definition
 
 Use when the problem, outcome, constraints, or major decisions remain unclear.
@@ -143,16 +152,6 @@ rejected work, and only grills when the request needs fleshing out. Tickets crea
 
 Do not force every step. Reuse and amend existing artifacts instead of generating duplicates. Record accepted decisions, open questions, goals, and artifacts in persistent engineering state when available.
 
-Resolve actual provider commands via the capability registry:
-
-```bash
-octowiz capability resolve requirements-discovery --json
-octowiz capability resolve prototype --json
-octowiz capability resolve definition --json
-octowiz capability resolve ticket-breakdown --json
-octowiz capability resolve wayfinding --json
-```
-
 ### B. Plan validation
 
 Use when a proposed solution, plan, PRD, or architecture already exists but needs challenge.
@@ -165,13 +164,6 @@ Preferred capability sequence:
 4. `ticket-breakdown` — only when the accepted work spans multiple fresh contexts
 
 Explicitly identify assumptions, irreversible decisions, missing acceptance criteria, architecture conflicts, and required human gates. Persist accepted outcomes rather than relying on conversation history.
-
-```bash
-octowiz capability resolve plan-validation --json
-octowiz capability resolve decision-resolution --json
-octowiz capability resolve definition --json
-octowiz capability resolve ticket-breakdown --json
-```
 
 ### C. Implementation and diagnosis
 
@@ -203,16 +195,6 @@ commit or working tree changed and made it stale.
 A slice is not complete until its commit exists on the current branch; verification
 evidence must reference that commit.
 
-Resolve provider commands dynamically:
-
-```bash
-octowiz capability resolve implementation --json
-octowiz capability resolve test-driven-development --json
-octowiz capability resolve diagnosis --json
-```
-
-Never invoke Superpowers commands.
-
 ### D. Review, simplification, verification, and handoff
 
 Use when implementation is materially complete.
@@ -232,14 +214,6 @@ The complexity pass complements normal review. It must not delete accepted behav
 `handoff` only ever writes a temporary continuation document (to the OS temp directory,
 never the workspace) with a suggested-skills section; it never prepares a PR, merges, or
 ships. PR creation, merge, and release are separate human-gated Octowiz operations.
-
-Resolve provider commands dynamically:
-
-```bash
-octowiz capability resolve code-review --json
-octowiz capability resolve verification --json
-octowiz capability resolve handoff-or-ship --json
-```
 
 The verification gate requires evidence for:
 
@@ -296,7 +270,12 @@ Rules:
 - Machine-local facts (sessions, PIDs, leases) live outside the repository in `~/.cache/octowiz/<repository-id>/runtime.json` and never belong in `state.json`.
 - Never write secrets, tokens, or absolute local paths into goals, decisions, or evidence refs — the store rejects them.
 
-A completion claim without matching evidence remains unverified.
+A session's engineering work is complete only when `octowiz state show --json`
+reflects it: evidence recorded, the transition made (or `blocked` recorded with
+its open question), and the goal current. A completion claim without matching
+evidence **and** a matching state transition remains unverified — shipping a PR
+while state still shows the previous phase leaves the next session routing on
+stale truth.
 
 ## Optional Antfu capability pack
 
