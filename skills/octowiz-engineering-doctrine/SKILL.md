@@ -1,13 +1,11 @@
 ---
 name: octowiz-engineering-doctrine
 description: >
-  Apply Octowiz's executable engineering doctrine alongside the selected lifecycle capability,
-  Matt Pocock methodology, repository rules, and stack-specific guidance. Use for repository-backed
-  discovery, planning, implementation, diagnosis, review, verification, delegation, or handoff when
-  context limits, HITL/AFK classification, vertical slicing, TDD, worker isolation, fresh-context
-  review, evidence gates, ELLI/AELLI identity boundaries, coordinator/worker concurrency, or an
-  optional Nuxt monorepo overlay matter. Select only the references relevant to the current
-  repository and phase; do not replace lifecycle routing, methodology, or stack skills.
+  Octowiz's executable engineering doctrine — the rules, execution shape, and evidence bar
+  the selected capability must satisfy. Load when engineering work starts under Octowiz
+  routing, when composing a worker brief or delegation (HITL/AFK class, isolation, egress,
+  ELLI/AELLI identity boundary), or when another skill needs the completion gate. Supplies
+  doctrine only — octowiz-workflow owns phase and provider selection.
 ---
 
 # Octowiz Executable Engineering Doctrine
