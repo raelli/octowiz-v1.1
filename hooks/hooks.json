@@ -1,5 +1,5 @@
 {
-  "description": "Octowiz hooks — ephemeral session lifecycle and event forwarding to AELLI",
+  "description": "Octowiz hooks \u2014 ephemeral session lifecycle and event forwarding to AELLI",
   "hooks": {
     "SessionStart": [
       {
@@ -63,6 +63,11 @@
       {
         "matcher": "*",
         "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PLUGIN_ROOT/hooks/scripts/enforce-gate.js\"",
+            "timeout": 10
+          },
           {
             "type": "command",
             "command": "python3 \"$CLAUDE_PLUGIN_ROOT/apps/claude_code_bridge/bridge.py\"",

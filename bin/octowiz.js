@@ -21,12 +21,17 @@ if (group === 'capability') {
   process.exit(runCapability(rest))
 }
 
+if (group === 'enforce') {
+  const { runEnforce } = require('../src/state/enforce-cli')
+  process.exit(runEnforce(rest))
+}
+
 if (group === 'runtime') {
   const { runRuntime } = require('../src/runtimes/cli')
   runRuntime(rest).then(code => process.exit(code))
 }
 else {
   const { USAGE } = require('../src/state/cli')
-  console.error(`usage: octowiz <group> [command]\n\ngroups:\n  state        persistent engineering state\n  capability   capability registry resolution\n  runtime      runtime adapter management\n  workflow     install versioned Dynamic Workflows\n\n${USAGE}`)
+  console.error(`usage: octowiz <group> [command]\n\ngroups:\n  state        persistent engineering state\n  capability   capability registry resolution\n  enforce      enforced doctrine mode toggle (on|off|status)\n  runtime      runtime adapter management\n  workflow     install versioned Dynamic Workflows\n\n${USAGE}`)
   process.exit(group ? 1 : 0)
 }
