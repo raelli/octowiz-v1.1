@@ -28,17 +28,33 @@ function decide(input) {
   if (stateExists)
     doc = store.read(cwd)
 
-  const repositoryId = doc ? doc.repository.id : `local:${path.basename(path.resolve(cwd))}`
-  const lease = runtime.readRuntime(repositoryId).sessions.find(s => s.sessionId === input.session_id)
+  // The lease was registered at session start under the identity known THEN.
+  // `octowiz state init` mid-session can change the repository ID (remote
+  // derivation), so fall back to the startup identity — otherwise every
+  // commit after init would bypass the gate on a missing lease.
+  const localId = `local:${path.basename(path.resolve(cwd))}`
+  const candidateIds = doc ? [doc.repository.id, localId] : [localId]
+  let lease = null
+  for (const id of candidateIds) {
+    lease = runtime.readRuntime(id).sessions.find(s => s.sessionId === input.session_id)
+    if (lease)
+      break
+  }
   if (!lease || !lease.startedAt)
-    return { block: false } // no lease, no baseline — fail open
+    return { block: false } // no lease under any identity — fail open
+
+  const activity = enforce.commitActivitySince(cwd, lease.startedAt)
+  // The state update must postdate the LAST commit: a state touch early in
+  // the session does not account for commits made after it.
+  const stateUpdatedAfterLastCommit = !!doc
+    && new Date(doc.updatedAt).getTime() >= activity.lastEpochMs
 
   return enforce.decideStopGate({
     enforced: true,
     stopHookActive: input.stop_hook_active === true,
     stateExists,
-    commitsThisSession: enforce.commitsSince(cwd, lease.startedAt),
-    stateUpdatedThisSession: !!doc && new Date(doc.updatedAt).getTime() >= new Date(lease.startedAt).getTime(),
+    commitsThisSession: activity.count,
+    stateUpdatedAfterLastCommit,
   })
 }
 

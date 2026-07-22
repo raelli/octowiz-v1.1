@@ -97,7 +97,7 @@ describe('commitsSince (spawn-free reflog parse)', () => {
 })
 
 describe('decideStopGate', () => {
-  const base = { enforced: true, stopHookActive: false, stateExists: true, commitsThisSession: 1, stateUpdatedThisSession: false }
+  const base = { enforced: true, stopHookActive: false, stateExists: true, commitsThisSession: 1, stateUpdatedAfterLastCommit: false }
 
   it('blocks commits with no state update', () => {
     expect(enforce.decideStopGate(base).block).toBe(true)
@@ -109,13 +109,71 @@ describe('decideStopGate', () => {
     expect(v.reason).toContain('state init')
   })
 
-  it('yields when state was updated this session', () => {
-    expect(enforce.decideStopGate({ ...base, stateUpdatedThisSession: true }).block).toBe(false)
+  it('yields when the state update postdates the last commit', () => {
+    expect(enforce.decideStopGate({ ...base, stateUpdatedAfterLastCommit: true }).block).toBe(false)
+  })
+
+  it('blocks when state was touched early but commits came after (ordering hole)', () => {
+    // stateUpdatedAfterLastCommit=false models exactly that scenario
+    const v = enforce.decideStopGate(base)
+    expect(v.block).toBe(true)
+    expect(v.reason).toContain('no later engineering-state update')
   })
 
   it('yields with no commits, when not enforced, and after a prior block (stop_hook_active)', () => {
     expect(enforce.decideStopGate({ ...base, commitsThisSession: 0 }).block).toBe(false)
     expect(enforce.decideStopGate({ ...base, enforced: false }).block).toBe(false)
     expect(enforce.decideStopGate({ ...base, stopHookActive: true }).block).toBe(false)
+  })
+})
+
+describe('commitActivitySince', () => {
+  const HEAD = entries => entries.map(e => `${'0'.repeat(40)} ${'1'.repeat(40)} A U Thor <a@e> ${e.epoch} +0000\t${e.action}: msg`).join('\n')
+
+  it('reports the latest commit epoch so callers can demand a later state update', () => {
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'octowiz-enforce-'))
+    fs.mkdirSync(path.join(cwd, '.git', 'logs'), { recursive: true })
+    const now = Math.floor(Date.now() / 1000)
+    fs.writeFileSync(path.join(cwd, '.git', 'logs', 'HEAD'), HEAD([
+      { epoch: now - 50, action: 'commit' },
+      { epoch: now - 10, action: 'commit' },
+    ]))
+    const activity = enforce.commitActivitySince(cwd, new Date((now - 100) * 1000).toISOString())
+    expect(activity.count).toBe(2)
+    expect(activity.lastEpochMs).toBe((now - 10) * 1000)
+    // a state update BETWEEN the commits does not postdate the last one
+    const between = (now - 30) * 1000
+    expect(between >= activity.lastEpochMs).toBe(false)
+    // a state update AFTER the last commit does
+    expect((now - 5) * 1000 >= activity.lastEpochMs).toBe(true)
+  })
+})
+
+describe('enforce-gate lease fallback', () => {
+  it('finds the startup lease under local:<basename> when state init changed the repository id', () => {
+    jest.resetModules()
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'octowiz-gate-'))
+    fs.mkdirSync(path.join(cwd, '.git', 'logs'), { recursive: true })
+    const now = Math.floor(Date.now() / 1000)
+    fs.writeFileSync(path.join(cwd, '.git', 'logs', 'HEAD'),
+      `${'0'.repeat(40)} ${'1'.repeat(40)} A U Thor <a@e> ${now - 5} +0000\tcommit: x`)
+    enforce.setEnforced(cwd, true)
+
+    const localId = `local:${path.basename(cwd)}`
+    const startedAt = new Date((now - 100) * 1000).toISOString()
+    jest.doMock('../src/state/runtime', () => ({
+      // lease exists ONLY under the startup identity, not the remote-derived one
+      readRuntime: id => ({ sessions: id === localId ? [{ sessionId: 's1', startedAt }] : [] }),
+    }))
+    jest.doMock('../src/state/store', () => ({
+      exists: () => true,
+      // state was initialized mid-session (after start, before the commit)
+      read: () => ({ repository: { id: 'github:someone/repo' }, updatedAt: new Date((now - 50) * 1000).toISOString() }),
+    }))
+    const { decide } = require('../hooks/scripts/enforce-gate')
+    const verdict = decide({ session_id: 's1', cwd, stop_hook_active: false })
+    expect(verdict.block).toBe(true) // lease found via fallback; commit after state init is unaccounted
+    jest.dontMock('../src/state/runtime')
+    jest.dontMock('../src/state/store')
   })
 })

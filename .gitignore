@@ -17,6 +17,7 @@ docs/superpowers/plans/
 .octowiz/*
 !.octowiz/state.json
 !.octowiz/events.jsonl
+!.octowiz/config.json
 
 node_modules/
 .worktrees/

@@ -31,7 +31,7 @@ function runEnforce(argv, { cwd = process.cwd(), env = process.env, log = s => p
     const doc = enforce.setEnforced(cwd, command === 'on')
     log(`enforced doctrine mode: ${doc.enforceDoctrine ? 'ON' : 'off'} (.octowiz/config.json)`)
     if (doc.enforceDoctrine)
-      log('Every session in this repository now starts with the Octowiz mandate injected and cannot end with unaccounted commits (evidence + state transition required). Toggle off with `octowiz enforce off`.')
+      log('Every session in this repository now starts with the Octowiz mandate injected and cannot end with unaccounted commits (evidence + state transition required). Commit .octowiz/config.json so the toggle travels with the repository. Toggle off with `octowiz enforce off`.')
     return 0
   }
 

@@ -77,37 +77,47 @@ function resolveGitDir(cwd) {
  * whose action is a commit and whose timestamp is at or after `sinceIso`.
  * Checkouts, resets, and merges into the session do not count as work.
  */
-function commitsSince(cwd, sinceIso) {
+function commitActivitySince(cwd, sinceIso) {
+  const none = { count: 0, lastEpochMs: 0 }
   const gitDir = resolveGitDir(cwd)
   if (!gitDir)
-    return 0
+    return none
   let raw
   try {
     raw = fs.readFileSync(path.join(gitDir, 'logs', 'HEAD'), 'utf8')
   }
   catch {
-    return 0
+    return none
   }
   const sinceEpoch = Math.floor(new Date(sinceIso).getTime() / 1000)
   if (!Number.isFinite(sinceEpoch))
-    return 0
+    return none
   let count = 0
+  let lastEpochMs = 0
   for (const line of raw.split('\n')) {
     // <old-sha> <new-sha> <author> <epoch> <tz>\t<action>: <message>
     const m = line.match(/^\S+ \S+ .* (\d{9,12}) [+-]\d{4}\t(commit[^:]*):/)
-    if (m && Number.parseInt(m[1], 10) >= sinceEpoch)
+    if (m && Number.parseInt(m[1], 10) >= sinceEpoch) {
       count++
+      lastEpochMs = Math.max(lastEpochMs, Number.parseInt(m[1], 10) * 1000)
+    }
   }
-  return count
+  return { count, lastEpochMs }
+}
+
+function commitsSince(cwd, sinceIso) {
+  return commitActivitySince(cwd, sinceIso).count
 }
 
 /**
  * Pure stop-gate decision, unit-testable in isolation. Blocks only the
  * combination that loses engineering truth: enforced mode, commits made this
- * session, and no state update accounting for them. `stopHookActive` means
- * the agent already continued past one block — never loop.
+ * session, and no state update accounting for them. The state update must
+ * FOLLOW the last commit — a state touch early in the session does not
+ * account for commits made after it. `stopHookActive` means the agent
+ * already continued past one block — never loop.
  */
-function decideStopGate({ enforced, stopHookActive, stateExists, commitsThisSession, stateUpdatedThisSession }) {
+function decideStopGate({ enforced, stopHookActive, stateExists, commitsThisSession, stateUpdatedAfterLastCommit }) {
   if (!enforced || stopHookActive || commitsThisSession === 0)
     return { block: false }
   if (!stateExists) {
@@ -116,10 +126,10 @@ function decideStopGate({ enforced, stopHookActive, stateExists, commitsThisSess
       reason: 'Octowiz enforced mode: this session made commits but the repository has no engineering state. Run `octowiz state init`, record the goal and evidence (`octowiz state evidence ...`), and transition state before ending — or toggle off with `octowiz enforce off`.',
     }
   }
-  if (!stateUpdatedThisSession) {
+  if (!stateUpdatedAfterLastCommit) {
     return {
       block: true,
-      reason: 'Octowiz enforced mode: this session made commits but engineering state was not updated. Record evidence (`octowiz state evidence <kind> <status> --ref <commit>`) and make the matching transition (`octowiz state transition <state>`) so the next session routes on current truth — a completion claim without a state transition is unverified.',
+      reason: 'Octowiz enforced mode: this session made commits that no later engineering-state update accounts for. Record evidence (`octowiz state evidence <kind> <status> --ref <commit>`) and make the matching transition (`octowiz state transition <state>`) so the next session routes on current truth — a completion claim without a state transition is unverified.',
     }
   }
   return { block: false }
@@ -132,6 +142,7 @@ module.exports = {
   isEnforced,
   setEnforced,
   resolveGitDir,
+  commitActivitySince,
   commitsSince,
   decideStopGate,
 }
