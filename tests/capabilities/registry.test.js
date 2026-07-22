@@ -430,6 +430,7 @@ describe('capabilities/registry — default skills/registry.json', () => {
       'definition': 'to-spec',
       'ticket-breakdown': 'to-tickets',
       'decision-resolution': 'grilling',
+      'triage': 'triage',
       'implementation': 'implement',
       'diagnosis': 'diagnosing-bugs',
       'code-review': 'code-review',

@@ -49,6 +49,12 @@
         { "provider": "mattpocock-skills", "command": "wayfinder", "priority": 1, "role": "coordinator" }
       ]
     },
+    "triage": {
+      "description": "Route raw incoming bugs, requests, or external pull requests through the triage state machine",
+      "resolvers": [
+        { "provider": "mattpocock-skills", "command": "triage", "priority": 1, "role": "coordinator" }
+      ]
+    },
     "lean-design-check": {
       "description": "Lean engineering gate evaluation before implementation",
       "resolvers": [

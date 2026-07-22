@@ -3,10 +3,10 @@ name: octowiz
 description: >
   Octowiz — the engineering control plane: read persistent state (.octowiz/state.json),
   recommend the lifecycle phase, and route capabilities to providers. Fire at the START of
-  any engineering session in a repository with Octowiz state — before planning or editing —
-  and when resuming a master-plan phase or orchestration lane, when the user asks what's
-  next or where the work stands, or when another skill needs lifecycle routing, a state
-  read, or a state transition.
+  any engineering session — before planning or editing — whether or not Octowiz state
+  exists yet (when absent, offer initialization). Also fire when resuming a master-plan
+  phase or orchestration lane, when the user asks what's next or where the work stands,
+  or when another skill needs lifecycle routing, a state read, or a state transition.
 ---
 
 # Octowiz Workflow Coordinator
@@ -271,11 +271,13 @@ Rules:
 - Never write secrets, tokens, or absolute local paths into goals, decisions, or evidence refs — the store rejects them.
 
 A session's engineering work is complete only when `octowiz state show --json`
-reflects it: evidence recorded, the transition made (or `blocked` recorded with
-its open question), and the goal current. A completion claim without matching
-evidence **and** a matching state transition remains unverified — shipping a PR
-while state still shows the previous phase leaves the next session routing on
-stale truth.
+reflects its actual progress: evidence recorded, the goal current, and the state
+truthful — transitioned when the session crossed a phase boundary, left unchanged
+when work honestly continues in the same state next session, or `blocked` recorded
+with its open question only for a genuine blocker. Do not force a transition (or a
+false `blocked`) just to end a session. A completion claim whose evidence or phase
+is missing from state remains unverified — shipping a PR while state still shows
+the previous phase leaves the next session routing on stale truth.
 
 ## Optional Antfu capability pack
 
