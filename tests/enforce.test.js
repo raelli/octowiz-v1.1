@@ -155,8 +155,7 @@ describe('enforce-gate lease fallback', () => {
     const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'octowiz-gate-'))
     fs.mkdirSync(path.join(cwd, '.git', 'logs'), { recursive: true })
     const now = Math.floor(Date.now() / 1000)
-    fs.writeFileSync(path.join(cwd, '.git', 'logs', 'HEAD'),
-      `${'0'.repeat(40)} ${'1'.repeat(40)} A U Thor <a@e> ${now - 5} +0000\tcommit: x`)
+    fs.writeFileSync(path.join(cwd, '.git', 'logs', 'HEAD'), `${'0'.repeat(40)} ${'1'.repeat(40)} A U Thor <a@e> ${now - 5} +0000\tcommit: x`)
     enforce.setEnforced(cwd, true)
 
     const localId = `local:${path.basename(cwd)}`
