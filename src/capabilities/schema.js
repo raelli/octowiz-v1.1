@@ -13,11 +13,13 @@ const PROVIDER_TYPES = ['skill-pack', 'builtin']
 const ORCHESTRATION_ROLES = ['coordinator', 'worker']
 
 /**
- * Validate a single resolver entry within a capability.
+ * Validate a single resolver entry within a capability. When `providerIds` is
+ * given, `resolver.provider` is cross-checked against it (full registry);
+ * omit it to skip the cross-check (local overrides, checked at merge time).
  * @param {Array<string>} issues accumulator
  * @param {string} path JSON path for error messages
  * @param {*} resolver
- * @param {string[]} providerIds known provider identifiers
+ * @param {string[]} [providerIds] known provider identifiers
  */
 function checkResolver(issues, path, resolver, providerIds) {
   if (typeof resolver !== 'object' || resolver === null || Array.isArray(resolver)) {
@@ -33,7 +35,7 @@ function checkResolver(issues, path, resolver, providerIds) {
 
   if (typeof resolver.provider !== 'string' || !resolver.provider.trim())
     issues.push(`${path}.provider: must be a non-empty string`)
-  else if (!providerIds.includes(resolver.provider))
+  else if (providerIds && !providerIds.includes(resolver.provider))
     issues.push(`${path}.provider: references unknown provider ${JSON.stringify(resolver.provider)}`)
 
   if (typeof resolver.command !== 'string' || !resolver.command.trim())
@@ -296,45 +298,9 @@ function checkLocalCapability(issues, capPath, name, capability) {
   }
   else {
     capability.resolvers.forEach((r, i) => {
-      checkLocalResolver(issues, `${capPath}.resolvers[${i}]`, r)
+      checkResolver(issues, `${capPath}.resolvers[${i}]`, r)
     })
   }
-}
-
-/**
- * Validate a resolver in a local override. Provider references are NOT
- * checked against the default registry — only structural validity is enforced.
- */
-function checkLocalResolver(issues, resolverPath, resolver) {
-  if (typeof resolver !== 'object' || resolver === null || Array.isArray(resolver)) {
-    issues.push(`${resolverPath}: must be an object`)
-    return
-  }
-
-  const allowed = ['provider', 'command', 'priority', 'when', 'role']
-  for (const key of Object.keys(resolver)) {
-    if (!allowed.includes(key))
-      issues.push(`${resolverPath}.${key}: unknown field`)
-  }
-
-  if (typeof resolver.provider !== 'string' || !resolver.provider.trim())
-    issues.push(`${resolverPath}.provider: must be a non-empty string`)
-
-  if (typeof resolver.command !== 'string' || !resolver.command.trim())
-    issues.push(`${resolverPath}.command: must be a non-empty string`)
-
-  if (resolver.priority !== undefined) {
-    if (!Number.isInteger(resolver.priority) || resolver.priority < 1)
-      issues.push(`${resolverPath}.priority: must be a positive integer`)
-  }
-
-  if (resolver.when !== undefined) {
-    if (typeof resolver.when !== 'string' || !resolver.when.trim())
-      issues.push(`${resolverPath}.when: must be a non-empty string when present`)
-  }
-
-  if (resolver.role !== undefined && !ORCHESTRATION_ROLES.includes(resolver.role))
-    issues.push(`${resolverPath}.role: must be one of ${ORCHESTRATION_ROLES.join(', ')}`)
 }
 
 module.exports = {
