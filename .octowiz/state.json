@@ -135,21 +135,31 @@
           "ref": "Two-axis review (Standards+Spec) of 372b484^..372b484 vs docs/implementation-plan-stages-3-4-5.md. All 5 tracked Session-3.1 ACs confirmed correctly implemented. Review also surfaced non-blocking follow-ups outside tracked scope: Session 3.4 'disable a provider (enabled:false)' AC not implemented; Session 3.2 when-clause composability (and/or/not) not wired into registry resolution, JS-only; Session 3.3 resolved:null vs omitted-key inconsistency between capability-resolve CLI and state-next CLI; has-typescript condition ignores .ts-file-present branch of its own spec line; latent priority ?? Infinity vs ?? 1 fallback inconsistency (dormant, no current registry entry omits priority)",
           "note": null,
           "recordedAt": "2026-07-17T11:19:36.576Z"
+        },
+        {
+          "id": "evidence-f01a562c",
+          "status": "passed",
+          "ref": "Complexity-reduction pass (phase D, ref lean-engineering.md): merged checkResolver/checkLocalResolver duplicate validators in src/capabilities/schema.js (-25 lines), hoisted conditions require + extracted evaluateSatisfiedConditions in src/capabilities/registry.js (-3 lines); jest 44 suites/736 tests passed, eslint 0 errors",
+          "note": null,
+          "recordedAt": "2026-07-23T01:50:58.938Z"
         }
       ]
     }
   },
   "complexityReview": {
-    "status": "pending",
-    "findings": [],
-    "estimatedLinesRemovable": null
+    "status": "passed",
+    "findings": [
+      "src/capabilities/schema.js:L22-54,L308-338 reuse: checkResolver/checkLocalResolver near-duplicate validators merged into one with optional providerIds cross-check (-25 lines)",
+      "src/capabilities/registry.js:L334-352 shrink: lazy require('./conditions') hoisted; duplicated buildContext+evaluateAll extracted into evaluateSatisfiedConditions (-3 lines)"
+    ],
+    "estimatedLinesRemovable": 28
   },
   "nextAction": {
     "capability": null,
     "reason": null,
     "humanGate": false
   },
-  "revision": 27,
+  "revision": 29,
   "createdAt": "2026-07-16T02:36:29.058Z",
-  "updatedAt": "2026-07-17T11:43:45.309Z"
+  "updatedAt": "2026-07-24T15:19:30.165Z"
 }

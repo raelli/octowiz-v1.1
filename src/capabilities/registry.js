@@ -9,6 +9,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 
 const { ValidationError } = require('../state/errors')
+const { buildContext, evaluateAll } = require('./conditions')
 const { validateRegistry, validateLocalOverrides } = require('./schema')
 
 // Default registry path relative to the project root (one level up from src/).
@@ -322,6 +323,15 @@ function requiredProviders(registry) {
 }
 
 /**
+ * Evaluate all conditions against the repository at `cwd`.
+ * @param {string} cwd repository root path
+ * @returns {Set<string>} satisfied condition names
+ */
+function evaluateSatisfiedConditions(cwd) {
+  return evaluateAll(buildContext(cwd))
+}
+
+/**
  * High-level resolver: evaluates all conditions against the repository,
  * then resolves a capability using the satisfied set. Combines buildContext,
  * evaluateAll, and resolveCapability into one call for convenience.
@@ -332,9 +342,7 @@ function requiredProviders(registry) {
  * @returns {ResolvedCapability|null} The resulting value.
  */
 function resolveWithConditions(registry, capabilityName, cwd) {
-  const { buildContext, evaluateAll } = require('./conditions')
-  const ctx = buildContext(cwd)
-  const satisfiedConditions = evaluateAll(ctx)
+  const satisfiedConditions = evaluateSatisfiedConditions(cwd)
   return resolveCapability(registry, capabilityName, { satisfiedConditions })
 }
 
@@ -345,9 +353,7 @@ function resolveWithConditions(registry, capabilityName, cwd) {
  * @returns {Map<string, ResolvedCapability|null>} The resulting value.
  */
 function resolveAllWithConditions(registry, cwd) {
-  const { buildContext, evaluateAll } = require('./conditions')
-  const ctx = buildContext(cwd)
-  const satisfiedConditions = evaluateAll(ctx)
+  const satisfiedConditions = evaluateSatisfiedConditions(cwd)
   return resolveAll(registry, { satisfiedConditions })
 }
 

@@ -104,12 +104,34 @@ describe('octowiz state CLI', () => {
 
     expect(run(['lean', '--rung', 'standard-library', '--decision', 'hand-rolled validation', '--reject', 'ajv'], repo).code).toBe(0)
     expect(run(['evidence', 'tests', 'passed', '--ref', 'jest 9 suites'], repo).code).toBe(0)
+    expect(run(['complexity-review', '--finding', 'src/a.js:L1-10 reuse: duplicate helper', '--lines', '25'], repo).code).toBe(0)
 
     const final = JSON.parse(run(['show', '--json'], repo).stdout)
     expect(final.openQuestions[0].status).toBe('resolved')
     expect(final.acceptanceCriteria[0].status).toBe('passed')
     expect(final.leanGate.selectedRung).toBe('standard-library')
     expect(final.evidence.tests.status).toBe('passed')
+    expect(final.complexityReview).toEqual({
+      status: 'passed',
+      findings: ['src/a.js:L1-10 reuse: duplicate helper'],
+      estimatedLinesRemovable: 25,
+    })
+  })
+
+  it('complexity-review supports a lean-already pass, waiving, and rejects bad --lines', () => {
+    run(['init'], repo)
+
+    expect(run(['complexity-review'], repo).code).toBe(0)
+    let doc = JSON.parse(run(['show', '--json'], repo).stdout)
+    expect(doc.complexityReview).toEqual({ status: 'passed', findings: [], estimatedLinesRemovable: null })
+
+    expect(run(['complexity-review', '--waived'], repo).code).toBe(0)
+    doc = JSON.parse(run(['show', '--json'], repo).stdout)
+    expect(doc.complexityReview.status).toBe('waived')
+
+    const bad = run(['complexity-review', '--lines', 'lots'], repo)
+    expect(bad.code).toBe(1)
+    expect(bad.stderr).toContain('--lines must be an integer')
   })
 
   it('rejects a stale --expected-revision with a conflict', () => {

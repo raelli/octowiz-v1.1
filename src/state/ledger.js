@@ -24,6 +24,7 @@ const EVENT_TYPES = [
   'criterion.added',
   'criterion.updated',
   'lean-gate.recorded',
+  'complexity-review.recorded',
   'evidence.recorded',
   'review.recorded',
   'state.repaired',
