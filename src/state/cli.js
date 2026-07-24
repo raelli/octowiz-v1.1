@@ -31,6 +31,8 @@ commands:
   criterion <id>          update: --status pending|passed|failed|waived [--evidence ref] [--reason r]
   lean                    record lean gate: --rung <${LEAN_RUNGS[0]}|...> --decision <d>
                           [--reject alt]... [--ceiling c] [--upgrade-trigger t] [--failed]
+  complexity-review       record the phase-D complexity pass: [--finding f]...
+                          [--lines N] [--waived]
   evidence <kind> <status> record evidence: --ref <ref> [--note n] [--reason r]
   next                    deterministic next-action recommendation
                           [--execution advisor|workflow|managed-agents] [--partitionable]
@@ -241,6 +243,26 @@ const COMMANDS = {
       waives: values.waives ?? [],
     }), mutationOpts(values))
     return { values, data: doc, human: `lean gate ${doc.leanGate.status}${doc.leanGate.selectedRung ? ` at rung ${doc.leanGate.selectedRung}` : ''} (revision ${doc.revision})` }
+  },
+
+  'complexity-review': (argv, cwd) => {
+    const { values } = parse(argv, {
+      finding: { type: 'string', multiple: true },
+      lines: { type: 'string' },
+      waived: { type: 'boolean', default: false },
+    })
+    let estimatedLinesRemovable = null
+    if (values.lines !== undefined) {
+      estimatedLinesRemovable = Number(values.lines)
+      if (!Number.isInteger(estimatedLinesRemovable))
+        throw new StateError('E_USAGE', '--lines must be an integer')
+    }
+    const doc = store.mutate(cwd, current => operations.recordComplexityReview(current, {
+      status: values.waived ? 'waived' : 'passed',
+      findings: values.finding ?? [],
+      estimatedLinesRemovable,
+    }), mutationOpts(values))
+    return { values, data: doc, human: `complexity review ${doc.complexityReview.status} with ${doc.complexityReview.findings.length} finding(s) (revision ${doc.revision})` }
   },
 
   'evidence': (argv, cwd) => {

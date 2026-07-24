@@ -147,16 +147,19 @@
     }
   },
   "complexityReview": {
-    "status": "pending",
-    "findings": [],
-    "estimatedLinesRemovable": null
+    "status": "passed",
+    "findings": [
+      "src/capabilities/schema.js:L22-54,L308-338 reuse: checkResolver/checkLocalResolver near-duplicate validators merged into one with optional providerIds cross-check (-25 lines)",
+      "src/capabilities/registry.js:L334-352 shrink: lazy require('./conditions') hoisted; duplicated buildContext+evaluateAll extracted into evaluateSatisfiedConditions (-3 lines)"
+    ],
+    "estimatedLinesRemovable": 28
   },
   "nextAction": {
     "capability": null,
     "reason": null,
     "humanGate": false
   },
-  "revision": 28,
+  "revision": 29,
   "createdAt": "2026-07-16T02:36:29.058Z",
-  "updatedAt": "2026-07-23T01:50:58.938Z"
+  "updatedAt": "2026-07-24T15:19:30.165Z"
 }

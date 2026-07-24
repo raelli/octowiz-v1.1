@@ -74,3 +74,46 @@ describe('lean engineering gate', () => {
     expect(doc.leanGate.selectedRung).toBeNull()
   })
 })
+
+describe('complexity-reduction review', () => {
+  let repo
+
+  beforeEach(() => {
+    repo = makeTempRepo()
+    store.init(repo)
+  })
+
+  afterEach(() => cleanup(repo))
+
+  it('records findings and the removable-lines estimate with a ledger event', () => {
+    const doc = store.mutate(repo, d => operations.recordComplexityReview(d, {
+      status: 'passed',
+      findings: ['src/x.js:L10-40 delete: dead flag path', 'src/y.js:L5 stdlib: hand-rolled deep clone'],
+      estimatedLinesRemovable: 42,
+    }))
+    expect(doc.complexityReview.status).toBe('passed')
+    expect(doc.complexityReview.findings).toHaveLength(2)
+    expect(doc.complexityReview.estimatedLinesRemovable).toBe(42)
+
+    const events = store.history(repo)
+    expect(events.at(-1).type).toBe('complexity-review.recorded')
+    expect(events.at(-1).payload).toEqual({ status: 'passed', findings: 2 })
+  })
+
+  it('cannot be recorded back to pending', () => {
+    expect(() => store.mutate(repo, d => operations.recordComplexityReview(d, {
+      status: 'pending',
+    }))).toThrow(ValidationError)
+  })
+
+  it('rejects blank findings and non-integer line estimates', () => {
+    expect(() => store.mutate(repo, d => operations.recordComplexityReview(d, {
+      status: 'passed',
+      findings: ['  '],
+    }))).toThrow(ValidationError)
+    expect(() => store.mutate(repo, d => operations.recordComplexityReview(d, {
+      status: 'passed',
+      estimatedLinesRemovable: 4.2,
+    }))).toThrow(ValidationError)
+  })
+})

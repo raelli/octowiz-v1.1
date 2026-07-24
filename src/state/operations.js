@@ -11,6 +11,7 @@ const crypto = require('node:crypto')
 const { ValidationError } = require('./errors')
 const {
   ARTIFACT_TYPES,
+  COMPLEXITY_REVIEW_STATUSES,
   CRITERION_STATUSES,
   EVIDENCE_KINDS,
   EVIDENCE_STATUSES,
@@ -151,6 +152,22 @@ function recordLeanGate(doc, { status, selectedRung, decision, rejectedAlternati
   return { doc, events: [{ type: 'lean-gate.recorded', payload: { status, selectedRung: doc.leanGate.selectedRung } }] }
 }
 
+// Records the phase-D complexity-reduction pass outcome. Findings use the
+// lean-engineering review format (`<file>:L<range> <category>: ...`); an
+// empty list with status `passed` means "lean already".
+function recordComplexityReview(doc, { status, findings = [], estimatedLinesRemovable = null }) {
+  if (!COMPLEXITY_REVIEW_STATUSES.includes(status) || status === 'pending')
+    throw new ValidationError(`complexity review status must be one of ${COMPLEXITY_REVIEW_STATUSES.filter(s => s !== 'pending').join(', ')}`)
+  if (estimatedLinesRemovable !== null && !Number.isInteger(estimatedLinesRemovable))
+    throw new ValidationError('estimated removable lines (--lines) must be an integer')
+  doc.complexityReview = {
+    status,
+    findings: findings.map((f, i) => requireText(f, `complexity finding [${i}]`)),
+    estimatedLinesRemovable,
+  }
+  return { doc, events: [{ type: 'complexity-review.recorded', payload: { status, findings: doc.complexityReview.findings.length } }] }
+}
+
 function recordEvidence(doc, { kind, status, ref, note = null, waiverReason = null }) {
   if (!EVIDENCE_KINDS.includes(kind))
     throw new ValidationError(`evidence kind must be one of ${EVIDENCE_KINDS.join(', ')}`)
@@ -183,5 +200,6 @@ module.exports = {
   addCriterion,
   updateCriterion,
   recordLeanGate,
+  recordComplexityReview,
   recordEvidence,
 }
