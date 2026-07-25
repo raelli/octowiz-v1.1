@@ -1,21 +1,60 @@
-# Releasing & Deploying octowiz
+# Releasing & Installing octowiz
 
-Octowiz ships as a Claude Code plugin via the IntegraHub Marketplace. There is no server to deploy — "deploying" means publishing a new GitHub release so the marketplace entry updates and users can run `/plugin update`.
+Octowiz is a **private** Claude Code plugin. It is not published to any marketplace
+feed. There is no server to deploy — "releasing" means bumping the version and
+tagging, after which the private install path picks the new version up from this
+repository directly.
 
-Marketplace URL: `https://llm.integrahub.de/claude-code/marketplace.json`
-
-**Marketplace entry name: `octowiz-aellvanse`.** The plain `octowiz` entry belongs to
-[`raelli/octowiz`](https://github.com/raelli/octowiz) (the 0.9.x memory-stack plugin)
-and must never be upserted from this repo.
+This repository is the install source. Access is limited to collaborators on
+`raelli/octowiz-v1.1`.
 
 ---
 
-## How it works
+## Install path
 
-1. The [`release.yml`](.github/workflows/release.yml) workflow is started manually (`workflow_dispatch`); it bumps the version, pushes the tag, then upserts the new version directly into the LiteLLM marketplace database via the `POST /claude-code/plugins` endpoint. Alternatively, merge a version bump to `main` and push a `v<semver>` tag by hand.
-2. The [`marketplace-sync.yml`](.github/workflows/marketplace-sync.yml) workflow is a safety net that fires on any manually pushed `v*` tag not covered by the release flow, performing the same upsert.
-3. The marketplace JSON reflects the new version immediately after either workflow completes.
-4. Claude Code users update by running `/plugin update` — their local CLI checks the marketplace, downloads the new version, and restarts the hook runner.
+The repository's own `.claude-plugin/marketplace.json` makes it a valid marketplace,
+so Claude Code can install straight from the private repo over authenticated git:
+
+```bash
+claude plugin marketplace add raelli/octowiz-v1.1   # clones via SSH; registers "octowiz-dev"
+claude plugin install octowiz@octowiz-dev
+```
+
+Verify it loaded — anything other than `enabled` means the plugin is inert:
+
+```bash
+claude plugin list | grep -A3 'octowiz@octowiz-dev'
+```
+
+To pick up a new version:
+
+```bash
+claude plugin marketplace update octowiz-dev
+claude plugin update octowiz@octowiz-dev
+```
+
+### Dependency resolution
+
+`mattpocock-skills` is declared with an explicit `marketplace` in
+`.claude-plugin/plugin.json`, and `octowiz-dev` allowlists that marketplace via
+`allowCrossMarketplaceDependenciesOn`. Both parts are required: bare dependency
+names resolve **within the declaring plugin's own marketplace**, and without the
+allowlist Claude Code refuses to auto-install a cross-marketplace dependency on a
+machine where it is not already present.
+
+The `IntegraHub` marketplace therefore still needs to be configured for the
+dependency, even though octowiz itself no longer comes from it.
+
+### Developing against the working tree
+
+To run the plugin from local edits rather than the pushed HEAD, point a marketplace
+at the checkout instead. Only one marketplace may hold the `octowiz-dev` name at a
+time, so remove the repo-sourced one first:
+
+```bash
+claude plugin marketplace remove octowiz-dev
+claude plugin marketplace add /path/to/octowiz-v1.1
+```
 
 ---
 
@@ -24,13 +63,14 @@ and must never be upserted from this repo.
 Run through this before tagging. Every item must be green before the PR merges.
 
 **Pre-merge**
-- [ ] `package.json` version bumped (e.g. `0.9.10` → `0.9.11`)
+- [ ] `package.json` version bumped (e.g. `1.1.2` → `1.1.3`)
 - [ ] `.claude-plugin/plugin.json` version bumped to the same value
-  — both files **must** match; missing `plugin.json` breaks `/plugin update`
+  — both files **must** match; a missing `plugin.json` version breaks plugin update
 - [ ] `pyproject.toml` `version =` bumped to the same value
   — mismatched Python metadata makes `pip show octowiz` and upgrade diagnostics unreliable
 - [ ] `pnpm test` — all tests green locally
 - [ ] `nr lint --fix` run; no lint errors
+- [ ] `claude plugin validate .` passes
 - [ ] PR opened, reviewed, squash-merged to main
 
 **Tag & release**
@@ -39,12 +79,9 @@ Run through this before tagging. Every item must be green before the PR merges.
 - [ ] `release.yml` workflow completes without error
 
 **Post-release verification**
-- [ ] Marketplace reflects the new version:
-  ```bash
-  curl -s https://llm.integrahub.de/claude-code/marketplace.json \
-    | jq -r '.plugins[] | select(.name=="octowiz-aellvanse") | "\(.name) \(.version)"'
-  ```
-- [ ] `/plugin update` in Claude Code installs the new version without error
+- [ ] `claude plugin marketplace update octowiz-dev` succeeds
+- [ ] `claude plugin update octowiz@octowiz-dev` installs the new version without error
+- [ ] `claude plugin list` reports `octowiz@octowiz-dev` as `enabled` at the new version
 - [ ] Hook tags in the terminal show the expected `[--*] HH:MM:SS [octowiz - <action>]` format
 
 ---
@@ -69,21 +106,21 @@ print(m.group(1) if m else 'NOT FOUND')
 "
 ```
 
-All three lines must print the same value. The marketplace entry is written by the CI workflow from `package.json` at tag time.
+All three lines must print the same value.
 
 ---
 
-## Marketplace credentials
+## History
 
-The `release.yml` workflow reads `secrets.LITELLM_MASTER_KEY` (set in the repo's GitHub Actions secrets) to authenticate the marketplace upsert. If the workflow fails with a 401, the key needs rotation in the repo settings.
+Until July 2026 this plugin was published to the IntegraHub marketplace
+(`https://llm.integrahub.de/claude-code/marketplace.json`) under the entry name
+`octowiz-aellvanse`, upserted by CI on every release. That publishing path has been
+removed: `marketplace-sync.yml` is deleted and the upsert step is gone from
+`release.yml`, so a release can no longer re-create the entry.
 
-For a manual upsert:
+The plain `octowiz` marketplace entry belongs to
+[`raelli/octowiz`](https://github.com/raelli/octowiz), the public 0.9.x
+memory-stack plugin. It is unaffected and must never be upserted from this repo.
 
-```bash
-curl -sX POST https://llm.integrahub.de/claude-code/plugins \
-  -H "Authorization: Bearer $LITELLM_MASTER_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"name":"octowiz-aellvanse","source":{"source":"github","repo":"raelli/octowiz-v1.1"},"version":"<version>"}'
-```
-
-The `name` must be `octowiz-aellvanse` — posting `"name":"octowiz"` overwrites the legacy 0.9.x entry (see the warning at the top of this file).
+`secrets.LITELLM_MASTER_KEY` is no longer read by any workflow here and can be
+removed from this repository's Actions secrets.
