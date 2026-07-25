@@ -29,9 +29,15 @@
     "./providers/claude_agent_view"
   ],
   "dependencies": [
-    "mattpocock-skills"
+    {
+      "name": "mattpocock-skills",
+      "marketplace": "IntegraHub"
+    }
   ],
   "optionalDependencies": [
-    "antfu-skills"
+    {
+      "name": "antfu-skills",
+      "marketplace": "IntegraHub"
+    }
   ]
 }
