@@ -4,11 +4,15 @@
     "name": "IntegraHub",
     "email": "support@integrahub.de"
   },
+  "allowCrossMarketplaceDependenciesOn": [
+    "IntegraHub"
+  ],
   "plugins": [
     {
       "name": "octowiz",
       "source": "./",
       "description": "Octowiz Engineering Control Plane — local development install from the working tree."
     }
-  ]
+  ],
+  "description": "Octowiz Engineering Control Plane — private install source for raelli/octowiz-v1.1."
 }
