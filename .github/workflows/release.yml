@@ -49,30 +49,3 @@ jobs:
           git commit -m "chore: bump version to $NEW"
           git tag "v$NEW"
           git push origin main --tags
-
-      # The marketplace entry name is octowiz-aellvanse — the plain "octowiz"
-      # entry belongs to raelli/octowiz (the 0.9.x memory-stack plugin) and
-      # must never be upserted from this repo.
-      - name: Sync version to IntegraHub marketplace
-        env:
-          LITELLM_MASTER_KEY: ${{ secrets.LITELLM_MASTER_KEY }}
-        run: |
-          VERSION="${{ steps.bump.outputs.new_version }}"
-          curl -s -X POST "https://llm.integrahub.de/claude-code/plugins" \
-            -H "Authorization: Bearer $LITELLM_MASTER_KEY" \
-            -H "Content-Type: application/json" \
-            -d "{
-              \"name\": \"octowiz-aellvanse\",
-              \"source\": {\"source\": \"github\", \"repo\": \"raelli/octowiz-v1.1\"},
-              \"version\": \"$VERSION\",
-              \"description\": \"Coding doctrine for real engineering. The skills help observe the current engineering situation, recommends the next useful phase, assembles context, and routes work through a real engineering workflow.\",
-              \"author\": {\"name\": \"razu\"},
-              \"keywords\": [\"engineering\", \"coding skills\", \"workflows\", \"ddd\", \"coding doctrine\"],
-              \"category\": \"Development\"
-            }" | tee /tmp/result.json
-          STATUS=$(jq -r '.status // empty' /tmp/result.json)
-          if [ "$STATUS" != "success" ]; then
-            echo "Marketplace upsert failed: $(cat /tmp/result.json)" >&2
-            exit 1
-          fi
-          echo "Marketplace updated: octowiz-aellvanse $VERSION"
