@@ -251,10 +251,13 @@ Opt in from `~/.claude/settings.json`:
 
 Claude Code's `statusLine` replaces the default status bar, which is why the script prints the directory and model itself rather than the badge alone.
 
-The badge reads `.octowiz/state.json` — the repository store, never the machine runtime store. Runtime session leases are released only by a clean `SessionEnd`, so they keep reporting `active` after a session dies; a badge built on them would claim work is in flight when nothing is running. Two boundaries keep the reading honest:
+The badge reads `.octowiz/state.json` — the repository store, never the machine runtime store. Runtime session leases are released only by a clean `SessionEnd`, so they keep reporting `active` after a session dies; a badge built on them would claim work is in flight when nothing is running. Three boundaries keep the reading honest:
 
 - the upward walk stops at a repository root (`.git`), so a repository without its own state never wears an ancestor's badge
 - `$HOME`'s state applies only when the working directory is exactly `$HOME`
+- the walk never goes above `$HOME`, so nothing inherits a badge from `/Users` or `/`
+
+Fields are read from top-level keys only. Unanchored matching would let a nested `acceptanceCriteria[].status` shadow the work item's own status and silently suppress the badge.
 
 Nothing is printed when there is no engineering state to report, or once `status` is `done`. A trailing `!` marks a blocked work item.
 
